@@ -14,14 +14,19 @@ class Settings(BaseSettings):
     API_HOST: str = os.getenv('API_HOST', '127.0.0.1')
 
     # Emails
-    SMTP_HOST: str = os.getenv('SMTP_HOST')
-    SMTP_USER: str = os.getenv('SMTP_USER')
-    SMTP_PASSWORD: str = os.getenv('SMTP_PASSWORD')
-    EMAILS_FROM_EMAIL: str = os.getenv('EMAILS_FROM_EMAIL')
-    SMTP_TLS: bool = os.getenv('SMTP_TLS', True)
-    SMTP_SSL: bool = os.getenv('SMTP_SSL', False)
+    SMTP_SERVER: str = os.getenv('SMTP_SERVER')
+    SMTP_USERNAME: str = os.getenv('SMTP_USER')
+    SMTP_PASSWORD: str = os.getenv('SMTP_USERNAME')
+    FROM_EMAIL: str = os.getenv('FROM_EMAIL')
+    FROM_MAIL_NAME: str = os.getenv('FROM_MAIL_NAME')
+    SMTP_SSL_TLS: bool = os.getenv('SMTP_SSL_TLS', False)
     SMTP_PORT: int = os.getenv('SMTP_PORT', 587)
 
+    # Sqlite Database
+    DB_SQLITE_URI: str = os.getenv('DB_SQLITE_URI')
+
+    DB_MONGO_URI: str = os.getenv('DB_MONGO_URI')
+    DB_MONGO_DATABASE: str = os.getenv('DB_MONGO_DATABASE')
 
 
 settings = Settings()
