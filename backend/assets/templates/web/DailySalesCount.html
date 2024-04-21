@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    margin: 0;
+    padding: 0;
+  }
+  h2 {
+    color: #333;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 20px;
+  }
+  .note {
+    color: #666;
+    margin-bottom: 20px;
+  }
+  .tree {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  .tree li {
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .tree label {
+    font-weight: bold;
+    font-size: 24px;
+    color: #333;
+    cursor: pointer;
+  }
+  .tree .shipment-title {
+    font-weight: bold;
+    color: #333;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 900px; /* Adjust as needed */
+    display: inline-block;
+  }
+  .tree .warning {
+    color: red;
+    margin-left: 5px;
+  }
+  .btn {
+    margin-right: 10px;
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+    <h2>Shipped</h2>
+    <div class="note"><span>Note: Shipped items are grouped by purchase-date</span></div>
+    <div>
+      <button class="btn" id="expandAll">Expand All</button>
+      <button class="btn" id="collapseAll">Collapse All</button>
+    </div>
+    <ul class="tree">
+        {% for item in data %}
+        <li>
+          <label for="toggle{{ loop.index }}">
+            {% if item.hasZeroShipped %}
+              <span class="warning">⚠️</span>
+            {% endif %}
+            Purchase Date:  {{ item.purchaseDate }}
+          </label>
+          <ul {% if not loop.first %} style="display: none;" {% endif %}>
+            {% for shipment in item.dailyShipments %}
+            <li>
+              <span class="warning">🚚</span>
+              <span class="shipment-title">{{ shipment.title }}</span>
+                <ul>
+                    <li><strong>ASIN:</strong> {{ shipment.asin }}</li>
+                    <li><strong>Seller SKU:</strong> {{ shipment.sellerSKU }}</li>
+                    <li><strong>Total Quantity Shipped:</strong> {{ shipment.totalQuantityShipped }}</li>
+                    <li><strong>Total Quantity Ordered:</strong> {{ shipment.totalQuantityOrdered }}</li>
+                </ul>
+            </li>
+            {% endfor %}
+          </ul>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <script>
+      // Add click event listener to Purchase Date labels
+      document.querySelectorAll('.tree label').forEach(function(label) {
+        label.addEventListener('click', function() {
+          var ul = label.nextElementSibling;
+          ul.style.display = ul.style.display === 'none' ? 'block' : 'none';
+        });
+      });
+
+      // Add event listener for Expand All button
+      document.getElementById('expandAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree ul').forEach(function(ul) {
+          ul.style.display = 'block';
+        });
+      });
+
+      // Add event listener for Collapse All button
+      document.getElementById('collapseAll').addEventListener('click', function() {
+        document.querySelectorAll('.tree ul').forEach(function(ul) {
+          ul.style.display = 'none';
+        });
+      });
+    </script>
+</body>
+</html>

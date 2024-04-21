@@ -12,7 +12,8 @@ user = APIRouter(tags=['user information'])
 def get_current_user(token: str) -> User:
     pass
 
-@user.get('/user', summary='Get user information')
+@user.get('/user', summary='Get user information',
+          response_model=ResponseSuccess[User_Pydantic])
 async def user_info(user: User = Depends(get_current_user)):
     return ResponseSuccess(data=await User_Pydantic.from_tortoise_orm(user))
 

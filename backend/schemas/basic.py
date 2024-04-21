@@ -1,6 +1,8 @@
 from enum  import Enum
-from typing import Any
+from typing import Any, Generic, TypeVar
 from pydantic import BaseModel, Field
+
+T = TypeVar('T')
 
 class CodeEnum(str, Enum):
     Success = 200
@@ -10,10 +12,10 @@ class CodeEnum(str, Enum):
     NotFound = 404
     InternalServerError = 500
 
-class BasicResponse(BaseModel):
+class BasicResponse(BaseModel, Generic[T]):
     code: CodeEnum = Field( default=CodeEnum.Success, description="Response code")
     message: str = Field(default="Requst successful", description="Response message")
-    data: Any = Field(default=None, description="Response data")
+    data: T = Field(default=None, description="Response data")
 
 class ResponseSuccess(BasicResponse):
     pass

@@ -6,6 +6,10 @@ __pycache__
 *.pyc
 *.pyo
 *.log
+logs
+.temp
 database
+ssh
+
 
 
