@@ -64,7 +64,7 @@
 </head>
 <body>
     <h2>Shipped</h2>
-    <div class="note"><span>Note: Shipped items are grouped by purchase-date</span></div>
+    <div class="note"><span>Note: Shipped items are grouped by purchase-date. Canceled items are not included in the count.</span></div>
     <div>
       <button class="btn" id="expandAll">Expand All</button>
       <button class="btn" id="collapseAll">Collapse All</button>
@@ -73,15 +73,17 @@
         {% for item in data %}
         <li>
           <label for="toggle{{ loop.index }}">
-            {% if item.hasZeroShipped %}
-              <span class="warning">⚠️</span>
-            {% endif %}
-            Purchase Date:  {{ item.purchaseDate }}
+            Purchase Date [{{item.dailyShippedItemsCount}}/{{item.dailyOrdersItemsCount}}]:  
+            {{ item.purchaseDate }}
           </label>
           <ul {% if not loop.first %} style="display: none;" {% endif %}>
             {% for shipment in item.dailyShipments %}
             <li>
-              <span class="warning">🚚</span>
+              {% if shipment.totalQuantityShipped < shipment.totalQuantityOrdered %}
+                <span class="warning">⚠️</span>
+              {% else %}
+                <span class="warning">✅</span>
+              {% endif %}
               <span class="shipment-title">{{ shipment.title }}</span>
                 <ul>
                     <li><strong>ASIN:</strong> {{ shipment.asin }}</li>
@@ -107,14 +109,14 @@
 
       // Add event listener for Expand All button
       document.getElementById('expandAll').addEventListener('click', function() {
-        document.querySelectorAll('.tree ul').forEach(function(ul) {
+        document.querySelectorAll('.tree label ~ ul').forEach(function(ul) {
           ul.style.display = 'block';
         });
       });
 
       // Add event listener for Collapse All button
       document.getElementById('collapseAll').addEventListener('click', function() {
-        document.querySelectorAll('.tree ul').forEach(function(ul) {
+        document.querySelectorAll('.tree label ~ ul').forEach(function(ul) {
           ul.style.display = 'none';
         });
       });

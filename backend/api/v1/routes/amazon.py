@@ -25,7 +25,11 @@ async def get_daily_ordered_items_count(days_ago: int = 7) -> Any:
         daily_shipments = [DailyShipment(**item) for item in day['dailyShipments']]
         # Create DailySalesCountVO object
         vo = DailySalesCountVO(purchaseDate=day['purchaseDate'],
+                               hasUnshippedOrderItems=day['dailyShippedItemsCount'] < day['dailyOrdersItemsCount'],
+                               dailyShippedItemsCount=day['dailyShippedItemsCount'],
+                               dailyOrdersItemsCount=day['dailyOrdersItemsCount'],
                                dailyShipments=daily_shipments)
+
         daily_sales_vo.append(vo)
     return ResponseSuccess(data=daily_sales_vo, )
 

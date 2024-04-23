@@ -14,13 +14,7 @@ class Settings(BaseSettings):
     API_HOST: str = os.getenv('API_HOST', '127.0.0.1')
 
     # Emails
-    SMTP_SERVER: str
-    SMTP_USERNAME: str
-    SMTP_PASSWORD: str
-    FROM_EMAIL: str
-    FROM_MAIL_NAME: str
-    SMTP_SSL_TLS: bool = os.getenv('SMTP_SSL_TLS', 'False').strip().lower() in ['true', '1', 'yes', 'y']
-    SMTP_PORT: int = os.getenv('SMTP_PORT', 587)
+    SMTP_SETTINGS: str  # Path to SMTP settings file (JSON)
 
     # Sqlite Database
     DB_SQLITE_URI: str
@@ -28,9 +22,15 @@ class Settings(BaseSettings):
     DB_MONGO_URI: str
     DB_MONGO_PORT: int = os.getenv('DB_MONGO_PORT', 27017)
 
-    AMAZON_ACCESS_KEY:str
-    METRO_ACCESS_KEY:str
-    KAUFLAND_ACCESS_KEY:str
+    AMAZON_ACCESS_KEY: str
+    METRO_ACCESS_KEY: str
+    KAUFLAND_ACCESS_KEY: str
+
+    SCHEDULER_INTERVAL_SECONDS: int = os.getenv('SCHEDULER_INTERVAL_SECONDS', 3600)
+    SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
+    SCHEDULER_KAUFLAND_ORDERS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_KAUFLAND_ORDERS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
+
+    SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
 
 
     def __init__(self, _env_file=None, **values):
@@ -38,4 +38,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings(_env_file=None)
-pass

@@ -1,0 +1,16 @@
+version: '3.0'
+
+services:
+    ecommerce-api:
+        container_name: ecommerce-api
+        # restart: always
+        network_mode: host
+        ports:
+            - "5018:5018"
+        env_file:
+            - conf/prod.env
+        volumes:
+            - /home/app/ecommerce/assets:/code/assets
+            - /home/app/ecommerce/logs:/code/logs
+            - /home/app/ecommerce/database:/code/database
+        image: yixing/ecommerce-api

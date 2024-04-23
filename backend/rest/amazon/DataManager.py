@@ -1,10 +1,15 @@
 import time
 from datetime import datetime, timedelta
+from random import random
 
 import pymongo
 from pymongo.errors import ServerSelectionTimeoutError
-from .order import AmazonOrderAPI, Marketplaces, DATETIME_PATTERN, now
+from .base import DATETIME_PATTERN, now
+from .order import AmazonOrderAPI, Marketplaces
 from core.log import logger
+from utils.mail import send_email_background
+from .product import AmazonCatalogAPI
+
 
 class AmazonOrderMongoDBManager:
     def __init__(self, db_host: str, db_port: int,
@@ -17,7 +22,11 @@ class AmazonOrderMongoDBManager:
         self.db_client = None
 
     def need_update(self, order: dict) -> bool:
-        # order: Fetched order from Amazon API
+        """
+        Check if the order needs to be updated.
+        :param order: Fetched order from Amazon API
+        :return:
+        """
         # Check if the order already exists in MongoDB
         mdb_orders_collection = self.db_client[self.db_name]["orders"]  # Select the collection for orders
         order_id = order["AmazonOrderId"]
@@ -40,19 +49,13 @@ class AmazonOrderMongoDBManager:
         If the order does not exist in MongoDB, insert it.
         """
         mdb_orders_collection = self.db_client[self.db_name]["orders"]
-        # Check if the order already exists in MongoDB
-        order_from_db = mdb_orders_collection.find_one({"_id": order_id})
 
         if order is None:  # Fetch the order from Amazon API if not provided
             order = self.api.get_order(order_id).payload
             time.sleep(0.5)  # Wait for 1 second to avoid throttling
 
-        if order_from_db:  # Order already exists in MongoDB
-            # Get the items of the order from MongoDB, because it's never be updated
-            order_items = order_from_db["items"]
-        else:
-            order_items = self.api.get_order_items(order_id).payload
-            time.sleep(0.5)  # Wait for 1 second to avoid throttling
+        order_items = self.api.get_order_items(order_id).payload
+        time.sleep(0.5)  # Wait for 1 second to avoid throttling
 
         document = {
             "_id": order_id,
@@ -72,10 +75,14 @@ class AmazonOrderMongoDBManager:
     def save_all_orders(self, days_ago=30, **kwargs):
         orders = self.api.get_all_orders(days_ago=days_ago, **kwargs)
         for order in orders:
-            order_id = order['AmazonOrderId']
-            if self.need_update(order):
-                logger.info(f"Fetched order [{order_id}] updated at {order['LastUpdateDate']}...")
-                self.save_order(order_id, order=order)
+            try:
+                order_id = order['AmazonOrderId']
+                if self.need_update(order):
+                    logger.info(f"Fetched order [{order_id}] purchased at {order['PurchaseDate']}...")
+                    self.save_order(order_id, order=order)
+            except Exception as e:
+                logger.error(f"Error fetching order [{order_id}]: {e}")
+                time.sleep(1)  # Wait for 1 second to avoid throttling
 
     def find_orders(self, **kwargs) -> list:
         mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name]["orders"]
@@ -85,59 +92,76 @@ class AmazonOrderMongoDBManager:
     # Group orders by date, count the number of items sold each day.
     def get_daily_mfn_sales(self, days_ago=7):
         start_date = datetime.now() - timedelta(days=days_ago)
-        # 聚合管道，用于统计每个产品每天的寄出数量
+        # Pipeline to group orders by date, count the number of items sold each day.
         pipeline = [
             {
-                "$unwind": "$items.OrderItems"
-            },
-            {
-                "$project": {
-                    "_id": 0,
-                    "orderDate": {"$dateFromString": {"dateString": "$order.PurchaseDate"}},
-                    "asin": "$items.OrderItems.ASIN",
-                    "quantityOrdered": "$items.OrderItems.QuantityOrdered",
-                    "quantityShipped": "$items.OrderItems.QuantityShipped",
-                    "sellerSKU": "$items.OrderItems.SellerSKU",
-                    "fulfillmentChannel": "$order.FulfillmentChannel",
-                    "title": "$items.OrderItems.Title"
-                }
-            },
-            {
-                "$match": {
-                    "orderDate": {"$gte": start_date},
-                    "fulfillmentChannel": "MFN"
-                }
-            },
-            {
-                "$group": {
-                    "_id": {
-                        "date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$orderDate"}},
-                        "asin": "$asin"
+                '$unwind': '$items.OrderItems'  # Unwind the items array to get each item
+            }, {
+                '$project': {
+                    '_id': 0,
+                    'orderDate': {
+                        '$dateFromString': {
+                            'dateString': '$order.PurchaseDate'
+                        }
                     },
-                    "totalQuantityOrdered": {"$sum": "$quantityOrdered"},
-                    "totalQuantityShipped": {"$sum": "$quantityShipped"},
-                    "sellerSKU": {"$first": "$sellerSKU"},
-                    "title": {"$first": "$title"},
+                    'asin': '$items.OrderItems.ASIN',
+                    'quantityOrdered': '$items.OrderItems.QuantityOrdered',
+                    'quantityShipped': '$items.OrderItems.QuantityShipped',
+                    'sellerSKU': '$items.OrderItems.SellerSKU',
+                    'title': '$items.OrderItems.Title',
+                    'fulfillmentChannel': '$order.FulfillmentChannel',
+                    'orderStatus': '$order.OrderStatus'
                 }
-            },
-            {
-                "$group": {
-                    "_id": "$_id.date",
-                    "purchaseDate": {"$first": "$_id.date"},
-                    "dailyShipments": {
-                        "$push": {
-                            "asin": "$_id.asin",
-                            "sellerSKU": "$sellerSKU",
-                            "totalQuantityShipped": "$totalQuantityShipped",
-                            "totalQuantityOrdered": "$totalQuantityOrdered",
-                            "title": "$title",
+            }, {
+                '$match': {  # Filter orders that are not MFN and not canceled, and within the specified time range.
+                    'orderStatus': {'$ne': 'Canceled'},
+                    'fulfillmentChannel': 'MFN',
+                    "orderDate": {"$gte": start_date},
+                }
+            }, {
+                '$group': {
+                    '_id': {
+                        'date': {
+                            '$dateToString': {
+                                'format': '%Y-%m-%d',
+                                'date': '$orderDate'
+                            }
+                        },
+                        'asin': '$asin'
+                    },
+                    'totalQuantityOrdered': {
+                        '$sum': '$quantityOrdered'
+                    },
+                    'totalQuantityShipped': {
+                        '$sum': '$quantityShipped'
+                    },
+                    'sellerSKU': {
+                        '$first': '$sellerSKU'
+                    },
+                    'title': {
+                        '$first': '$title'
+                    }
+                }
+            }, {
+                '$group': {
+                    '_id': '$_id.date',
+                    'purchaseDate': {'$first': '$_id.date'},
+                    'dailyOrdersItemsCount': {'$sum': '$totalQuantityOrdered'},
+                    'dailyShippedItemsCount': {'$sum': '$totalQuantityShipped'},
+                    'dailyShipments': {
+                        '$push': {
+                            'asin': '$_id.asin',
+                            'sellerSKU': '$sellerSKU',
+                            'totalQuantityShipped': '$totalQuantityShipped',
+                            'totalQuantityOrdered': '$totalQuantityOrdered',
+                            'title': '$title'
                         }
                     }
                 }
-            },
-
-            {
-                "$sort": {"_id": -1}
+            }, {
+                '$sort': {
+                    '_id': -1
+                }
             }
         ]
         mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name]["orders"]
@@ -169,3 +193,83 @@ class AmazonOrderMongoDBManager:
 
 每小时轮询一次，获取最近7天的订单，不包括亚马逊物流订单。
 """
+
+
+class AmazonCatalogManager:
+
+    def __init__(self, db_host: str, db_port: int,
+                 marketplace=Marketplaces.DE):
+        self.api = AmazonCatalogAPI(marketplace=marketplace)
+        self.db_host = db_host
+        self.db_port = db_port
+        self.db_name = "amazon_data"
+        self.db_collection = "catalog"
+        self.db_client = None
+
+    def save_catalog(self, asin):
+        mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
+        # 从数据库中查找目录项
+        item = mdb_catalog_collection.find_one({"_id": asin})
+        # 如果数据库中没有此目录项，则从API获取
+        if item is None:
+            logger.info(f"Detected new catalog item [{asin}]...")
+            item = self.api.get_catalog_item(asin)
+            time.sleep(1)
+        # 有 10% 的概率从API获取，并更新数据库
+        else:
+            if random() < 0.05:
+                logger.info(f"Random selected catalog item [{asin}] to fetch again...")
+                item = self.api.get_catalog_item(asin)
+                time.sleep(1)
+            else:
+                item = item['catalogItem']
+
+
+        document = {
+            "_id": asin,
+            "fetchAt": now(),
+            "catalogItem": item,
+        }
+
+        result = mdb_catalog_collection.update_one(
+            {"_id": asin},
+            {"$set": document},
+            upsert=True
+        )
+        return result
+
+    def save_all_catalogs(self):
+        # TODO 从mongodb中获取asin列表
+        pipelines = [
+            {
+                '$unwind': '$items.OrderItems'
+            }, {
+                '$group': {
+                    '_id': None,
+                    'asinList': {
+                        '$addToSet': '$items.OrderItems.ASIN'
+                    }
+                }
+            }
+        ]
+        mdb_catalog_collection = self.db_client[self.db_name]["orders"]
+        results = mdb_catalog_collection.aggregate(pipelines)
+        asinList = results.next()['asinList']
+
+        # TODO 从api获取catalog, 并且保存到mongodb中
+        for asin in asinList:
+            self.save_catalog(asin)
+
+    def __enter__(self):
+        try:
+            self.db_client = pymongo.MongoClient(self.db_host, self.db_port, serverSelectionTimeoutMS=10000)  # Connect
+            names = self.db_client.list_database_names()
+        except ServerSelectionTimeoutError as e:
+            logger.error(f"Error connecting to MongoDB: {e}")
+            raise RuntimeError("Error connecting to MongoDB")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.db_client:
+            self.db_client.close()
+        del self
