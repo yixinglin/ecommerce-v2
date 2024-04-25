@@ -47,6 +47,19 @@
     max-width: 900px; /* Adjust as needed */
     display: inline-block;
   }
+  .group-product-item {
+    display: flex;
+  }
+  .gpi {
+    width: 760px;
+    float: left;
+    margin-left: 20px;
+  }
+  .tree .thumbnail {
+    max-width: 100px;
+    max-height: 100px;
+    margin-left: auto;
+  }
   .tree .warning {
     color: red;
     margin-left: 5px;
@@ -64,7 +77,7 @@
 </head>
 <body>
     <h2>Shipped</h2>
-    <div class="note"><span>Note: Shipped items are grouped by purchase-date. Canceled items are not included in the count.</span></div>
+    <div class="note"><span>Note: Canceled items are not included in the count.</span></div>
     <div>
       <button class="btn" id="expandAll">Expand All</button>
       <button class="btn" id="collapseAll">Collapse All</button>
@@ -73,7 +86,7 @@
         {% for item in data %}
         <li>
           <label for="toggle{{ loop.index }}">
-            Purchase Date [{{item.dailyShippedItemsCount}}/{{item.dailyOrdersItemsCount}}]:  
+            Purchase Date [{{item.dailyShippedItemsCount}}/{{item.dailyOrdersItemsCount}}]:
             {{ item.purchaseDate }}
           </label>
           <ul {% if not loop.first %} style="display: none;" {% endif %}>
@@ -85,12 +98,19 @@
                 <span class="warning">✅</span>
               {% endif %}
               <span class="shipment-title">{{ shipment.title }}</span>
-                <ul>
-                    <li><strong>ASIN:</strong> {{ shipment.asin }}</li>
-                    <li><strong>Seller SKU:</strong> {{ shipment.sellerSKU }}</li>
-                    <li><strong>Total Quantity Shipped:</strong> {{ shipment.totalQuantityShipped }}</li>
-                    <li><strong>Total Quantity Ordered:</strong> {{ shipment.totalQuantityOrdered }}</li>
-                </ul>
+                <div class="group-product-item">
+                    <div class="gpi">
+                        <ul>
+                            <li><strong>ASIN:</strong> {{ shipment.asin }}</li>
+                            <li><strong>Seller SKU:</strong> {{ shipment.sellerSKU }}</li>
+                            <li><strong>Total Quantity Shipped:</strong> {{ shipment.totalQuantityShipped }}</li>
+                            <li><strong>Total Quantity Ordered:</strong> {{ shipment.totalQuantityOrdered }}</li>
+                        </ul>
+                    </div>
+                    <div class="gpi">
+                        <img class="thumbnail" src="{{shipment.imageUrl}}" alt="Thumbnail"  height="80">
+                    </div>
+                </div>
             </li>
             {% endfor %}
           </ul>

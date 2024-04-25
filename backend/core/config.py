@@ -12,6 +12,7 @@ class Settings(BaseSettings):
 
     API_PORT: int = os.getenv('API_PORT', 5000)
     API_HOST: str = os.getenv('API_HOST', '127.0.0.1')
+    API_DOMAIN: str = os.getenv('API_DOMAIN', 'http://localhost')
 
     # Emails
     SMTP_SETTINGS: str  # Path to SMTP settings file (JSON)

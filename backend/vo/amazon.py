@@ -8,6 +8,7 @@ class DailyShipment(BaseModel):
     totalQuantityShipped: int
     totalQuantityOrdered: int
     title: str
+    imageUrl: str = None
 
 
 class DailySalesCountVO(BaseModel):

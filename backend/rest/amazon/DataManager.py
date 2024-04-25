@@ -7,7 +7,6 @@ from pymongo.errors import ServerSelectionTimeoutError
 from .base import DATETIME_PATTERN, now
 from .order import AmazonOrderAPI, Marketplaces
 from core.log import logger
-from utils.mail import send_email_background
 from .product import AmazonCatalogAPI
 
 
@@ -142,7 +141,9 @@ class AmazonOrderMongoDBManager:
                         '$first': '$title'
                     }
                 }
-            }, {
+            },
+            {'$sort': {'sellerSKU': 1 }},
+            {
                 '$group': {
                     '_id': '$_id.date',
                     'purchaseDate': {'$first': '$_id.date'},
@@ -259,6 +260,20 @@ class AmazonCatalogManager:
         # TODO 从api获取catalog, 并且保存到mongodb中
         for asin in asinList:
             self.save_catalog(asin)
+
+    def get_catalog_item(self, asin):
+        mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
+        item = mdb_catalog_collection.find_one({"_id": asin})
+        if item is None:
+            logger.info(f"Catalog item [{asin}] not found in MongoDB...")
+            return None
+        else:
+            return item['catalogItem']
+
+    def get_all_catalog_items(self):
+        mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
+        items = mdb_catalog_collection.find()
+        return list(items)
 
     def __enter__(self):
         try:
