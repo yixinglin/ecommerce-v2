@@ -14,6 +14,9 @@ class AmazonOrderAPI:
         credentials = self.key.__dict__
         self.orderClient = Orders(credentials=credentials, marketplace=self.marketplace)
 
+    def get_account_id(self):
+        return self.key.get_account_id()
+
     def get_all_orders(self, days_ago=30, **kwargs):
         # Calculate the start date based on the specified days ago
         start_date = (today() - timedelta(days=days_ago)).isoformat()

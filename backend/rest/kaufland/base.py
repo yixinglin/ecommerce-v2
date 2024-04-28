@@ -13,6 +13,7 @@ from core.log import logger
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
 
+
 class Storefront(Enum):
     DE = 'de'
     US = 'us'
@@ -26,6 +27,7 @@ def now():
 
 def today():
     return datetime.now().date()
+
 
 class Client:
 
@@ -62,8 +64,8 @@ class Client:
 
 class Orders:
 
-    def __init__(self, storefront: Storefront = Storefront.DE, **kwargs):
-        self.client: Client = Client.from_json()
+    def __init__(self, client=Client.from_json(), storefront: Storefront = Storefront.DE, **kwargs):
+        self.client = client
         self.base_url = 'https://sellerapi.kaufland.com/v2'
         self.base_order_url = f'{self.base_url}/orders'
         self.storefront = storefront
@@ -79,7 +81,7 @@ class Orders:
         url = f'{self.base_order_url}/{order_id}'
         # url = f'{self.base_order_url}/{order_id}?embedded=order_invoices'
         headers = self.client.create_request_headers("GET", url, "",
-                                              self.client_key, self.secret_key)
+                                                     self.client_key, self.secret_key)
         logger.info(f"Fetching Kaufland order [{order_id}]")
         res = requests.get(url, headers=headers)
         if res.status_code != 200:

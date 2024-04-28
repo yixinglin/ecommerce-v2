@@ -13,4 +13,4 @@ services:
             - /home/app/ecommerce/assets:/code/assets
             - /home/app/ecommerce/logs:/code/logs
             - /home/app/ecommerce/database:/code/database
-        image: yixing/ecommerce-docker
+        image: yixing/ecommerce-api

@@ -57,6 +57,7 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
             "_id": order_id,
             "order": order,
             "items": order_items,
+            "account_id": self.api.get_account_id(),
             "fetchedAt": now()
         }
 
@@ -139,7 +140,7 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
                     }
                 }
             },
-            {'$sort': {'sellerSKU': 1 }},
+            {'$sort': {'sellerSKU': 1}},
             {
                 '$group': {
                     '_id': '$_id.date',
@@ -205,7 +206,6 @@ class AmazonCatalogManager(MongoDBDataManager):
             else:
                 item = item['catalogItem']
 
-
         document = {
             "_id": asin,
             "fetchAt": now(),
@@ -255,4 +255,3 @@ class AmazonCatalogManager(MongoDBDataManager):
         mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
         items = mdb_catalog_collection.find()
         return list(items)
-
