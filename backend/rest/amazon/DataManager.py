@@ -1,24 +1,21 @@
 import time
 from datetime import datetime, timedelta
 from random import random
-
 import pymongo
-from pymongo.errors import ServerSelectionTimeoutError
+from core.db import MongoDBDataManager
 from .base import DATETIME_PATTERN, now
 from .order import AmazonOrderAPI, Marketplaces
 from core.log import logger
 from .product import AmazonCatalogAPI
 
 
-class AmazonOrderMongoDBManager:
+class AmazonOrderMongoDBManager(MongoDBDataManager):
     def __init__(self, db_host: str, db_port: int,
                  marketplace=Marketplaces.DE):
+        super().__init__(db_host, db_port)
         self.api = AmazonOrderAPI(marketplace=marketplace)
-        self.db_host = db_host
-        self.db_port = db_port
         self.db_name = "amazon_data"
         self.db_collection = "orders"
-        self.db_client = None
 
     def need_update(self, order: dict) -> bool:
         """
@@ -27,7 +24,7 @@ class AmazonOrderMongoDBManager:
         :return:
         """
         # Check if the order already exists in MongoDB
-        mdb_orders_collection = self.db_client[self.db_name]["orders"]  # Select the collection for orders
+        mdb_orders_collection = self.db_client[self.db_name][self.db_collection]  # Select the collection for orders
         order_id = order["AmazonOrderId"]
         order_from_db = mdb_orders_collection.find_one({"_id": order_id})
         if order_from_db:  # Order already exists in MongoDB
@@ -47,7 +44,7 @@ class AmazonOrderMongoDBManager:
         Save the order to MongoDB. If the order already exists in MongoDB, update it.
         If the order does not exist in MongoDB, insert it.
         """
-        mdb_orders_collection = self.db_client[self.db_name]["orders"]
+        mdb_orders_collection = self.db_client[self.db_name][self.db_collection]
 
         if order is None:  # Fetch the order from Amazon API if not provided
             order = self.api.get_order(order_id).payload
@@ -77,14 +74,14 @@ class AmazonOrderMongoDBManager:
             try:
                 order_id = order['AmazonOrderId']
                 if self.need_update(order):
-                    logger.info(f"Fetched order [{order_id}] purchased at {order['PurchaseDate']}...")
+                    logger.info(f"Fetched Amazon order [{order_id}] purchased at {order['PurchaseDate']}...")
                     self.save_order(order_id, order=order)
             except Exception as e:
                 logger.error(f"Error fetching order [{order_id}]: {e}")
                 time.sleep(1)  # Wait for 1 second to avoid throttling
 
     def find_orders(self, **kwargs) -> list:
-        mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name]["orders"]
+        mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name][self.db_collection]
         results = mdb_orders_collection.find(**kwargs)
         return list(results)
 
@@ -165,24 +162,9 @@ class AmazonOrderMongoDBManager:
                 }
             }
         ]
-        mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name]["orders"]
+        mdb_orders_collection: pymongo.collection.Collection = self.db_client[self.db_name][self.db_collection]
         results = mdb_orders_collection.aggregate(pipeline)
         return list(results)
-
-    def __enter__(self):
-        # Connect to MongoDB
-        try:
-            self.db_client = pymongo.MongoClient(self.db_host, self.db_port, serverSelectionTimeoutMS=10000)  # Connect
-            names = self.db_client.list_database_names()
-        except ServerSelectionTimeoutError as e:
-            logger.error(f"Error connecting to MongoDB: {e}")
-            raise RuntimeError("Error connecting to MongoDB")
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.db_client:
-            self.db_client.close()
-        del self
 
 
 # 插入数据
@@ -196,16 +178,14 @@ class AmazonOrderMongoDBManager:
 """
 
 
-class AmazonCatalogManager:
+class AmazonCatalogManager(MongoDBDataManager):
 
     def __init__(self, db_host: str, db_port: int,
                  marketplace=Marketplaces.DE):
+        super().__init__(db_host, db_port)
         self.api = AmazonCatalogAPI(marketplace=marketplace)
-        self.db_host = db_host
-        self.db_port = db_port
         self.db_name = "amazon_data"
         self.db_collection = "catalog"
-        self.db_client = None
 
     def save_catalog(self, asin):
         mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
@@ -253,6 +233,7 @@ class AmazonCatalogManager:
                 }
             }
         ]
+        # Get all ASINs from orders collection
         mdb_catalog_collection = self.db_client[self.db_name]["orders"]
         results = mdb_catalog_collection.aggregate(pipelines)
         asinList = results.next()['asinList']
@@ -275,16 +256,3 @@ class AmazonCatalogManager:
         items = mdb_catalog_collection.find()
         return list(items)
 
-    def __enter__(self):
-        try:
-            self.db_client = pymongo.MongoClient(self.db_host, self.db_port, serverSelectionTimeoutMS=10000)  # Connect
-            names = self.db_client.list_database_names()
-        except ServerSelectionTimeoutError as e:
-            logger.error(f"Error connecting to MongoDB: {e}")
-            raise RuntimeError("Error connecting to MongoDB")
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.db_client:
-            self.db_client.close()
-        del self

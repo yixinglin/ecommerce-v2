@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
 
+
 def now():
     return datetime.now().strftime(DATETIME_PATTERN)
 

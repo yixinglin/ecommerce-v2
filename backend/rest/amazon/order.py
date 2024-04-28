@@ -30,9 +30,9 @@ class AmazonOrderAPI:
 
     def get_order(self, order_id):
         result = self.orderClient.get_order(order_id)
-        logger.info(f"Fetching order {order_id} updated at {result.payload['LastUpdateDate']}")
+        logger.info(f"Fetching Amazon order {order_id} updated at {result.payload['LastUpdateDate']}")
         return result
 
     def get_order_items(self, order_id):
-        logger.info(f"Fetching items for order [{order_id}]")
+        logger.info(f"Fetching Amazon items for order [{order_id}]")
         return self.orderClient.get_order_items(order_id)

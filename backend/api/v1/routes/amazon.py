@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Any, List
 from fastapi import APIRouter, Request, Response
 from schemas import ResponseSuccess
@@ -9,7 +8,7 @@ from vo.amazon import DailyShipment, DailySalesCountVO
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-amz_order = APIRouter()
+amz_order = APIRouter(tags=['AMAZON API'])
 
 
 def get_asin_image_url_dict() -> dict:
