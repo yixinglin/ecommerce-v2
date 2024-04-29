@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from typing import Tuple
 from sp_api.base import Marketplaces
 from sp_api.api import Sellers
 from core.config import settings

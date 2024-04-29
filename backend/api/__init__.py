@@ -1,9 +1,11 @@
+import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 from core.db import init_db_sqlite
 from core.log import logger
-from schemas import ResponseFail
+from fastapi.responses import JSONResponse
+from schemas.basic import CodeEnum
 from .v1 import v1
 import os
 
@@ -48,9 +50,19 @@ async def global_exception_handler(request: Request, exc: Exception):
     """
     Global exception handler
     """
-    logger.error(f"An exception occurred: {exc}")
-    return ResponseFail(message="Internal server error", code=500)
+    err_detail = traceback.format_exc()
+    logger.error(f"An exception occurred: {err_detail}")
+    return JSONResponse(status_code=int(CodeEnum.InternalServerError.value),
+                        content={"message": f"Internal server error. \n{err_detail}"})
 
+@app.exception_handler(RuntimeError)
+async def runtime_error_handler(request: Request, exc: RuntimeError):
+    """
+    Runtime exception handler
+    """
+    logger.error(f"A runtime error occurred: {exc}")
+    return JSONResponse(status_code=int(CodeEnum.Fail.value),
+                        content={"message": str(exc)})
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -64,4 +76,6 @@ async def log_requests(request: Request, call_next):
     response = await call_next(request)
     # Return response information
     logger.info(f"Response: {response.status_code}")
+    # response.headers["Cache-Control"] = "max-age=3600, public"
+    # headers = {"Cache-Control": "max-age=3600, public"},
     return response

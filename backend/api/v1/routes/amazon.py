@@ -7,6 +7,7 @@ from core.config import settings
 from vo.amazon import DailyShipment, DailySalesCountVO
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import JSONResponse
 
 amz_order = APIRouter(tags=['AMAZON API'])
 
@@ -43,19 +44,21 @@ def get_daily_ordered_items_count(response: Response, days_ago: int = 7) -> Any:
     asin_image_url = get_asin_image_url_dict()
     for day in daily_sales_vo:
         for shipment in day.dailyShipments:
-            shipment.imageUrl = asin_image_url[shipment.asin]
+            try:
+                shipment.imageUrl = asin_image_url[shipment.asin]
+            except KeyError:
+                shipment.imageUrl = ""
+    response.headers["X-Cat-Dog"] = "alone in the world"
     return ResponseSuccess(data=daily_sales_vo, )
 
 
 # Show daily ordered items count using html template
 @amz_order.get("/orders/ordered-items-count/daily/{days_ago}/treeview",
                summary="Get daily ordered items count in html format",
-               response_class=HTMLResponse)
+               response_class=HTMLResponse,)
 def view_daily_ordered_items_count_html(days_ago: int, request: Request, response: Response, ) -> Any:
     data = get_daily_ordered_items_count(days_ago=days_ago, response=response)
     templates = Jinja2Templates(directory=os.path.join("assets", "templates", "web"))
-    response.headers["Cache-Control"] = "max-age=3600"
-    # response.headers["xtoken"] = "asdasdasdas"
     return templates.TemplateResponse(name="DailySalesCount.html",
                                       request=request,
                                       headers={"Cache-Control": "max-age=3600, public"},

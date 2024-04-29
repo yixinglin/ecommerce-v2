@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from random import random
 import pymongo
 from core.db import MongoDBDataManager
-from .base import DATETIME_PATTERN, now
+from .base import DATETIME_PATTERN, now, AmazonSpAPIKey
 from .order import AmazonOrderAPI, Marketplaces
 from core.log import logger
 from .product import AmazonCatalogAPI
@@ -11,9 +11,10 @@ from .product import AmazonCatalogAPI
 
 class AmazonOrderMongoDBManager(MongoDBDataManager):
     def __init__(self, db_host: str, db_port: int,
-                 marketplace=Marketplaces.DE):
+                 marketplace=Marketplaces.DE, key_index=0):
         super().__init__(db_host, db_port)
-        self.api = AmazonOrderAPI(marketplace=marketplace)
+        api_key = AmazonSpAPIKey.from_json(key_index)
+        self.api = AmazonOrderAPI(api_key=api_key, marketplace=marketplace)
         self.db_name = "amazon_data"
         self.db_collection = "orders"
 
@@ -182,9 +183,10 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
 class AmazonCatalogManager(MongoDBDataManager):
 
     def __init__(self, db_host: str, db_port: int,
-                 marketplace=Marketplaces.DE):
+                 marketplace=Marketplaces.DE, key_index=0):
         super().__init__(db_host, db_port)
-        self.api = AmazonCatalogAPI(marketplace=marketplace)
+        api_key = AmazonSpAPIKey.from_json(key_index)
+        self.api = AmazonCatalogAPI(api_key=api_key, marketplace=marketplace)
         self.db_name = "amazon_data"
         self.db_collection = "catalog"
 

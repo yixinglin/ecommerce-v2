@@ -14,7 +14,7 @@ class CodeEnum(str, Enum):
 
 class BasicResponse(BaseModel, Generic[T]):
     code: CodeEnum = Field( default=CodeEnum.Success, description="Response code")
-    message: str = Field(default="Requst successful", description="Response message")
+    message: str = Field(default="Request successful", description="Response message")
     data: T = Field(default=None, description="Response data")
 
 class ResponseSuccess(BasicResponse):
