@@ -8,11 +8,17 @@ from .base import AmazonSpAPIKey, today
 
 # This class represents the Amazon Sp API and provides methods to fetch orders and order items
 class AmazonOrderAPI:
-    def __init__(self, api_key: AmazonSpAPIKey=AmazonSpAPIKey.from_json(), marketplace=Marketplaces.DE):
+    def __init__(self, api_key: AmazonSpAPIKey, marketplace: Marketplaces):
+        """
+        Initializes the AmazonOrderAPI object with the provided API key and marketplace
+        :param api_key:  Key to access the Amazon Sp API
+        :param marketplace: Marketplace e.g. Marketplaces.DE
+        """
         self.key: AmazonSpAPIKey = api_key
-        self.marketplace: Tuple = marketplace
+        self.marketplace: Marketplaces = marketplace
         credentials = self.key.__dict__
         self.orderClient = Orders(credentials=credentials, marketplace=self.marketplace)
+        self.salesChannel = f"Amazon.{self.marketplace.name.lower()}"
 
     def get_account_id(self):
         return self.key.get_account_id()
@@ -39,3 +45,4 @@ class AmazonOrderAPI:
     def get_order_items(self, order_id):
         logger.info(f"Fetching Amazon items for order [{order_id}]")
         return self.orderClient.get_order_items(order_id)
+

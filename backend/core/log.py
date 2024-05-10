@@ -7,11 +7,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Create a file handler for INFO level logs
-info_file_handler = TimedRotatingFileHandler(os.path.join(LOG_DIR, "info.log"), when="W0", backupCount=12) # 按周日切割日志
+info_file_handler = TimedRotatingFileHandler(os.path.join(LOG_DIR, "info.log"), encoding="utf-8",
+                                             when="W0", backupCount=12) # 按周日切割日志
 info_file_handler.setLevel(logging.INFO)
 
 # Create a file handler for ERROR level logs
-error_file_handler = TimedRotatingFileHandler(os.path.join(LOG_DIR, "error.log"), when="W0", backupCount=12)
+error_file_handler = TimedRotatingFileHandler(os.path.join(LOG_DIR, "error.log"), encoding="utf-8",
+                                              when="W0", backupCount=12)
 error_file_handler.setLevel(logging.ERROR)
 
 # Create a formatter for the logs

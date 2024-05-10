@@ -12,6 +12,12 @@ import os
 app = FastAPI(title=settings.PROJECT_NAME,
               version=settings.API_VERSION,
               openapi_url=f"{settings.API_PREFIX}/openapi.json",
+              summary="Microservice API simplifying e-commerce processes",
+              contact={
+                  "name": "YX. Lin",
+                  "email": "184059914@qq.com",
+                  "url": "https://github.com/yixinglin"
+              },
               docs_url=f"{settings.API_PREFIX}/docs",
               )
 
@@ -53,7 +59,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     err_detail = traceback.format_exc()
     logger.error(f"An exception occurred: {err_detail}")
     return JSONResponse(status_code=int(CodeEnum.InternalServerError.value),
-                        content={"message": f"Internal server error. \n{err_detail}"})
+                        content={"message": f"Internal server error. \n{exc}"})
 
 @app.exception_handler(RuntimeError)
 async def runtime_error_handler(request: Request, exc: RuntimeError):

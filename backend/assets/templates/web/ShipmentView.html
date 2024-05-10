@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shipment</title>
+</head>
+<body>
+
+
+{% if data.new == true %}
+    <h1>[New] Shipment ({{ data.carrier_name }}) </h1>
+{% else %}
+    <h1>Shipment ({{ data.carrier_name }}) </h1>
+{% endif %}
+<p><strong>Created At: {{ data.createdAt }}</strong></p>
+<div>
+
+        <div>
+            <strong>Tracking Number(s)</strong>:
+            {% for i in range(data.trackNumbers|length) %}
+            <span>
+                <a href="{{ data.trackingUrls[i] }}" target="_blank">
+                    {{ data.trackNumbers[i] }}
+                </a>
+                 &nbsp;
+            </span>
+            {% endfor %}
+        </div>
+
+    <div>
+        <iframe src="data:application/pdf;base64,{{ data.labels }}"
+                height="700" width="600">
+            <p>Your browser does not support iframes.</p>
+        </iframe>
+    </div>
+</div>
+<p><strong>Reference(s)</strong>: {{ data.references }}</p>
+<p><strong>Alias</strong>: {{ data.alias }}</p>
+<p><strong>Contents</strong>: {{ data.contents }}</p>
+
+</body>
+</html>

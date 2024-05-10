@@ -3,10 +3,13 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import time
 
+from sp_api.base import Marketplaces
+
 from core.log import logger
 from rest.amazon.DataManager import AmazonOrderMongoDBManager, AmazonCatalogManager
 from core.config import settings
 from rest.kaufland.DataManager import KauflandOrderMongoDBManager
+from rest.kaufland.base import Storefront
 
 hourlyScheduler = AsyncIOScheduler()
 
@@ -18,7 +21,7 @@ def hourly_job():
     print('This job runs every hour')
 
 
-def save_amazon_orders_job(key_index=0):
+def save_amazon_orders_job(key_index, marketplace):
     """
     This job fetches data from external API every 2 hours
     :return:
@@ -29,16 +32,17 @@ def save_amazon_orders_job(key_index=0):
 
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT, key_index=key_index) as man:
+        with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                       key_index=key_index, marketplace=marketplace) as man:
             man.save_all_orders(days_ago=7, FulfillmentChannels=["MFN"])
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
     finally:
-        # wait for 1 minute before running the next job, to avoid rate limiting
-        time.sleep(60)
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
 
 
-def save_kaufland_orders_job():
+def save_kaufland_orders_job(key_index, storefront):
     """
     This job fetches data from external API every 2 hours
     :return:
@@ -48,16 +52,17 @@ def save_kaufland_orders_job():
         return
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+        with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                         key_index=key_index, storefront=storefront) as man:
             man.save_all_orders(days_ago=14)
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
     finally:
-        # wait for 1 minute before running the next job, to avoid rate limiting
-        time.sleep(60)
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
 
 
-def save_amazon_catalog_job(key_index=0):
+def save_amazon_catalog_job(key_index, marketplace):
     """
     This job fetches data from external API every 2 hours
     :return:
@@ -67,13 +72,14 @@ def save_amazon_catalog_job(key_index=0):
         return
     try:
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
-        with AmazonCatalogManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT, key_index=key_index) as man:
+        with AmazonCatalogManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                  key_index=key_index, marketplace=marketplace) as man:
             man.save_all_catalogs()
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")
     finally:
-        # wait for 1 minute before running the next job, to avoid rate limiting
-        time.sleep(60)
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
 
 
 @hourlyScheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
@@ -82,9 +88,9 @@ def common_scheduler_2hrs():
     To schedule jobs every 2 hours
     :return:
     """
-    save_amazon_orders_job(key_index=0)
-    save_amazon_catalog_job(key_index=0)
-    save_kaufland_orders_job()
+    save_amazon_orders_job(key_index=0, marketplace=Marketplaces.DE)
+    save_amazon_catalog_job(key_index=0, marketplace=Marketplaces.DE)
+    save_kaufland_orders_job(key_index=0, storefront=Storefront.DE)
     logger.info("Successfully scheduled common scheduler job...")
 
 

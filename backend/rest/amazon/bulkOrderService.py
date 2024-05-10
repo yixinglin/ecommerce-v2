@@ -1,8 +1,10 @@
-from typing import List
+import json
+from typing import List, Union
 import bs4
 import re
 import utils.city as city
 import utils.translate as trans
+import utils.time as util_time
 from core.log import logger
 from models.shipment import StandardShipment, Parcel, Address
 
@@ -35,8 +37,13 @@ class AmazonBulkPackSlipDE:
         return order_ids
 
     def get_shipping_addresses(self) -> list:
-        shipping_addresses = []
-        for table in self.soup.select("div.myo-mena-packing-slip span#myo-order-details-buyer-address"):
+        """
+        This function extracts all shipping addresses from Amazon shipping slip page.
+        :return:  A list of shipping addresses in html format.
+        """
+        shipping_addresses = []  # list of shipping addresses in html format
+        # for i, table in enumerate(self.soup.select("div.myo-mena-packing-slip span#myo-order-details-buyer-address")):
+        for i, table in enumerate(self.soup.select(".myo-address #myo-order-details-buyer-address")):
             shipping_address = table.text.strip()
             shipping_address = list(filter(lambda x: x.strip() != "", shipping_address.split("\n")))
             shipping_address = [s.strip().replace(";", ",") for s in reversed(shipping_address)]
@@ -157,14 +164,12 @@ class AmazonBulkPackSlipDE:
                 shipment = StandardShipment()
                 shipment.shipperId = ""
                 shipment.references = [id]
-                shipment.address = address
+                shipment.consignee = address
                 shipment.parcels = [parcel]
             else:
                 shipment = None
 
             list_shipements.append(shipment)
-
-
 
     def get_order_items(self) -> list:
         """
@@ -202,3 +207,64 @@ class AmazonBulkPackSlipDE:
                 'unitPrice': unitPrice
             })
         return collection_item_details
+
+    def extract_all(self, format=None) -> List[Union[StandardShipment, List[str], dict]]:
+        """
+        This function extracts all necessary information from Amazon shipping slip page.
+        :param format: output format, e.g. json, csv. Default is a list of StandardShipment objects.
+        :return: A list of shipping addresses in the specified format.
+        """
+        ids = self.get_order_ids()
+        items = self.get_order_items()
+        addresses = self.get_shipping_addresses()
+        ans = []
+        for i in range(len(ids)):
+            try:
+                adjusted_addr = self.adjust_shipping_address(addresses[i])
+                id = ids[i]
+                item = items[i]
+                shipment = self.to_standard_shipment(id, item, adjusted_addr)
+                if format == 'json':
+                    ans.append(shipment.dict())
+                elif format == 'csv':
+                    ans.append([id, util_time.now()] + adjusted_addr)
+                else:
+                    ans.append(shipment)
+            except (RuntimeError, KeyError) as e:
+                logger.error(f"Error while adjusting shipping address: {e}"
+                             + ";".join(addresses[i]))
+        return ans
+
+    def to_standard_shipment(self, orderId, items, address) -> StandardShipment:
+        """
+        This function converts the Amazon shipping slip page to a list of StandardShipment objects.
+        :return:
+        """
+        consignee = Address(
+            country=address[0],
+            city=address[1],
+            province=address[2],
+            zipCode=address[3],
+            street1=address[4],
+            name3=address[5],
+            name2=address[6],
+            name1=address[7]
+        )
+
+        content = ""
+        for item in items:
+            content += f"{item['quantity']} x [{item['sku']}]\n"
+        content = content.strip()
+
+        p = Parcel(
+            weight=1,
+            content=content,
+        )
+
+        s = StandardShipment(
+            references=[orderId],
+            consignee=consignee,
+            parcels=[p]
+        )
+
+        return s

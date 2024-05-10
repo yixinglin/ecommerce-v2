@@ -7,17 +7,18 @@ from core.config import settings
 from rest.kaufland.DataManager import KauflandOrderMongoDBManager
 from fastapi.templating import Jinja2Templates
 
-from schemas import ResponseSuccess
+from schemas import BasicResponse
 from vo.kaufland import DailySalesCountVO, Product
 
-kfld_order = APIRouter(tags=['Kaufland API'])
+kfld_order = APIRouter(tags=['Kaufland Services'])
 
 
 @kfld_order.get("/orders/ordered-items-count/daily/{days_ago}",
                summary="Get daily ordered items count",
-                response_model=ResponseSuccess[List[DailySalesCountVO]])
+                response_model=BasicResponse[List[DailySalesCountVO]])
 def get_daily_ordered_items_count(response: Response, days_ago: int = 7) -> Any:
-    with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT, settings.DB_MONGO_PORT) as man:
+    with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT, settings.DB_MONGO_PORT,
+                                     key_index=0) as man:
         daily = man.get_daily_sales(days_ago=days_ago)
     daily_sales_count_vo = []
     # convert to vo

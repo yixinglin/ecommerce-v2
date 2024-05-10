@@ -1,9 +1,13 @@
-from typing import List, Optional
-from pydantic import BaseModel
+from typing import List
+from pydantic import BaseModel, Field
+
+from models.shipment import StandardShipment
 
 """
 Gls Request Body Model
 """
+
+
 class Address(BaseModel):
     name1: str
     name2: str
@@ -14,20 +18,74 @@ class Address(BaseModel):
     city: str
     email: str
     phone: str
+    mobile: str
+
+class Addresses(BaseModel):
+    delivery: Address
 
 class Service(BaseModel):
-    name: str
+    name: str = Field(default="flexdeliveryservice")
+
+    @classmethod
+    def flexDeliveryService(cls):
+        return cls(name="flexdeliveryservice")
+
 
 class Parcel(BaseModel):
-    weight: float
+    weight: float = Field(default=1.0, description="Weight in kg")
     comment: str
     services: List[Service]
+
 
 class GLSRequestBody(BaseModel):
     shipperId: str
     references: List[str]
-    addresses: Address
+    addresses: Addresses
     parcels: List[Parcel]
+
+    @classmethod
+    def instance(cls, shipment: StandardShipment):
+        delivery = Address(
+            name1=shipment.consignee.name1,
+            name2=shipment.consignee.name2,
+            name3=shipment.consignee.name3,
+            street1=shipment.consignee.street1,
+            zipCode=shipment.consignee.zipCode,
+            city=shipment.consignee.city,
+            email=shipment.consignee.email,
+            phone=shipment.consignee.telephone,
+            mobile=shipment.consignee.mobile,
+            country=shipment.consignee.country
+        )
+
+        addresses = Addresses(delivery=delivery)
+
+        parcels = []
+        for item in shipment.parcels:
+            parcels.append(Parcel(
+                weight=item.weight,
+                comment=item.comment,
+                services=[Service.flexDeliveryService()]
+            ))
+
+        body = cls(
+            shipperId="",
+            references=shipment.references,
+            addresses=addresses,
+            parcels=parcels
+        )
+        return body
+
+
+# Http Request
+GLS_HEADERS_EU = {
+    "Host": "api.gls-group.eu",
+    "Accept-Language": "en",
+    "Accept-Encoding": "gzip,deflate",
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Authorization": f"Basic auth"
+}
 
 def get_example_gls_request_body() -> GLSRequestBody:
     address = Address(
@@ -58,7 +116,7 @@ def get_example_gls_request_body() -> GLSRequestBody:
     return gls_request_body
 
 
-
 if __name__ == '__main__':
     gls_request_body = get_example_gls_request_body()
+    aa = gls_request_body.dict()
     print(gls_request_body)

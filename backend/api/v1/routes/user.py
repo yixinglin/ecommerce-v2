@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Body
 from schemas import User_Pydantic, UserIn_Pydantic
 from models import User
-from schemas import ResponseSuccess, ResponseFail
+from schemas import ResponseSuccess, ResponseFailure
 
 from utils.mail import send_email_async, send_email_background, BackgroundTasks
 

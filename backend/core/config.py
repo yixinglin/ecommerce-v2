@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     AMAZON_ACCESS_KEY: str
     METRO_ACCESS_KEY: str
     KAUFLAND_ACCESS_KEY: str
+    GLS_ACCESS_KEY: str
+    GLS_ACCESS_KEY_INDEX: int
 
     SCHEDULER_INTERVAL_SECONDS: int = os.getenv('SCHEDULER_INTERVAL_SECONDS', 3600)
     SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']

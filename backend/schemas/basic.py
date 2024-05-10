@@ -13,14 +13,14 @@ class CodeEnum(str, Enum):
     InternalServerError = 500
 
 class BasicResponse(BaseModel, Generic[T]):
-    code: CodeEnum = Field( default=CodeEnum.Success, description="Response code")
+    code: CodeEnum = Field(default=CodeEnum.Success, description="Response code")
     message: str = Field(default="Request successful", description="Response message")
     data: T = Field(default=None, description="Response data")
 
 class ResponseSuccess(BasicResponse):
     pass
 
-class ResponseFail(BasicResponse):
+class ResponseFailure(BasicResponse):
     code: CodeEnum = Field(default=CodeEnum.Fail, description="Response code")
     message: str = Field(default="Request failed", description="Response message")
     data: Any = Field(default=None, description="Response data")

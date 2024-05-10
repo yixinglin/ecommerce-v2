@@ -8,10 +8,15 @@ from .base import AmazonSpAPIKey
 
 
 class AmazonCatalogAPI:
-    def __init__(self, api_key: AmazonSpAPIKey = AmazonSpAPIKey.from_json(),
-                 marketplace: Tuple = Marketplaces.DE):
+    def __init__(self, api_key: AmazonSpAPIKey,
+                 marketplace: Marketplaces):
+        """
+        Initialize Amazon Catalog API client
+        :param api_key:  Amazon Sp API key
+        :param marketplace:  Amazon marketplace, e.g. Marketplaces.DE
+        """
         self.key: AmazonSpAPIKey = api_key
-        self.marketplace: Tuple = marketplace
+        self.marketplace: Marketplaces = marketplace
         credentials = self.key.__dict__
         self.catalogClient = Catalog(credentials=credentials,
                                      marketplace=self.marketplace)

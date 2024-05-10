@@ -31,9 +31,10 @@ def today():
 
 class Client:
 
-    def __init__(self, client_key, secret_key):
+    def __init__(self, client_key, secret_key, account_id, **kwargs):
         self.client_key: str = client_key
         self.secret_key: str = secret_key
+        self.account_id: str = account_id
 
     def sign_request(self, method, url, body, timestamp, secret_key):
         plain_text = "\n".join([method, url, body, str(timestamp)])
@@ -53,18 +54,24 @@ class Client:
         return headers
 
     @classmethod
-    def from_json(cls):
+    def from_json(cls, index):
         file_path = os.path.join('conf', 'apikeys',
                                  settings.KAUFLAND_ACCESS_KEY)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
-        k = Client(**data)
+        k = cls(**data['auth'][index])
         return k
 
 
 class Orders:
 
-    def __init__(self, client=Client.from_json(), storefront: Storefront = Storefront.DE, **kwargs):
+    def __init__(self, client: Client, storefront: Storefront, **kwargs):
+        """
+         Init Kaufland orders API client
+        :param client:  Kaufland client
+        :param storefront: e.g. Storefront.DE
+        :param kwargs:
+        """
         self.client = client
         self.base_url = 'https://sellerapi.kaufland.com/v2'
         self.base_order_url = f'{self.base_url}/orders'

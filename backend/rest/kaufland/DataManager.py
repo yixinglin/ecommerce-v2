@@ -3,15 +3,16 @@ import time
 from datetime import timedelta, datetime
 import pymongo
 from core.log import logger
-from .base import Orders, Storefront, today, now, DATETIME_PATTERN
+from .base import Orders, Storefront, today, now, DATETIME_PATTERN, Client
 from core.db import MongoDBDataManager
 
 
 class KauflandOrderMongoDBManager(MongoDBDataManager):
 
-    def __init__(self, db_host: str, db_port: int, storefront=Storefront.DE):
+    def __init__(self, db_host: str, db_port: int, key_index, storefront: Storefront):
         super().__init__(db_host, db_port)
-        self.api = Orders(storefront=storefront)
+        client = Client.from_json(index=key_index)
+        self.api = Orders(client=client, storefront=storefront)
         self.storefront = storefront
         self.db_name = "kaufland_data"
         self.db_collection = "orders"
