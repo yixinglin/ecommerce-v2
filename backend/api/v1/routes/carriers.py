@@ -1,4 +1,5 @@
 import os
+import time
 from io import BytesIO
 
 from starlette.responses import StreamingResponse
@@ -117,6 +118,7 @@ def create_gls_shipment(shipment: StandardShipment =
                                    key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
         try:
             id = man.save_shipment(shipment)
+            time.sleep(0.2)
             status = 0
             message = "New shipment created"
         except ShipmentExistsException as e:

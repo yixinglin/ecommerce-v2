@@ -27,7 +27,7 @@ class AmazonOrderAPI:
         # Calculate the start date based on the specified days ago
         start_date = (today() - timedelta(days=days_ago)).isoformat()
         # Fetch the initial set of orders based on the start date and any additional kwargs
-        logger.info(f"Fetching orders since {start_date}")
+        logger.info(f"[API] Fetching orders since {start_date}")
         response = self.orderClient.get_orders(CreatedAfter=start_date, **kwargs)
         orders = response.Orders  # Get the initial set of orders
         # Retrieve additional orders while there is a next page of results
@@ -39,10 +39,10 @@ class AmazonOrderAPI:
 
     def get_order(self, order_id):
         result = self.orderClient.get_order(order_id)
-        logger.info(f"Fetching Amazon order {order_id} updated at {result.payload['LastUpdateDate']}")
+        logger.info(f"[API] Fetching Amazon order {order_id} updated at {result.payload['LastUpdateDate']}")
         return result
 
     def get_order_items(self, order_id):
-        logger.info(f"Fetching Amazon items for order [{order_id}]")
+        logger.info(f"[API] Fetching Amazon items for order [{order_id}]")
         return self.orderClient.get_order_items(order_id)
 

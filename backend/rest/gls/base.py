@@ -1,6 +1,6 @@
 from typing import List
 from pydantic import BaseModel, Field
-
+import utils.stringutils as stringutils
 from models.shipment import StandardShipment
 
 """
@@ -60,12 +60,16 @@ class GLSRequestBody(BaseModel):
 
         addresses = Addresses(delivery=delivery)
 
+        services = []
+        if not (stringutils.isEmpty(delivery.phone) and stringutils.isEmpty(delivery.mobile)):
+            services.append(Service.flexDeliveryService())
+
         parcels = []
         for item in shipment.parcels:
             parcels.append(Parcel(
                 weight=item.weight,
                 comment=item.comment,
-                services=[Service.flexDeliveryService()]
+                services=services
             ))
 
         body = cls(

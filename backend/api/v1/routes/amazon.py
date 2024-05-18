@@ -104,6 +104,8 @@ def get_seller_central_urls():
     }
     return ResponseSuccess(data=urls)
 
+
+
 @amz_order.post("/orders/packslip/parse",
                summary="Parse Amazon packing slip and extract all shipments.",
                response_model=BasicResponse[Union[List[StandardShipment], List[List[str]]]])
@@ -120,7 +122,7 @@ def parse_amazon_pack_slip_html(body: PackSlipRequestBody=Body(None, description
     country = body.country
     html_content = body.data
 
-    html_content = requests.get("https://www.hamster25.buzz/amazon/amazon-delivery-de-03.html").content
+    # html_content = requests.get("https://www.hamster25.buzz/amazon/amazon-delivery-de-03.html").content
 
     if country == "DE":
         shipments = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
