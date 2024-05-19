@@ -19,6 +19,7 @@ class Address(BaseModel):
 
 class Parcel(BaseModel):
     trackNumber: str = Field(default="", description="Tracking number of the parcel")
+    parcelNumber: str = Field(default="", description="Parcel number of the parcel")
     weight: float = Field(default=1.0, description="Weight of the parcel in kg")  # in kg
     width: float = Field(default=0.0, description="Width of the parcel in cm")  # in cm
     height: float = Field(default=0.0, description="Height of the parcel in cm")  # in cm
@@ -37,6 +38,7 @@ class StandardShipment(BaseModel):
     consignee: Union[Address, None] = Field(default=None, description="Address of the consignee")
     parcels: List[Parcel]
     references: List[str]
+    location: str = Field(default="", description="Location of the parcels")
 
 
 def create_shipment_example():
@@ -75,6 +77,7 @@ def create_shipment_example():
     # Create a Parcel instance
     parcel = Parcel(
         trackNumber="ABC123456789",
+        parcelNumber="P123456789",
         weight=1.5,
         width=20.0,
         height=15.0,

@@ -1,0 +1,10 @@
+
+workspace
+
+.venv
+.idea
+.vscode
+__pycache__
+*.pyc
+*.pyo
+test*.py

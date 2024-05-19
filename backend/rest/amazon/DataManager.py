@@ -2,17 +2,19 @@ import time
 from datetime import datetime, timedelta
 from random import random
 from typing import List
-import pymongo
 from pymongo.collection import Collection
 from sp_api.base import Marketplaces
 from core.db import MongoDBDataManager
+from core.log import logger
 from .base import DATETIME_PATTERN, now, AmazonSpAPIKey
 from .order import AmazonOrderAPI
-from core.log import logger
 from .product import AmazonCatalogAPI
 
 
 class AmazonOrderMongoDBManager(MongoDBDataManager):
+    """
+    This class is used to manage Amazon orders in MongoDB.
+    """
     def __init__(self, db_host: str, db_port: int, key_index: int,
                  marketplace: Marketplaces):
         """
@@ -56,7 +58,7 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
 
     def save_order(self, order_id: str, order: dict = None):
         """
-        Save the order to MongoDB. If the order already exists in MongoDB, update it.
+        Fetch the order from Amazon API and save it to MongoDB. If the order already exists in MongoDB, update it.
         If the order does not exist in MongoDB, insert it.
         :param order_id: Amazon order ID
         :param order: Fetched order from Amazon API, if not provided, it will be fetched from Amazon API.
@@ -243,15 +245,21 @@ class AmazonCatalogManager(MongoDBDataManager):
         self.marketplace: Marketplaces = marketplace
 
     def save_catalog(self, asin):
+        """
+        Fetch the catalog item from Amazon API and save it to MongoDB. If the catalog item already exists in MongoDB, update it.
+        If the catalog item does not exist in MongoDB, insert it.
+        :param asin:
+        :return:
+        """
         mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
-        # 从数据库中查找目录项
+        # Find the catalog item in MongoDB
         item = mdb_catalog_collection.find_one({"_id": asin})
-        # 如果数据库中没有此目录项，则从API获取
+        # If the catalog item does not exist in MongoDB, fetch it from Amazon API
         if item is None:
             logger.info(f"Detected new catalog item [{asin}]...")
             item = self.api.get_catalog_item(asin)
             time.sleep(1)
-        # 有 10% 的概率从API获取，并更新数据库
+        # There is a 10% chance to fetch from API and update database
         else:
             if random() < 0.05:
                 logger.info(f"Random selected catalog item [{asin}] to fetch again...")
@@ -274,7 +282,11 @@ class AmazonCatalogManager(MongoDBDataManager):
         return result
 
     def save_all_catalogs(self):
-        # TODO 从mongodb中获取asin列表
+        """
+        Fetch all catalog items from Amazon API and save them to MongoDB.
+        :return: None
+        """
+        # Get all ASINs from orders collection
         pipelines = [
             {
                 '$unwind': '$items.OrderItems'
@@ -292,11 +304,16 @@ class AmazonCatalogManager(MongoDBDataManager):
         results = mdb_catalog_collection.aggregate(pipelines)
         asinList = results.next()['asinList']
 
-        # TODO 从api获取catalog, 并且保存到mongodb中
+        # Fetches catalog items from Amazon API and saves them to MongoDB
         for asin in asinList:
             self.save_catalog(asin)
 
     def get_catalog_item(self, asin):
+        """
+        Get the catalog item from MongoDB.
+        :param asin:  ASIN of the catalog item
+        :return:  The catalog item as a dictionary, or None if not found.
+        """
         mdb_catalog_collection: Collection = self.db_client[self.db_name][self.db_collection]
         item = mdb_catalog_collection.find_one({"_id": asin})
         if item is None:
@@ -306,6 +323,10 @@ class AmazonCatalogManager(MongoDBDataManager):
             return item['catalogItem']
 
     def get_all_catalog_items(self):
+        """
+        Get all catalog items from MongoDB.
+        :return:  A list of all catalog items as dictionaries.
+        """
         mdb_catalog_collection: Collection = self.db_client[self.db_name][self.db_collection]
         items = mdb_catalog_collection.find()
         return list(items)

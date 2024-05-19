@@ -1,3 +1,4 @@
+import { waitForElm, setValueToInputElm, listen_ctrl_key_event } from '../utils/utilsui.js';
 
 class AmazonBulkConfirm {
   /* 
@@ -17,17 +18,22 @@ class AmazonBulkConfirm {
   }
 
   mount() {
-    if (!this.toLoad()) {
-      console.log('Not Amazon Bulk Confirm page');
-      return;
-    }
-    this.appendButton1();
-    this.fillAllTrackIdEditBox();
+    waitForElm(this.mountPoint).then(() => {
+      alert("Press Ctrl+I to fill all track id edit boxes");
+      listen_ctrl_key_event('i', (event) => {
+        navigator.clipboard.readText().then(text => {          
+            const trackIdMap = this.getTrackIdMap(text);
+            this.fillAllTrackIdEditBox(trackIdMap);
+        }).catch(err => {
+          alert("Failed to read clipboard contents: " + err);
+        });
 
+      })
+    })
   }
 
   findAllTrackIdEditBox() {
-    const trackIdEditBox = document.querySelectorAll('input[data-test-id="text-input-tracking-id"]');    
+    const trackIdEditBox = document.querySelectorAll('input[data-test-id="text-input-tracking-id"]');
     return trackIdEditBox;
   }
 
@@ -37,28 +43,32 @@ class AmazonBulkConfirm {
     return orderIds;
   }
 
-  fillAllTrackIdEditBox() {
+  getTrackIdMap(text) {
+    text = text.trim();
+    const lines = text.split('\n');
+    const trackIdMap = {};
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const [orderId, trackId] = line.split(':');
+      trackIdMap[orderId.trim()] = trackId.trim();
+    }
+    return trackIdMap;
+  }
+
+  fillAllTrackIdEditBox(trackIdMap) {
     const orderIds = this.findAllOrderIds();
     const trackIdEditBox = this.findAllTrackIdEditBox();
     const refs = orderIds.join(';');
-    
-    // for (let i = 0; i < orderIds.length; i++) {
-    //   trackIdEditBox[i].value = trackId;
-    // }
+    const trackIdBoxMap = {};
+    for (let i = 0; i < trackIdEditBox.length; i++) {
+      const id = orderIds[i];
+      const trackId = trackIdMap[id];
+      if (trackId) {
+        setValueToInputElm(trackIdEditBox[i], trackId);
+      }
+    }
   }
 
-  appendButton1() {
-    // 批量打印gls单子
-    console.log('appendButton1');
-  }
-
-  appendButton2() {
-    // 打印当前页面的拣货单
-  }
-
-  appendButton3() {
-    // 保存csv文件
-  }
 }
 
 export default AmazonBulkConfirm;

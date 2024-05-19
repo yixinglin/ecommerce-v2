@@ -2,6 +2,8 @@ import { appendButton, demo } from '../utils/utilsui.js';
 import { getUnshippedOrders, getSellerCenterUrls, parsePackSlips } from '../rest/amazon.js';
 import { bulkCreateGlsLabels } from '../rest/gls.js';
 import tm from '../utils/http.js'
+import { waitForElm } from '../utils/utilsui.js';
+
 
 //过滤器 -ERR_FAILED -KatalMetricsSellerCentral -Vibes -chrome-extension
 
@@ -32,12 +34,9 @@ class AmazonOrderList {
     }
 
     mount() {
-        // Append the first button to get unshipped orders
-        if (!this.toLoad()) {
-            console.log('Not Amazon Order List page');
-            return;
-        }
-        this.appendButton1();
+        waitForElm(this.mountPoint).then(() => {
+            this.appendButton1();
+        })        
     }
 
     appendButton1() {

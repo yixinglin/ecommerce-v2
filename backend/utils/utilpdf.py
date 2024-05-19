@@ -46,7 +46,12 @@ def create_watermark_text(watermark_text: str,
     can = canvas.Canvas(packet, pagesize=page_size, bottomup=0)
     can.setFont("Helvetica", font_size)
     can.setFillColorRGB(*font_color)
-    can.drawString(*position, watermark_text)
+    x, y = position
+    textObj = can.beginText(x, y)
+    textObj.setFont("Helvetica", font_size)
+    for line in watermark_text.split('\n'):
+        textObj.textLine(line.strip())
+    can.drawText(textObj)
     can.save()
     packet.seek(0)
     return packet.read()
