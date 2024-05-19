@@ -58,7 +58,6 @@ def get_daily_ordered_items_count(response: Response,
                 shipment.imageUrl = asin_image_url[shipment.asin]
             except KeyError:
                 shipment.imageUrl = ""
-    response.headers["X-Cat-Dog"] = "alone in the world"
     return ResponseSuccess(data=daily_sales_vo, )
 
 

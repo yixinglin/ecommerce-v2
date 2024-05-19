@@ -4,6 +4,7 @@ from io import BytesIO
 
 from starlette.responses import StreamingResponse
 
+from rest.common.summary import PickPackDataManager
 from utils import utilsio, utilpdf
 from typing import List, Union
 
@@ -17,7 +18,7 @@ from core.log import logger
 from models.shipment import StandardShipment
 from rest.gls.DataManager import GlsShipmentMongoDBManager
 from schemas.basic import ResponseSuccess, ResponseFailure, CodeEnum, BasicResponse
-from vo.carriers import ShipmentVO, CreatedShipmentVO
+from vo.carriers import ShipmentVO, CreatedShipmentVO, PickSlipItemVO
 
 gls = APIRouter(prefix="/gls", tags=["GLS Services"], )
 
@@ -141,27 +142,35 @@ def create_gls_shipment_bulk(shipments: List[StandardShipment]
     data = []
     for i, shipment in enumerate(shipments):
         data.append(create_gls_shipment(shipment=shipment).data)
-    return ResponseSuccess(data=data)
+    return ResponseSuccess(data=data, size=len(data))
 
 
-@gls.get("/shipments/report/", summary="Report GLS Shipments by CSV",
+@gls.get("/shipments/pick", summary="List GLS Shipments by references",
+         response_model=BasicResponse[List[PickSlipItemVO]])
+def get_gls_pick_slip_by_references(refs: str):
+    """
+    List GLS Shipments by references
+    :param references:
+    :return:
+    """
+    refs = refs.split(";")
+    with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+        vo = man.get_pick_slip_items(refs)
+    return ResponseSuccess(data=vo, size=len(vo))
+
+
+@gls.get("/shipments/report", summary="Report GLS Shipments by Excel",
          response_class=StreamingResponse)
-# @gls.get("/items", summary="Report GLS Shipments by CSV")
-def report_shipment_by_csv(refs: str = Query(None, description="GLS Shipment references separated by semicolon")):
+def report_shipment_by_excel(refs: str = Query(None, description="GLS Shipment references separated by semicolon")):
     references = refs.split(";")
-    csv_data = []
-    for ref in references:
-        vo: ShipmentVO = get_gls_shipment_by_reference(ref).data
-        if vo is not None:
-            # Convert vo to list
-            item = vo.to_list()
-            csv_data.append(item)
-    csv_string = utilsio.convert_list_to_csv_string(csv_data)
-    csv_bytes = csv_string.encode('utf-8')
-    filename = f"gls-{utils_time.now(pattern="%Y%m%d-%H%M%S")}.csv"
-    return StreamingResponse(iter([csv_bytes]),
-                             media_type="text/csv", headers={"Content-Disposition":
-                            f"attachment; filename={filename}"})
+    with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+        vo = man.get_pick_slip_items(references)
+        excelData = man.pick_slip_to_excel(vo)
+        filename = f"gls-{utils_time.now(pattern='%Y%m%d-%H%M%S')}.xlsx"
+        headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+        return StreamingResponse(BytesIO(excelData),
+                                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                 headers=headers)
 
 @gls.get("/shipments/bulk-labels",
          summary="Download GLS Shipment labels",

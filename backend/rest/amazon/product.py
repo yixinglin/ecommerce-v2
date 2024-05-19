@@ -27,7 +27,7 @@ class AmazonCatalogAPI:
         :param asin:  ASIN of the product
         :return: Catalog item for given ASIN
         """
-        logger.info(f"Fetching Amazon catalog item for ASIN: {asin}")
+        logger.info(f"[API] Fetching Amazon catalog item for ASIN: {asin}")
         result = self.catalogClient.get_item(asin=asin)
         item = result.payload
         return item

@@ -1,6 +1,5 @@
 
 from typing import List
-
 from pydantic import BaseModel, Field
 
 
@@ -42,4 +41,19 @@ class CreatedShipmentVO(BaseModel):
     status: int = Field(description="The status of the created shipment")
     message: str = Field(description="The message associated with the created shipment")
 
+class PickSlipItemVO(BaseModel):
+    """
+    The response model for the getPickSlip endpoint
+    """
+    date: str = Field(description="The date of the pick slip")
+    carrier: str = Field(description="The name of the carrier")
+    orderId: str = Field(description="The id of the b2c order")
+    trackId: str = Field(description="The id of the tracking number")
+    parcelNumber: str = Field(description="The parcel number of the shipment")
+    sku: str = Field(description="The sku of the product")
+    title: str = Field(description="The title of the product")
+    quantity: int = Field(description="The quantity of the product")
+    storageLocation: str = Field(description="The storage location of the product")
+    imageUrl: str = Field(description="The image url of the product")
+    street1: str = Field(description="The street address of the recipient")
 

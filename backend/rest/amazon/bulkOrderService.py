@@ -1,15 +1,18 @@
-import json
+import re
 from typing import List, Union
 import bs4
-import re
 import utils.city as city
-import utils.translate as trans
 import utils.time as util_time
+import utils.translate as trans
 from core.log import logger
 from models.shipment import StandardShipment, Parcel, Address
 
 
 class AmazonBulkPackSlipDE:
+    """
+    This class is used to extract information from Amazon shipping slip page in German.
+    The result of this class is a list of StandardShipment objects, which can be used for further processing.
+    """
 
     def __init__(self, html: str):
         """
@@ -130,47 +133,6 @@ class AmazonBulkPackSlipDE:
 
         return shipping_address
 
-    def to_shipments(self) -> List[StandardShipment]:
-        """
-        TODO: Converts the Amazon shipping slip page to a list of StandardShipment objects.
-        :return:
-        """
-        ids = self.get_order_ids()
-        shipping_addresses = self.get_shipping_addresses()
-        order_items = self.get_order_items()
-        list_shipements = []
-        for i in range(len(ids)):
-            id = ids[i]
-            addr = shipping_addresses[i]
-            items = order_items[i]
-            adjusted_addr = None
-            try:
-                adjusted_addr = self.adjust_shipping_address(addr)
-            except (RuntimeError, KeyError) as e:
-                logger.error(f"Error while adjusting shipping address: {e}")
-
-            if adjusted_addr is not None:
-                parcel = Parcel.default()
-                parcel.content = items
-                address = Address()
-                address.country = addr[0]
-                address.city = addr[1]
-                address.province = addr[2]
-                address.zipCode = addr[3]
-                address.street1 = addr[4]
-                address.name3 = addr[5]
-                address.name2 = addr[6]
-                address.name1 = addr[7]
-                shipment = StandardShipment()
-                shipment.shipperId = ""
-                shipment.references = [id]
-                shipment.consignee = address
-                shipment.parcels = [parcel]
-            else:
-                shipment = None
-
-            list_shipements.append(shipment)
-
     def get_order_items(self) -> list:
         """
         This function extracts all purchased items from an Amazon shipping slip page.
@@ -257,6 +219,8 @@ class AmazonBulkPackSlipDE:
         content = content.strip()
 
         p = Parcel(
+            trackNumber="",
+            parcelNumber="",
             weight=1,
             content=content,
         )

@@ -89,7 +89,7 @@ class Orders:
         # url = f'{self.base_order_url}/{order_id}?embedded=order_invoices'
         headers = self.client.create_request_headers("GET", url, "",
                                                      self.client_key, self.secret_key)
-        logger.info(f"Fetching Kaufland order [{order_id}]")
+        logger.info(f"[API] Fetching Kaufland order [{order_id}]")
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
             raise RuntimeError(f"Failed to get Kaufland order [{order_id}], status code: {res.status_code}")
@@ -107,7 +107,7 @@ class Orders:
         if createdAfter is not None:
             url += f'&ts_created_from_iso={createdAfter}'
         headers = self.client.create_request_headers("GET", url, "", self.client_key, self.secret_key)
-        logger.info(f"Fetching Kaufland orders, limit: {limit}, offset: {offset}, createdAfter: {createdAfter}")
+        logger.info(f"[API] Fetching Kaufland orders, limit: {limit}, offset: {offset}, createdAfter: {createdAfter}")
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
             raise RuntimeError(f"Failed to get Kaufland orders, status code: {res.status_code}")
@@ -140,6 +140,7 @@ class Orders:
         else:
             url = f"{self.base_url}/order-units?storefront={self.storefront.value}&sort=ts_created%3Adesc&status={status}&limit={limit}&offset={offset}"
         headers = self.client.create_request_headers("GET", url, "", self.client_key, self.secret_key)
+        logger.info(f"[API] Fetching Kaufland order units, limit: {limit}, offset: {offset}, status: {status}")
         res = requests.get(url, headers=headers)
         if res.status_code != 200:
             raise RuntimeError(f"Failed to get Kaufland order units, status code: {res.status_code}")

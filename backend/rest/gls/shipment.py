@@ -79,7 +79,7 @@ class GlsShipmentApi:
         body.shipperId = self.api_key.shipperId
         shipment_url = f"{self.api_key.url}/shipments"
         # Request to GLS API to generate label
-        logger.info(f"Request URL: {shipment_url}, body: {body.dict()}")
+        logger.info(f"[API] Request URL: {shipment_url}, body: {body.dict()}")
         resp = requests.post(shipment_url, headers=self.headers, json=body.dict())
         if resp.status_code == 201:
             logger.info(f"GLS-Label generated successfully")

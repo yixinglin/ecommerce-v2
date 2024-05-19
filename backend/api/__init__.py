@@ -85,3 +85,7 @@ async def log_requests(request: Request, call_next):
     # response.headers["Cache-Control"] = "max-age=3600, public"
     # headers = {"Cache-Control": "max-age=3600, public"},
     return response
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Ecommerce Service"}

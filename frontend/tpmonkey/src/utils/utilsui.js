@@ -58,13 +58,24 @@ function Toast(msg, duration){
     }, duration);  
 }  
 
+function listen_ctrl_key_event(key, callback) {
+    $(document).ready(function() {
+        //Listening for Ctrl+ [key] using keydown
+        $(document).on('keydown', function(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key === key) {
+                callback(event);
+            }
+        });
+    });
+}
+
 
 function demo() {
     console.log("Hello from utilsui.js!");
     return "";
 }
 
-export {appendButton, demo, waitForElm, setValueToInputElm, Toast };
+export {appendButton, demo, waitForElm, setValueToInputElm, Toast, listen_ctrl_key_event };
 
 
 
