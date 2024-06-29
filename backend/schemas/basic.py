@@ -34,4 +34,11 @@ class ResponseNotFound(BasicResponse):
     code: CodeEnum = Field(default=CodeEnum.NotFound, description="Response code")
     message: str = Field(default="Not found", description="Response message")
 
+class ExternalService(str, Enum):
+    Amazon = "amazon",
+    Kaufland = "kaufland",
+    Gls = "gls",
+    Ebay = "ebay"
+
+
 

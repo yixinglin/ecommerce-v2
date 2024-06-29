@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import List, Union
 from pydantic import BaseModel, Field
 
 
@@ -45,15 +45,24 @@ class PickSlipItemVO(BaseModel):
     """
     The response model for the getPickSlip endpoint
     """
-    date: str = Field(description="The date of the pick slip")
-    carrier: str = Field(description="The name of the carrier")
-    orderId: str = Field(description="The id of the b2c order")
-    trackId: str = Field(description="The id of the tracking number")
-    parcelNumber: str = Field(description="The parcel number of the shipment")
-    sku: str = Field(description="The sku of the product")
-    title: str = Field(description="The title of the product")
-    quantity: int = Field(description="The quantity of the product")
-    storageLocation: str = Field(description="The storage location of the product")
-    imageUrl: str = Field(description="The image url of the product")
-    street1: str = Field(description="The street address of the recipient")
+    date: Union[str, None] = Field(default=None, description="The date of the pick slip")
+    carrier: Union[str, None] = Field(default=None, description="The name of the carrier")
+    orderId: Union[str, None] = Field(default=None, description="The id of the b2c order")
+    trackId: Union[str, None] = Field(default=None, description="The id of the tracking number")
+    parcelNumber: Union[str, None] = Field(default=None, description="The parcel number of the shipment")
+    sku: Union[str, None] = Field(default=None, description="The sku of the product")
+    title: Union[str, None] = Field(default=None, description="The title of the product")
+    quantity: Union[int, None] = Field(default=None, description="The quantity of the product")
+    storageLocation: Union[str, None] = Field(default=None, description="The storage location of the product")
+    imageUrl: Union[str, None] = Field(default=None, description="The image url of the product")
+    street1: Union[str, None] = Field(default=None, description="The street address of the recipient")
+    city: Union[str, None] = Field(default=None, description="The city of the recipient")
+    country: Union[str, None] = Field(default=None, description="Country of the recipient")
+    productBarcode: Union[str, None] = Field(default=None, description="The barcode of the product")
+    orderKey: Union[str, None] = Field(default=None, description="The key of the order. To identify whether orders contains the same products and quantities")
+    taskId: Union[int, None] = Field(default=None, description="The id of the task")
+    purchasedAt: Union[str, None] = Field(default=None, description="The date of the purchase")
+    zipCode: Union[str, None] = Field(default=None, description="The zip code of the recipient")
+    city: Union[str, None] = Field(default=None, description="The city of the recipient")
+
 

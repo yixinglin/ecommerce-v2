@@ -79,14 +79,20 @@
     <h2>Shipped</h2>
     <div class="note"><span>Note: Canceled items are not included in the count.</span></div>
     <div>
-      <button class="btn" id="expandAll">Expand All</button>
-      <button class="btn" id="collapseAll">Collapse All</button>
+        <button class="btn" id="expandAll">Expand All</button>
+        <button class="btn" id="collapseAll">Collapse All</button>
+        <a href="/api/v1/pickpack/pick-items/unshipped" download>
+            <button class="btn" id="pickSlipExcel">Pick Unshipped</button>
+        </a>
+        <a href="/api/v1/pickpack/pack-items/unshipped" download>
+            <button class="btn" id="packSlipExcel">Pack Unshipped</button>
+        </a>
     </div>
     <ul class="tree">
         {% for item in data %}
         <li>
           <label for="toggle{{ loop.index }}">
-            Purchase At:
+            Purchased At:
             {{ item.purchaseDate }} [{{item.dailyShippedItemsCount}}/{{item.dailyOrdersItemsCount}}]
           </label>
           <ul {% if not loop.first %} style="display: none;" {% endif %}>

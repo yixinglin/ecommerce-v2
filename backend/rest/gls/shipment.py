@@ -114,4 +114,17 @@ class GlsShipmentApi:
                 name3 = tmp
         return [name1, name2, name3]
 
+    def fetch_tracking_info(self, trackId: List[str]) -> dict:
+        # https://api.gls-group.eu/public/v1/tracking/references
+        joined_track_ids = ",".join(trackId)
+        tracking_url = f"{self.api_key.url}/tracking/references/{joined_track_ids}"
+        logger.info(f"[API] Request URL: {tracking_url}")
+        self.headers['Authorization'] = self.auth
+        resp = requests.get(tracking_url, headers=self.headers)
+        if resp.status_code == 200:
+            data = json.loads(resp.text)
+        else:
+            raise RuntimeError(f"Failed to fetch tracking info for trackId {trackId}: {resp.text}")
+        return data
+
 

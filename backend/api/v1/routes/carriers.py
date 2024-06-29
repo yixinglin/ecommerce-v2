@@ -43,24 +43,24 @@ def get_gls_shipment_by_reference(reference: str = Query(None, description="GLS 
     """
     with GlsShipmentMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
                                    key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
-        shipment = man.find_shipment(reference)
+        shipment = man.find_shipment_by_id(reference)
         if shipment is None:
             return ResponseFailure(code=CodeEnum.NotFound, message="Shipment not found")
-        references = shipment["_id"].split(";")
-        carrier_name = shipment["carrier"].upper()
-        trackNumbers = [item['trackId'] for item in shipment['data']['parcels']]
-        trackingUrls = [item['location'] for item in shipment['data']['parcels']]
-        createdAt = shipment["createdAt"]
-        consignee = shipment["details"]["consignee"]
+        references = shipment.references   # shipment["_id"].split(";")
+        carrier_name = shipment.carrier # shipment["carrier"].upper()
+        trackNumbers = [p.trackNumber for p in shipment.parcels]  # [item['trackId'] for item in shipment['data']['parcels']]
+        trackingUrls = [p.locationUrl for p in shipment.parcels]
+        createdAt = shipment.createdAt
+        consignee = shipment.consignee
         if labels:
-            labelsData = shipment["data"]['labels'][0]
+            labelsData = shipment.label
         else:
             labelsData = ""
         current_time = utils_time.now()
         new = False if utils_time.diff_datetime(current_time, createdAt) > 1 else True
-        alias = shipment["alias"].upper()
+        # alias = shipment["alias"].upper()
         messages = []
-        contents = [item['content'] for item in shipment['details']['parcels']]
+        contents = [item.content for item in shipment.parcels]
 
         vo = ShipmentVO(
             references=references,
@@ -70,18 +70,18 @@ def get_gls_shipment_by_reference(reference: str = Query(None, description="GLS 
             createdAt=createdAt,
             labels=labelsData,
             new=new,
-            alias=alias,
+            alias="?",
             messages=messages,
             contents=contents,
 
-            name1=consignee['name1'],
-            name2=consignee['name2'],
-            name3=consignee['name3'],
-            street1=consignee['street1'],
-            zipCode=consignee['zipCode'],
-            city=consignee['city'],
-            province=consignee['province'],
-            country=consignee['country'],
+            name1=consignee.name1,
+            name2=consignee.name2,
+            name3=consignee.name3,
+            street1=consignee.street1,
+            zipCode=consignee.zipCode,
+            city=consignee.city,
+            province=consignee.province,
+            country=consignee.country,
 
         )
         return ResponseSuccess(data=vo)
@@ -124,7 +124,7 @@ def create_gls_shipment(shipment: StandardShipment =
             message = "New shipment created"
         except ShipmentExistsException as e:
             logger.info(e)
-            id = man.get_shipment_id(shipment)
+            id = man.join_shipment_id(shipment)
             status = 1
             message = ("Shipment already exists. The system won't create a new one "
                        "unless you delete the existing one first.")
@@ -145,32 +145,45 @@ def create_gls_shipment_bulk(shipments: List[StandardShipment]
     return ResponseSuccess(data=data, size=len(data))
 
 
-@gls.get("/shipments/pick", summary="List GLS Shipments by references",
-         response_model=BasicResponse[List[PickSlipItemVO]])
-def get_gls_pick_slip_by_references(refs: str):
-    """
-    List GLS Shipments by references
-    :param references:
-    :return:
-    """
-    refs = refs.split(";")
-    with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
-        vo = man.get_pick_slip_items(refs)
-    return ResponseSuccess(data=vo, size=len(vo))
+# @gls.get("/shipments/pick", summary="List GLS Shipments by references",
+#          response_model=BasicResponse[List[PickSlipItemVO]],
+#          deprecated=True)
+# def get_gls_pick_slip_by_references(refs: str):
+#     """
+#     List GLS Shipments by references
+#     :param references:
+#     :return:
+#     """
+#     refs = refs.split(";")
+#     with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+#         vo = man.get_pick_slip_items(refs)
+#     return ResponseSuccess(data=vo, size=len(vo))
 
+# @gls.get("/shipments/batch-pick", summary="Btach Pick Slips by sku",
+#          response_model=BasicResponse[List[dict]])
+# def get_gls_batch_pick_slip_by_references(refs: str):
+#     """
+#     List GLS Shipments by references
+#     :param references:
+#     :return:
+#     """
+#     refs = refs.split(";")
+#     with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+#         vo = man.get_batch_pick_slip(refs)
+#     return ResponseSuccess(data=vo, size=len(vo))
 
-@gls.get("/shipments/report", summary="Report GLS Shipments by Excel",
-         response_class=StreamingResponse)
-def report_shipment_by_excel(refs: str = Query(None, description="GLS Shipment references separated by semicolon")):
-    references = refs.split(";")
-    with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
-        vo = man.get_pick_slip_items(references)
-        excelData = man.pick_slip_to_excel(vo)
-        filename = f"gls-{utils_time.now(pattern='%Y%m%d-%H%M%S')}.xlsx"
-        headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
-        return StreamingResponse(BytesIO(excelData),
-                                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                 headers=headers)
+# @gls.get("/shipments/report", summary="Report GLS Shipments by Excel",
+#          response_class=StreamingResponse, deprecated=True)
+# def report_shipment_by_excel(refs: str = Query(None, description="GLS Shipment references separated by semicolon")):
+#     references = refs.split(";")
+#     with PickPackDataManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT) as man:
+#         vo = man.get_pick_slip_items(references)
+#         excelData = man.pick_slip_to_excel(vo)
+#         filename = f"gls-{utils_time.now(pattern='%Y%m%d-%H%M%S')}.xlsx"
+#         headers = {'Content-Disposition': f'attachment; filename="{filename}"'}
+#         return StreamingResponse(BytesIO(excelData),
+#                                  media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+#                                  headers=headers)
 
 @gls.get("/shipments/bulk-labels",
          summary="Download GLS Shipment labels",

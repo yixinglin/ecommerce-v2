@@ -4,20 +4,35 @@ from random import random
 from typing import List
 from pymongo.collection import Collection
 from sp_api.base import Marketplaces
-from core.db import MongoDBDataManager
+from core.db import MongoDBDataManager, OrderMongoDBDataManager, OrderQueryParams
 from core.log import logger
-from models.shipment import StandardShipment
-from .base import DATETIME_PATTERN, now, AmazonSpAPIKey
+from models.orders import OrderItem, StandardOrder, OrderStatus
+from models.shipment import StandardShipment, Address
+from utils.city import is_company_name, alpha2_to_country_name
+from utils.stringutils import jsonpath, isEmpty
+from .base import DATETIME_PATTERN, now, AmazonSpAPIKey, AmazonAddress
 from .order import AmazonOrderAPI
 from .product import AmazonCatalogAPI
 
 
-class AmazonOrderMongoDBManager(MongoDBDataManager):
+# https://developer-docs.amazon.com/sp-api/docs/orders-api-v0-reference#updateshipmentstatus
+MAP_ORDER_STATUS = {
+    OrderStatus.pending: "Pending",
+    OrderStatus.confirmed: "Unshipped",
+    OrderStatus.processing: "Unshipped",
+    OrderStatus.shipped: "Shipped",
+    OrderStatus.cancelled: "Canceled",
+}
+
+class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
     """
     This class is used to manage Amazon orders in MongoDB.
     """
+    FILTER_01 = {"order.OrderStatus": "Unshipped",
+              "order.FulfillmentChannel": "MFN"}
+
     def __init__(self, db_host: str, db_port: int, key_index: int,
-                 marketplace: Marketplaces):
+                 marketplace: Marketplaces, *args, **kwargs):
         """
          Initialize the AmazonOrderMongoDBManager.
         :param db_host: Host of the MongoDB server.
@@ -25,15 +40,16 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
         :param key_index:  Index of the API key to use.
         :param marketplace:  e.g. Marketplaces.DE
         """
-        super().__init__(db_host, db_port)
-        api_key = AmazonSpAPIKey.from_json(key_index)
-        logger.info(f"Using API key {api_key.account_id} for Amazon marketplace {marketplace.name}")
-        self.api = AmazonOrderAPI(api_key=api_key, marketplace=marketplace)
+        super().__init__(db_host, db_port, *args, **kwargs)
         self.db_name = "amazon_data"
         self.db_collection = "orders"
         self.marketplace = marketplace
-        self.account_id = api_key.account_id
-        self.salesChannel = self.api.salesChannel
+        if key_index is not None:
+            api_key = AmazonSpAPIKey.from_json(key_index)
+            logger.info(f"Using API key {api_key.account_id} for Amazon marketplace {marketplace.name}")
+            self.api = AmazonOrderAPI(api_key=api_key, marketplace=marketplace)
+            self.account_id = api_key.account_id
+            self.salesChannel = self.api.salesChannel
 
     def need_update(self, order: dict) -> bool:
         """
@@ -73,6 +89,12 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
         order_items = self.api.get_order_items(order_id).payload
         time.sleep(0.5)  # Wait for 1 second to avoid throttling
 
+        # Check if the order has been stored in MongoDB
+        order_from_db = mdb_orders_collection.find_one({"_id": order_id})
+        if order_from_db:  # Order already exists in MongoDB
+            shipping_address = order_from_db['order']['ShippingAddress']
+            order['ShippingAddress'] = shipping_address
+
         document = {
             "_id": order_id,
             "order": order,
@@ -88,6 +110,90 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
             upsert=True)
         )
         return result
+
+    def __standard_to_amazon_address(self, address: Address) -> AmazonAddress:
+        if is_company_name(address.name1):
+            companyName = address.name1
+            name = address.name2
+            addressline2 = address.name3
+        elif is_company_name(address.name2):
+            companyName = address.name2
+            name = address.name1
+            addressline2 = address.name3
+        else:
+            companyName = address.name3
+            name = address.name1
+            addressline2 = address.name2
+
+        return AmazonAddress(
+            CompanyName=companyName,
+            Name=name,
+            AddressLine1=address.street1,
+            AddressLine2=addressline2,
+            City=address.city,
+            Country=alpha2_to_country_name(address.country),
+            CountryCode=address.country,
+            StateOrRegion=address.province,
+            PostalCode=address.zipCode,
+            Phone=address.mobile,
+        )
+
+    def __amazon_to_standard_address(self, address: AmazonAddress) -> Address:
+        if isEmpty(address.CompanyName):
+            name1 = address.Name
+            name2 = address.AddressLine2
+            name3 = address.CompanyName
+        elif isEmpty(address.Name):
+            name1 = address.CompanyName
+            name2 = address.AddressLine2
+            name3 = address.Name
+        else:
+            name1 = address.CompanyName
+            name2 = address.Name
+            name3 = address.AddressLine2
+
+        return Address(
+            name1=name1,
+            name2=name2,
+            name3=name3,
+            street1=address.AddressLine1,
+            zipCode=address.PostalCode,
+            city=address.City,
+            province=address.StateOrRegion,
+            country=address.CountryCode,
+            email="",
+            telephone="",
+            mobile=""
+        )
+
+
+    def add_shipping_address_to_order(self, order_id: str, shipping_address: Address) -> bool:
+        """
+        Add shipping address to an order in MongoDB.
+        :param order_id: Amazon order ID
+        :param shipping_address: Shipping address to add to the order
+        Doc: https://developer-docs.amazon.com/sp-api/docs/orders-api-v0-reference#address
+       """
+        amazonAddress = self.__standard_to_amazon_address(shipping_address)
+        ship_addr = amazonAddress.dict()
+        mdb_orders_collection = self.db_client[self.db_name][self.db_collection]
+        # Check if the order has been stored in MongoDB
+        order_from_db = mdb_orders_collection.find_one({"_id": order_id})
+        if order_from_db:  # Order already exists in MongoDB
+            # Update the order with the shipping address
+            result = (mdb_orders_collection.update_one(
+                {"_id": order_id},
+                {"$set": {"order.ShippingAddress": ship_addr}},
+                upsert=True)
+            )
+        else:
+            # Fetch the order from Amazon API and add the shipping address
+            order = self.api.get_order(order_id).payload
+            order['ShippingAddress'] = ship_addr
+            # Save the order to MongoDB
+            result = self.save_order(order_id, order=order)
+        return result
+
 
     def save_all_orders(self, days_ago=30, **kwargs):
         """
@@ -109,19 +215,71 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
                 logger.error(f"Error fetching order [{order_id}]: {e}")
                 time.sleep(1)  # Wait for 1 second to avoid throttling
 
-    def find_orders(self, **kwargs) -> list:
+    def find_orders(self, **kwargs) -> List[StandardOrder]:
         """
         Find orders in MongoDB.
+
+        @Note: This function is a low-level function. Do not modify without proper review.
+
         :param kwargs: filter conditions
         :return:
         Example:
         find_orders(filter={"order.OrderStatus": "Unshipped", "order.FulfillmentChannel": "MFN"})
         """
         orders_collection:Collection = self.db_client[self.db_name][self.db_collection]
-        results = orders_collection.find(**kwargs)
-        return list(results)
+        results = list(orders_collection.find(**kwargs))
+        results = [self.to_standard_order(r) for r in results]
+        return results
 
-    def get_unshipped_order(self, days_ago=7) -> List[str]:
+    def find_orders_by_query_params(self, query_params: OrderQueryParams) -> List[StandardOrder]:
+        query = {}
+        if query_params.purchasedDateTo:
+            purchased_date_to = datetime.strptime(query_params.purchasedDateTo, DATETIME_PATTERN)
+            query.setdefault("order.PurchaseDate", {})["$lte"] = query_params.purchasedDateTo
+
+        if query_params.purchasedDateFrom:
+            purchased_date_from = datetime.strptime(query_params.purchasedDateFrom, DATETIME_PATTERN)
+            query.setdefault("order.PurchaseDate", {})["$gte"] = query_params.purchasedDateFrom
+
+        if query_params.status:
+            query['order.OrderStatus'] = {"$in": query_params.status}
+
+        return self.find_orders(filter=query)
+
+
+
+    def find_orders_by_ids(self, ids: List[str]) -> List[StandardOrder]:
+        """
+        Find orders by IDs in MongoDB.
+
+        @Note: This function is a low-level function. Do not modify without proper review.
+
+        :param ids:
+        :return:
+        """
+        filter_ = {"_id": {"$in": ids}}
+        orders = list(self.find_orders(filter=filter_))
+        # Sort the orders by the given order IDs
+        if len(orders) > 0:
+            order_dict = {order.orderId: order for order in orders}
+            orders = [order_dict[id] for id in ids]
+        return orders
+
+    def find_order_by_id(self, order_id: str) -> StandardOrder:
+        """
+        Find an order by ID in MongoDB.
+        @Note: This function is a low-level function. Do not modify without proper review.
+
+        :param order_id:
+        :return:
+        """
+        result = self.find_orders_by_ids([order_id])
+        if result:
+            return result[0]
+        else:
+            return None
+
+    def find_unshipped_orders(self, days_ago=7, up_to_date=True) -> List[StandardOrder]:
         """
         Get all FBM orders within the specified time range via Amazon API, and save them to MongoDB.
         The function will return a list of up-to-date FBM orders.
@@ -129,35 +287,75 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
         :return: List of up-to-date FBM orders
         """
         # Fetch all FBM orders within the specified time range and save them to MongoDB
-        self.save_all_orders(days_ago=days_ago, FulfillmentChannels=["MFN"])
+        if up_to_date:
+            self.save_all_orders(days_ago=days_ago, FulfillmentChannels=["MFN"])
         # Get all FBM orders within the specified time range
-        orders = self.find_orders(filter={"order.FulfillmentChannel": "MFN",
-                                          "order.OrderStatus": "Unshipped",
-                                          "account_id": self.account_id,
-                                          "order.SalesChannel": self.salesChannel
-                                          })
-        sortedOrders = sorted(orders, key=lambda x: x['items']['OrderItems'][0]['SellerSKU'])
-        return sortedOrders
+        filter_ = {
+            "order.FulfillmentChannel": "MFN",
+            "order.OrderStatus": "Unshipped",
+        }
+        if hasattr(self, 'account_id'):
+            filter_['account_id'] = self.account_id
+        if hasattr(self,'salesChannel'):
+            filter_['order.SalesChannel'] = self.salesChannel
+        orders = self.find_orders(filter=filter_)
+        return orders
 
-    def get_shipment_by_order(self, shipment: StandardShipment) -> None:
+
+
+
+    def to_standard_order(self, order: dict) -> StandardOrder:
+        orderId = order['_id']
+        orderItems = order['items']['OrderItems']
+        standardOrderItems = []
+        for item in orderItems:
+            quantity = int(item['QuantityOrdered'])
+            unit_price = float(item['ItemPrice']['Amount'])
+            tax = float(item['ItemTax']['Amount'])
+            stdItem = OrderItem(id=item['ASIN'],
+                                name=item['Title'],
+                                sku=item['SellerSKU'],
+                                quantity=quantity,
+                                unit_price=unit_price,
+                                subtotal=unit_price * quantity,
+                                tax=tax,
+                                total=unit_price * quantity + tax,
+                                description="",
+                                image="")
+            standardOrderItems.append(stdItem)
+
+        amazonAddr = AmazonAddress.parse_obj(order['order']['ShippingAddress'])
+        shipAddress = self.__amazon_to_standard_address(amazonAddr)
+        shipAddress.email = order['order']['BuyerInfo']['BuyerEmail']
+
+        standardOrder = StandardOrder(orderId=orderId,
+                                      sellerId=order['account_id'],
+                                      salesChannel="SalesChannel",
+                                      createdAt=order['order']['PurchaseDate'],
+                                      updatedAt=order['order']['LastUpdateDate'],
+                                      purchasedAt=order['order']['PurchaseDate'],
+                                      status=order['order']['OrderStatus'],
+                                      items=standardOrderItems,
+                                      shipAddress=shipAddress,
+                                      billAddress=None,
+                                      # trackIds=None,
+                                      # parcelNumbers=None
+                                      )
+        return standardOrder
+
+    def get_unshipped_orderlines(self, days_ago=7, up_to_date=True) -> List[OrderItem]:
         """
-        TODO: 把订单信息补充到shipment中。
-        @param shipment: StandardShipment object.
-        :return:
+        Get all FBM orderlines within the specified time range via Amazon API, and save them to MongoDB.
+        The function will return a list of up-to-date FBM orderlines.
+        :param days_ago: Number of days to fetch orders from
+        :return: List of up-to-date FBM orderlines
         """
-        # reference = shipment.references[0]
-        # consignee = shipment.consignee
-        # consignee.email = ""
-        # consignee.telephone = ""
-        # consignee.mobile = ""
-        # consignee.zipCode = ""
-        # consignee.city = ""
-        # consignee.country = ""
-
-        # parcel = shipment.parcels[0]
-        # parcel.content = ""
-        pass
-
+        orders = self.find_unshipped_orders(days_ago=days_ago, up_to_date=up_to_date)
+        orderlines = []
+        for order in orders:
+            orderlines += order.items
+        sortedOrderlines = sorted(orderlines, key=lambda x: x.sku)
+        return sortedOrderlines
 
     def get_daily_mfn_sales(self, days_ago=7) -> List[dict]:
         """
@@ -260,14 +458,16 @@ class AmazonOrderMongoDBManager(MongoDBDataManager):
 
 class AmazonCatalogManager(MongoDBDataManager):
 
-    def __init__(self, db_host: str, db_port: int,
-                 marketplace: Marketplaces, key_index):
+    def __init__(self, db_host: str, db_port: int, key_index: int,
+                 marketplace: Marketplaces, ):
         super().__init__(db_host, db_port)
-        api_key = AmazonSpAPIKey.from_json(key_index)
-        self.api = AmazonCatalogAPI(api_key=api_key, marketplace=marketplace)
         self.db_name = "amazon_data"
         self.db_collection = "catalog"
         self.marketplace: Marketplaces = marketplace
+        if key_index is not None:
+            api_key = AmazonSpAPIKey.from_json(key_index)
+            self.api = AmazonCatalogAPI(api_key=api_key, marketplace=marketplace)
+
 
     def save_catalog(self, asin):
         """
@@ -292,6 +492,10 @@ class AmazonCatalogManager(MongoDBDataManager):
                 time.sleep(1)
             else:
                 item = item['catalogItem']
+
+        # if item has no attribute "AttributeSets"
+        if 'AttributeSets' not in item.keys():
+            return None
 
         document = {
             "_id": asin,

@@ -24,6 +24,14 @@ def country_name_to_alpha2(country_name):
         alpha_2 = None
     return alpha_2
 
+def alpha2_to_country_name(alpha2):
+    try:
+        country = pycountry.countries.get(alpha_2=alpha2)
+        name = country.name
+    except LookupError:
+        name = alpha2
+    return name
+
 
 def country_name_details(native_name="Deutschland"):
     with open(PTH_COUNTRIES_JSON, encoding="utf-8") as f:
@@ -72,7 +80,7 @@ def identify_german_street(address):
 
 
 def is_company_name(company_name: str) -> bool:
-    keywords = r'\b(GmbH|Gmbh|gGmbH|AG|KG|OHG|UG|e\.V\.|SE)\b'
+    keywords = r'\b(GmbH|Gmbh|gGmbH|AG|KG|OHG|UG|Co. KG|e\.V\.|SE)\b'
     match = re.search(keywords, company_name)
     return bool(match)
 

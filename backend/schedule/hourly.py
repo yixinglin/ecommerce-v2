@@ -5,6 +5,7 @@ from sp_api.base import Marketplaces
 from core.log import logger
 from rest.amazon.DataManager import AmazonOrderMongoDBManager, AmazonCatalogManager
 from core.config import settings
+from rest.gls.DataManager import GlsShipmentMongoDBManager
 from rest.kaufland.DataManager import KauflandOrderMongoDBManager
 from rest.kaufland.base import Storefront
 
@@ -37,6 +38,20 @@ def save_amazon_orders_job(key_index, marketplace):
     finally:
         # wait for 15 seconds before running the next job, to avoid rate limiting
         time.sleep(15)
+
+
+def save_tracking_info_job(key_index):
+    """
+    :param key_index:
+    :return:
+    """
+    if settings.SCHEDULER_GLS_TRACKING_FETCH_ENABLED:
+        with GlsShipmentMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                       key_index=key_index) as man:
+            shipments = man.get_incomplete_shipments(days_ago=7)
+            ids = [';'.join(s.references) for s in shipments]
+            logger.info(f"Fetching tracking info for {len(ids)} shipments: {";".join(ids)}")
+            man.save_tracking_info(ids=ids)
 
 
 def save_kaufland_orders_job(key_index, storefront):
@@ -90,7 +105,18 @@ def common_scheduler_2hrs():
     save_kaufland_orders_job(key_index=0, storefront=Storefront.DE)
     logger.info("Successfully scheduled common scheduler job...")
 
+@hourlyScheduler.scheduled_job('interval', seconds=4 * 3600)
+def common_scheduler_4hrs():
+    """
+    To schedule jobs every 4 hours
+    :return:
+    """
+    save_tracking_info_job(key_index=settings.GLS_ACCESS_KEY_INDEX)
+    logger.info("Successfully scheduled common scheduler job...")
+
 
 # Run the code once when the script is loaded
 next_run_time = datetime.now() + timedelta(seconds=240)
 hourlyScheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
+next_run_time = datetime.now() + timedelta(seconds=480)
+hourlyScheduler.add_job(common_scheduler_4hrs, 'date', run_date=next_run_time)

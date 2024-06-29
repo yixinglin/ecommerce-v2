@@ -1,9 +1,10 @@
 import os
 from typing import Any, List, Union
-import requests
 from fastapi import APIRouter, Request, Response, Query, Body, Path
 from sp_api.base import Marketplaces
-from models.shipment import StandardShipment
+
+from core.log import logger
+from models.orders import StandardOrder
 from rest.amazon.base import AmazonSpAPIKey
 from rest.amazon.bulkOrderService import AmazonBulkPackSlipDE
 from schemas import ResponseSuccess
@@ -23,7 +24,10 @@ def get_asin_image_url_dict(marketplace: Marketplaces) -> dict:
         catalogItems = man.get_all_catalog_items()
     result = dict()
     for catalogItem in catalogItems:
-        result[catalogItem['_id']] = catalogItem['catalogItem']['AttributeSets'][0]['SmallImage']['URL']
+        try:
+            result[catalogItem['_id']] = catalogItem['catalogItem']['AttributeSets'][0]['SmallImage']['URL']
+        except KeyError as e:
+            logger.error(f"Error while getting ASIN image URL for {catalogItem['_id']}")
     return result
 
 
@@ -54,10 +58,7 @@ def get_daily_ordered_items_count(response: Response,
     asin_image_url = get_asin_image_url_dict(marketplace)
     for day in daily_sales_vo:
         for shipment in day.dailyShipments:
-            try:
-                shipment.imageUrl = asin_image_url[shipment.asin]
-            except KeyError:
-                shipment.imageUrl = ""
+            shipment.imageUrl = asin_image_url.get(shipment.asin, "")
     return ResponseSuccess(data=daily_sales_vo, )
 
 
@@ -89,8 +90,8 @@ def get_unshipped_order_numbers(country: str=Query("DE", description="Country of
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
     with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
                                    key_index=0, marketplace=marketplace) as man:
-        unshipped_orders = man.get_unshipped_order(days_ago=7)
-        order_numbers = [order['order']['AmazonOrderId'] for order in unshipped_orders]
+        unshipped_orders = man.find_unshipped_order(days_ago=7)
+        order_numbers = [order.orderId for order in unshipped_orders]
         return ResponseSuccess(data=order_numbers)
 
 @amz_order.get("/orders/sc-urls",
@@ -107,14 +108,14 @@ def get_seller_central_urls():
 
 @amz_order.post("/orders/packslip/parse",
                summary="Parse Amazon packing slip and extract all shipments.",
-               response_model=BasicResponse[Union[List[StandardShipment], List[List[str]]]])
+               response_model=BasicResponse[Union[List[StandardOrder], List[List[str]]]])
 def parse_amazon_pack_slip_html(body: PackSlipRequestBody=Body(None, description="Packing slip data")):
     """
-    Parse Amazon packing slip and extract all shipments.
+    Parse Amazon packing slip and extract all shipping addresses, store it to MongoDB.
     :param html:
     :param country: Country code using to filtering the packing slips
     :param format: csv, json
-    :return: A list of StandardShipment objects.
+    :return: A list of StandardOrder objects.
     """
     formatIn = body.formatIn
     format_ = body.formatOut
@@ -122,10 +123,18 @@ def parse_amazon_pack_slip_html(body: PackSlipRequestBody=Body(None, description
     html_content = body.data
 
     # html_content = requests.get("https://www.hamster25.buzz/amazon/amazon-delivery-de-03.html").content
-
+    marketplace = AmazonSpAPIKey.name_to_marketplace(country)
+    # Result to return
     if country == "DE":
-        shipments = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
+        # Result to return
+        orders = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
+        # Update shipping address to MongoDB
+        orders_: StandardOrder = AmazonBulkPackSlipDE(html_content).extract_all()
+        with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                       key_index=0, marketplace=marketplace) as man:
+            for order_ in orders_:
+                man.add_shipping_address_to_order(order_.orderId, order_.shipAddress)
     else:
         raise RuntimeError(f"Unsupported marketplace [{country}]")
-    return ResponseSuccess(data=shipments)
+    return ResponseSuccess(data=orders)
 

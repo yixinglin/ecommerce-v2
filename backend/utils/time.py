@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
 
@@ -16,6 +16,14 @@ def today():
     :return:
     """
     return datetime.now().date()
+
+def  days_ago(days: int) -> str:
+    """
+    Get the date that is `days` days ago.
+    :param days:
+    :return:
+    """
+    return (datetime.now() - timedelta(days=days)).strftime(DATETIME_PATTERN)
 
 def str_to_datatime(datetime_str, pattern=DATETIME_PATTERN):
     """
@@ -37,3 +45,13 @@ def diff_datetime(datetime_str1, datetime_str2, pattern=DATETIME_PATTERN):
     dt1 = str_to_datatime(datetime_str1, pattern)
     dt2 = str_to_datatime(datetime_str2, pattern)
     return (dt1 - dt2).total_seconds()
+
+def datetime_to_date(datetime_str, src_pattern=DATETIME_PATTERN,
+                     target_pattern='%Y-%m-%d') -> str:
+    """
+    Convert a datetime string to date object.
+    :param datetime_str:
+    :param pattern:
+    :return:
+    """
+    return datetime.strptime(datetime_str, src_pattern).strftime(target_pattern)

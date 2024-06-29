@@ -1,12 +1,13 @@
 import json
 import os
 from datetime import datetime
+from typing import Union
+
 from sp_api.base import Marketplaces
 from sp_api.api import Sellers
 from core.config import settings
-from pydantic import BaseModel
-
-DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
+from pydantic import BaseModel, Field
+from core.db import DATETIME_PATTERN
 
 MARKETPLACES_MAP = {p.name: p for p in Marketplaces}
 
@@ -63,3 +64,18 @@ class AmazonSpAPIKey(BaseModel):
 
     def get_marketplace_participation(self, marketplace: Marketplaces):
         return Sellers(credentials=self.__dict__, marketplace=marketplace).get_marketplace_participation().payload
+
+class AmazonAddress(BaseModel):
+    CompanyName: Union[str, None] = Field(default=None, description="CompanyName")
+    Name: Union[str, None] = Field(default=None, description="Name")
+    AddressLine1: Union[str, None] = Field(default=None, description="AddressLine1: street")
+    AddressLine2: Union[str, None] = Field(default=None, description="AddressLine2: c/o")
+    City: Union[str, None] = Field(default=None, description="City")
+    Country: Union[str, None] = Field(default=None, description="Country")
+    CountryCode: Union[str, None] = Field(default=None, description="CountryCode")
+    StateOrRegion: Union[str, None] = Field(default=None, description="StateOrRegion")
+    PostalCode: Union[str, None] = Field(default=None, description="PostalCode")
+    Phone: Union[str, None] = Field(default=None, description="Phone")
+
+
+

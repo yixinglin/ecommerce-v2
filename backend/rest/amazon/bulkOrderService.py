@@ -5,7 +5,8 @@ import utils.city as city
 import utils.time as util_time
 import utils.translate as trans
 from core.log import logger
-from models.shipment import StandardShipment, Parcel, Address
+from models.orders import StandardOrder, OrderItem
+from models.shipment import Address
 
 
 class AmazonBulkPackSlipDE:
@@ -59,7 +60,7 @@ class AmazonBulkPackSlipDE:
         This function can only apply to a German shipping address
         :param shipping_address: The original shipping address
         :return:  The adjusted shipping address
-            Format of the shipping address: country, city, state, zip, street, supplement, name, company
+            Format of the shipping address: country, city, state, zip, street, supplement(name3), name(name2), company(name1)
         """
         # Filtering countries except Germany (Avoid using Google Translate)
         if shipping_address[0] not in ["Deutschland", "Germany"]:
@@ -80,7 +81,9 @@ class AmazonBulkPackSlipDE:
 
         # Validate zip code format
         if city.valid_zip_code(shipping_address[2], country_code):
-            shipping_address.insert(2, "")
+            shipping_address.insert(2, "")  # insert empty state if missing
+        elif city.valid_zip_code(shipping_address[3], country_code):
+            shipping_address[1], shipping_address[2] = shipping_address[2], shipping_address[1]
 
         # Filtering countries except Germany
         if country_code.lower() != "de":
@@ -170,7 +173,7 @@ class AmazonBulkPackSlipDE:
             })
         return collection_item_details
 
-    def extract_all(self, format=None) -> List[Union[StandardShipment, List[str], dict]]:
+    def extract_all(self, format=None) -> Union[List[StandardOrder], List[tuple], List[dict]]:
         """
         This function extracts all necessary information from Amazon shipping slip page.
         :param format: output format, e.g. json, csv. Default is a list of StandardShipment objects.
@@ -185,21 +188,26 @@ class AmazonBulkPackSlipDE:
                 adjusted_addr = self.adjust_shipping_address(addresses[i])
                 id = ids[i]
                 item = items[i]
-                shipment = self.to_standard_shipment(id, item, adjusted_addr)
+                # shipment = self.to_standard_shipment(id, item, adjusted_addr)
+                standardOrder = self.to_standard_order(id, item, adjusted_addr)
                 if format == 'json':
-                    ans.append(shipment.dict())
+                    ans.append(standardOrder.dict())
                 elif format == 'csv':
                     ans.append([id, util_time.now()] + adjusted_addr)
                 else:
-                    ans.append(shipment)
+                    ans.append(standardOrder)
             except (RuntimeError, KeyError) as e:
-                logger.error(f"Error while adjusting shipping address: {e}"
+                    logger.error(f"Error while adjusting shipping address: {e}"
                              + ";".join(addresses[i]))
         return ans
 
-    def to_standard_shipment(self, orderId, items, address) -> StandardShipment:
+
+    def to_standard_order(self, orderId, items, address) -> StandardOrder:
         """
-        This function converts the Amazon shipping slip page to a list of StandardShipment objects.
+        This function converts the Amazon shipping slip page to a StandardOrder objects.
+        :param orderId:
+        :param items:
+        :param address:
         :return:
         """
         consignee = Address(
@@ -213,22 +221,21 @@ class AmazonBulkPackSlipDE:
             name1=address[7]
         )
 
-        content = ""
-        for item in items:
-            content += f"{item['quantity']} x [{item['sku']}]\n"
-        content = content.strip()
+        orderlines = []
+        for i, item in enumerate(items):
+            orderline = OrderItem(
+                id = f"slipid_{i}",
+                name=item['title'],
+                sku=item['sku'],
+                asin=item['asin'],
+                quantity=item['quantity'],
+            )
+            orderlines.append(orderline)
 
-        p = Parcel(
-            trackNumber="",
-            parcelNumber="",
-            weight=1,
-            content=content,
+        order = StandardOrder(
+            orderId=orderId,
+            shipAddress=consignee,
+            items=orderlines
         )
 
-        s = StandardShipment(
-            references=[orderId],
-            consignee=consignee,
-            parcels=[p]
-        )
-
-        return s
+        return order
