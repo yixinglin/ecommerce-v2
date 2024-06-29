@@ -92,7 +92,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         # Check if the order has been stored in MongoDB
         order_from_db = mdb_orders_collection.find_one({"_id": order_id})
         if order_from_db:  # Order already exists in MongoDB
-            shipping_address = order_from_db['order']['ShippingAddress']
+            shipping_address = order_from_db['order'].get('ShippingAddress', None)
             order['ShippingAddress'] = shipping_address
 
         document = {
@@ -212,7 +212,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                     logger.info(f"Fetched Amazon order [{order_id}] purchased at {order['PurchaseDate']}...")
                     self.save_order(order_id, order=order)
             except Exception as e:
-                logger.error(f"Error fetching order [{order_id}]: {e}")
+                logger.error(f"Error fetching order [{order_id}]: {e}, Error Type: {type(e).__name__}")
                 time.sleep(1)  # Wait for 1 second to avoid throttling
 
     def find_orders(self, **kwargs) -> List[StandardOrder]:
@@ -324,10 +324,16 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                                 image="")
             standardOrderItems.append(stdItem)
 
-        amazonAddr = AmazonAddress.parse_obj(order['order']['ShippingAddress'])
-        shipAddress = self.__amazon_to_standard_address(amazonAddr)
-        shipAddress.email = order['order']['BuyerInfo']['BuyerEmail']
+        try:
+            amazonAddr = AmazonAddress.parse_obj(order['order']['ShippingAddress'])
+            shipAddress = self.__amazon_to_standard_address(amazonAddr)
+        except Exception as e:
+            logger.error(f"Error parsing shipping address for order [{orderId}]: {e}, Error Type: {type(e).__name__}")
+            shipAddress = Address(name1="", name2="", name3="",
+                                  street1="", zipCode="", city="", province="",
+                                  email="", telephone="", mobile="")
 
+        shipAddress.email = order['order']['BuyerInfo']['BuyerEmail']
         standardOrder = StandardOrder(orderId=orderId,
                                       sellerId=order['account_id'],
                                       salesChannel="SalesChannel",

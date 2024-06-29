@@ -50,7 +50,7 @@ def save_tracking_info_job(key_index):
                                        key_index=key_index) as man:
             shipments = man.get_incomplete_shipments(days_ago=7)
             ids = [';'.join(s.references) for s in shipments]
-            logger.info(f"Fetching tracking info for {len(ids)} shipments: {";".join(ids)}")
+            logger.info(f"Fetching tracking info for {len(ids)} shipments: {';'.join(ids)}")
             man.save_tracking_info(ids=ids)
 
 

@@ -191,7 +191,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
         df_order_lines['taskId'] = df_order_lines['taskId'].apply(lambda x: f"{x: 03d}")
         # Format purchasedAt,
         df_order_lines['purchasedAt'] = df_order_lines['purchasedAt'] \
-            .apply(lambda x: f"{datetime_to_date(x, target_pattern="%d.%m.%Y")}")
+            .apply(lambda x: f"{datetime_to_date(x, target_pattern=r'%d.%m.%Y')}")
 
         with BytesIO() as excel_bytes:
             df_order_lines.to_excel(excel_bytes, index=False, sheet_name="pack_orders")
