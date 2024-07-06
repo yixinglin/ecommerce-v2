@@ -50,12 +50,12 @@ class MongoDBDataManager:
         del self
 
 class OrderQueryParams:
-    # limit: int = 100
-    # offset: int = 0
-    purchasedDateFrom: str = None
-    purchasedDateTo: str = None
+    limit: int = 100
+    offset: int = 0
+    purchasedDateFrom: str = None  # Should be in YYYY-MM-ddTHH:mm:ssZ format
+    purchasedDateTo: str = None   # Should be in YYYY-MM-ddTHH:mm:ssZ format
     status: List[str] = None
-    orderId: str = None
+    orderIds: List[str] = None
 
 class OrderMongoDBDataManager(MongoDBDataManager):
     def __init__(self, db_host: str, db_port: int):

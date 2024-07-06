@@ -23,6 +23,8 @@ class OrderItem(BaseModel):
     id: str = Field(description="Unique identifier for the item")
     name: str = Field(description="Name of the item")
     sku: str = Field(description="Unique identifier for the item")
+    asin: str = Field(description="Amazon Standard Identification Number (ASIN) for the item")
+    ean: str = Field(description="European Article Number (EAN) for the item")
     quantity: int = Field(description="Quantity of the item")
     unit_price: float = Field(default=0, description="Price of the item per unit")
     subtotal: float = Field(default=0, description="Total price of the item")

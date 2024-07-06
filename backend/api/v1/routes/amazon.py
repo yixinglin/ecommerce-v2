@@ -1,8 +1,8 @@
 import os
-from typing import Any, List, Union
+from typing import Any, List, Union, Dict
 from fastapi import APIRouter, Request, Response, Query, Body, Path
 from sp_api.base import Marketplaces
-
+from core.db import OrderQueryParams
 from core.log import logger
 from models.orders import StandardOrder
 from rest.amazon.base import AmazonSpAPIKey
@@ -14,6 +14,7 @@ from schemas.basic import BasicResponse
 from vo.amazon import DailyShipment, DailySalesCountVO, PackSlipRequestBody
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+import utils.time as time_utils
 
 amz_order = APIRouter(tags=['AMAZON Services'])
 
@@ -30,6 +31,35 @@ def get_asin_image_url_dict(marketplace: Marketplaces) -> dict:
             logger.error(f"Error while getting ASIN image URL for {catalogItem['_id']}")
     return result
 
+
+@amz_order.get("/orders",
+               summary="Get Amazon orders",
+               response_model=BasicResponse[dict])
+def get_amazon_orders(days_ago: int = Query(7, description="Fetch data for the last x days"),
+                      status: List[str] = Query(None, description="Filter orders by status"),
+                      api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
+                      ):
+    marketplace = Marketplaces.DE
+    with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
+                                   key_index=api_key_index, marketplace=marketplace) as man:
+        purchasedDateFrom = time_utils.days_ago(days_ago)
+        params = OrderQueryParams()
+        params.purchasedDateFrom = purchasedDateFrom
+        params.status = status
+        orders = man.find_orders_by_query_params(params)
+
+    # Add image URL to each order item
+    asin_to_image_url = get_asin_image_url_dict(marketplace)
+    for od in orders:
+        for odline in od.items:
+            odline.image = asin_to_image_url.get(odline.asin, "")
+
+    # TODO Add tracking id to each order
+
+    data = {"orders": orders,
+            "api_client": man.api.get_account_id(),
+            "length": len(orders)}
+    return ResponseSuccess(data=data)
 
 @amz_order.get("/orders/ordered-items-count/daily/{days_ago}",
                summary="Get daily ordered items count",
@@ -79,8 +109,11 @@ def view_daily_ordered_items_count_html(request: Request, response: Response,
 
 @amz_order.get("/orders/unshipped",
                summary="Get unshipped order numbers",
-               response_model=BasicResponse[List[str]])
-def get_unshipped_order_numbers(country: str=Query("DE", description="Country of the marketplace")) -> List[str]:
+               response_model=BasicResponse[dict])
+def get_unshipped_order_numbers(country: str=Query("DE", description="Country of the marketplace"),
+                                up_to_date: bool = Query(False, description="Save orders from api before returning data"),
+                                api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
+                                ) -> List[str]:
     """
     Get Amazon order numbers that have unshipped items. The order numbers are sorted by sku.
     :country: Country code that is used to determine a marketplace.
@@ -89,10 +122,13 @@ def get_unshipped_order_numbers(country: str=Query("DE", description="Country of
     """
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
     with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                   key_index=0, marketplace=marketplace) as man:
-        unshipped_orders = man.find_unshipped_order(days_ago=7)
+                                   key_index=api_key_index, marketplace=marketplace) as man:
+        unshipped_orders = man.find_unshipped_orders(days_ago=7, up_to_date=up_to_date)
         order_numbers = [order.orderId for order in unshipped_orders]
-        return ResponseSuccess(data=order_numbers)
+        data = {"orderNumbers": order_numbers, "upToDate": up_to_date,
+                "api_client": man.api.get_account_id(),
+                "length": len(order_numbers)}
+        return ResponseSuccess(data=data)
 
 @amz_order.get("/orders/sc-urls",
                summary="Get seller central urls",

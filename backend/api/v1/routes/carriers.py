@@ -1,13 +1,8 @@
 import os
 import time
 from io import BytesIO
-
 from starlette.responses import StreamingResponse
-
-from rest.common.summary import PickPackDataManager
-from utils import utilsio, utilpdf
 from typing import List, Union
-
 from fastapi import APIRouter, Query, Body, Path
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
@@ -21,7 +16,6 @@ from schemas.basic import ResponseSuccess, ResponseFailure, CodeEnum, BasicRespo
 from vo.carriers import ShipmentVO, CreatedShipmentVO, PickSlipItemVO
 
 gls = APIRouter(prefix="/gls", tags=["GLS Services"], )
-
 
 @gls.get("/shipments",
          summary="Get a GLS Shipment by reference from database",

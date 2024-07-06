@@ -1,0 +1,90 @@
+body {
+font-family: Arial, sans-serif;
+background-color: #f5f5f5;
+margin: 0;
+padding: 0;
+}
+h2 {
+color: #333;
+margin-top: 20px;
+margin-bottom: 10px;
+font-size: 20px;
+}
+.note {
+color: #666;
+margin-bottom: 20px;
+}
+.tree {
+list-style-type: none;
+padding-left: 0;
+}
+.tree li {
+margin-bottom: 3px;
+padding: 5px;
+background-color: #fff;
+border-radius: 5px;
+box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.tree label {
+font-family: Arial, sans-serif;
+font-weight: bold;
+font-size: 24px;
+color: #333;
+cursor: pointer;
+padding: 5px;
+}
+.tree .shipment-title {
+font-weight: bold;
+color: #333;
+overflow: hidden;
+white-space: nowrap;
+text-overflow: ellipsis;
+max-width: 900px; /* Adjust as needed */
+display: inline-block;
+}
+.group-product-item {
+display: flex;
+}
+.gpi {
+width: 760px;
+float: left;
+margin-left: 20px;
+}
+.tree .thumbnail {
+width: auto;
+height: 120px;
+margin-left: auto;
+border: hsl(0, 0%, 83%) 1px solid;
+box-shadow: hsl(0, 0%, 60%) 5px 5px 5px;
+border-radius: 15px;
+}
+.tree .warning {
+color: red;
+margin-left: 5px;
+}
+.btn {
+font-family: Arial, sans-serif;
+font-size: 15px;
+margin-right: 10px;
+padding: 8px 16px;
+background-color: #007bff;
+color: #fff;
+border: none;
+border-radius: 40px;
+cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #015cbe;
+}
+
+.item_container {
+    font: Arial, sans-serif;
+    border: solid 1px hsl(0, 0%, 60%);
+    border-radius: 10px;
+    padding: 10px;
+    margin: 10px;
+    box-shadow: hsl(0, 0%, 60%) 5px 5px 5px;
+    min-width: 600;
+    display: inline-block;
+}

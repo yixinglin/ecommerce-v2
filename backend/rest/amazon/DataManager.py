@@ -234,16 +234,18 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
     def find_orders_by_query_params(self, query_params: OrderQueryParams) -> List[StandardOrder]:
         query = {}
         if query_params.purchasedDateTo:
-            purchased_date_to = datetime.strptime(query_params.purchasedDateTo, DATETIME_PATTERN)
             query.setdefault("order.PurchaseDate", {})["$lte"] = query_params.purchasedDateTo
 
         if query_params.purchasedDateFrom:
-            purchased_date_from = datetime.strptime(query_params.purchasedDateFrom, DATETIME_PATTERN)
             query.setdefault("order.PurchaseDate", {})["$gte"] = query_params.purchasedDateFrom
 
         if query_params.status:
             query['order.OrderStatus'] = {"$in": query_params.status}
 
+        if query_params.orderIds:
+            query['_id'] = {"$in": query_params.orderIds}
+
+        query['account_id'] = self.api.get_account_id()
         return self.find_orders(filter=query)
 
 
@@ -309,12 +311,14 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         orderItems = order['items']['OrderItems']
         standardOrderItems = []
         for item in orderItems:
-            quantity = int(item['QuantityOrdered'])
-            unit_price = float(item['ItemPrice']['Amount'])
-            tax = float(item['ItemTax']['Amount'])
+            quantity = int(jsonpath(item, '$.QuantityOrdered', 0))
+            unit_price = float(jsonpath(item, '$.ItemPrice.Amount', 0.0))
+            tax = float(jsonpath(item, '$.ItemTax.Amount', 0.0))
             stdItem = OrderItem(id=item['ASIN'],
                                 name=item['Title'],
                                 sku=item['SellerSKU'],
+                                asin=item['ASIN'],
+                                ean="",
                                 quantity=quantity,
                                 unit_price=unit_price,
                                 subtotal=unit_price * quantity,
@@ -324,16 +328,21 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                                 image="")
             standardOrderItems.append(stdItem)
 
-        try:
-            amazonAddr = AmazonAddress.parse_obj(order['order']['ShippingAddress'])
-            shipAddress = self.__amazon_to_standard_address(amazonAddr)
-        except Exception as e:
-            logger.error(f"Error parsing shipping address for order [{orderId}]: {e}, Error Type: {type(e).__name__}")
-            shipAddress = Address(name1="", name2="", name3="",
+        empty_addr = Address(name1="", name2="", name3="",
                                   street1="", zipCode="", city="", province="",
                                   email="", telephone="", mobile="")
 
-        shipAddress.email = order['order']['BuyerInfo']['BuyerEmail']
+        try:
+            if 'ShippingAddress' in order['order'].keys() and order['order']['ShippingAddress']:
+                amazonAddr = AmazonAddress.parse_obj(order['order']['ShippingAddress'])
+                shipAddress = self.__amazon_to_standard_address(amazonAddr)
+            else:
+                shipAddress = empty_addr
+        except Exception as e:
+            logger.warning(f"Error parsing shipping address for order [{orderId}]: {e}, Error Type: {type(e).__name__}")
+            shipAddress = empty_addr
+
+        shipAddress.email = jsonpath(order, '$.order.BuyerInfo.BuyerEmail', "")
         standardOrder = StandardOrder(orderId=orderId,
                                       sellerId=order['account_id'],
                                       salesChannel="SalesChannel",

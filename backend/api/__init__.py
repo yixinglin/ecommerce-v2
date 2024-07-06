@@ -1,6 +1,7 @@
 import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from core.config import settings
 from core.db import init_db_sqlite
 from core.log import logger
@@ -30,6 +31,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],   # Allows all headers
 )
+
+app.mount("/static", StaticFiles(directory="./assets/static"), name="static")
 
 init_db_sqlite(app)
 

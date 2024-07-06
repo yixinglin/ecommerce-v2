@@ -7,7 +7,7 @@ from core.config import settings
 from rest.kaufland.DataManager import KauflandOrderMongoDBManager
 from fastapi.templating import Jinja2Templates
 
-from schemas import BasicResponse
+from schemas import BasicResponse, ResponseSuccess
 from vo.kaufland import DailySalesCountVO, Product
 
 kfld_order = APIRouter(tags=['Kaufland Services'])

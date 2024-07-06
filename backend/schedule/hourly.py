@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import time
+
+from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
 from core.log import logger
 from rest.amazon.DataManager import AmazonOrderMongoDBManager, AmazonCatalogManager
@@ -113,6 +115,17 @@ def common_scheduler_4hrs():
     """
     save_tracking_info_job(key_index=settings.GLS_ACCESS_KEY_INDEX)
     logger.info("Successfully scheduled common scheduler job...")
+
+# 添加每天9:00-17:00每半小时执行一次的任务
+@hourlyScheduler.scheduled_job(CronTrigger(minute='0,30', hour='7-14'))
+def half_hour_task():
+    print(f"Half-hourly task executed")
+
+# 添加17:01到次日7:59每3小时执行一次的任务
+@hourlyScheduler.scheduled_job(CronTrigger(minute='1', hour='17,20,2,5'))
+def three_hourly_task():
+    print(f"Three-hourly task executed")
+
 
 
 # Run the code once when the script is loaded

@@ -14,18 +14,9 @@ class CommonMongoDBManager(MongoDBDataManager):
     def __init__(self, db_host, db_port):
         super().__init__(db_host, db_port)
         logger.info("CommonMongoDBManager init")
-        self.glsShipmentDataManager = GlsShipmentMongoDBManager(db_host, db_port, None)
-        self.amazonDataManager = AmazonOrderMongoDBManager(db_host, db_port, None, Marketplaces.DE)
-        self.amazonCatalogManager = AmazonCatalogManager(db_host, db_port, None, Marketplaces.DE, )
-
-        self.registered_managers = [self.glsShipmentDataManager,
-                                    self.amazonDataManager, self.amazonCatalogManager]
-
 
     def __enter__(self):
         super().__enter__()
-        for manager in self.registered_managers:
-            manager.db_client = self.db_client
         return self
 
 

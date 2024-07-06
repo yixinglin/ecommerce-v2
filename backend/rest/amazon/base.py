@@ -59,7 +59,6 @@ class AmazonSpAPIKey(BaseModel):
         with open(file_path, 'r') as fp:
             data = json.load(fp)
         k = cls(**data["auth"][index])
-        # k.__dict__.update(**data["auth"][index])
         return k
 
     def get_marketplace_participation(self, marketplace: Marketplaces):
