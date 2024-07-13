@@ -1,302 +1,352 @@
 {
-  "Österreich": {
-    "short_name": "Austria",
-    "alpha_2": "AT",
-    "alpha_3": "AUT",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Belgique": {
-    "short_name": "Belgium",
-    "alpha_2": "BE",
-    "alpha_3": "BEL",
-    "pattern": "^[0-9]{4}$"
-  },
-  "България": {
-    "short_name": "Bulgaria",
-    "alpha_2": "BG",
-    "alpha_3": "BGR",
-    "pattern": "^([0-9]{4})$|^[0-9]{5}$"
-  },
-  "Hrvatska": {
-    "short_name": "Croatia",
-    "alpha_2": "HR",
-    "alpha_3": "HRV",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Κύπρος": {
-    "short_name": "Cyprus",
-    "alpha_2": "CY",
-    "alpha_3": "CYP",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Česká republika": {
-    "short_name": "Czech Republic",
-    "alpha_2": "CZ",
-    "alpha_3": "CZE",
-    "pattern": "^[0-9]{3} [0-9]{2}$"
-  },
-  "Danmark": {
-    "short_name": "Denmark",
-    "alpha_2": "DK",
-    "alpha_3": "DNK",
-    "pattern": "^[0-9]{3,4}$"
-  },
-  "Eesti": {
-    "short_name": "Estonia",
-    "alpha_2": "EE",
-    "alpha_3": "EST",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Suomi": {
-    "short_name": "Finland",
-    "alpha_2": "FI",
-    "alpha_3": "FIN",
-    "pattern": "^[0-9]{5}$"
-  },
-  "France": {
-    "short_name": "France",
-    "alpha_2": "FR",
-    "alpha_3": "FRA",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Deutschland": {
-    "short_name": "Germany",
-    "alpha_2": "DE",
-    "alpha_3": "DEU",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Ελλάδα": {
-    "short_name": "Greece",
-    "alpha_2": "GR",
-    "alpha_3": "GRC",
-    "pattern": "^[0-9]{3} [0-9]{2}$"
-  },
-  "Magyarország": {
-    "short_name": "Hungary",
-    "alpha_2": "HU",
-    "alpha_3": "HUN",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Éire": {
-    "short_name": "Ireland",
-    "alpha_2": "IE",
-    "alpha_3": "IRL",
-    "pattern": "^[0-9A-Z]{3} [0-9A-Z]{4}$"
-  },
-  "Italia": {
-    "short_name": "Italy",
-    "alpha_2": "IT",
-    "alpha_3": "ITA",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Latvija": {
-    "short_name": "Latvia",
-    "alpha_2": "LV",
-    "alpha_3": "LVA",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Lietuva": {
-    "short_name": "Lithuania",
-    "alpha_2": "LT",
-    "alpha_3": "LTU",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Luxembourg": {
-    "short_name": "Luxembourg",
-    "alpha_2": "LU",
-    "alpha_3": "LUX",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Malta": {
-    "short_name": "Malta",
-    "alpha_2": "MT",
-    "alpha_3": "MLT",
-    "pattern": "^[A-Z]{3} [0-9]{4}$"
-  },
-  "Nederland": {
-    "short_name": "Netherlands",
-    "alpha_2": "NL",
-    "alpha_3": "NLD",
-    "pattern": "^[1-9][0-9]{3} ?(?!sa|sd|ss)[a-z]{2}$"
-  },
-  "Polska": {
-    "short_name": "Poland",
-    "alpha_2": "PL",
-    "alpha_3": "POL",
-    "pattern": "^[0-9]{2}-[0-9]{3}$"
-  },
-  "Portugal": {
-    "short_name": "Portugal",
-    "alpha_2": "PT",
-    "alpha_3": "PRT",
-    "pattern": "^[0-9]{4}-[0-9]{3}$"
-  },
-  "România": {
-    "short_name": "Romania",
-    "alpha_2": "RO",
-    "alpha_3": "ROU",
-    "pattern": "^[0-9]{6}$"
-  },
-  "Slovensko": {
-    "short_name": "Slovakia",
-    "alpha_2": "SK",
-    "alpha_3": "SVK",
-    "pattern": "^[0-9]{3} [0-9]{2}$"
-  },
-  "Slovenija": {
-    "short_name": "Slovenia",
-    "alpha_2": "SI",
-    "alpha_3": "SVN",
-    "pattern": "^[0-9]{4}$"
-  },
-  "España": {
-    "short_name": "Spain",
-    "alpha_2": "ES",
-    "alpha_3": "ESP",
-    "pattern": "^(5[0-2]|[0-4][0-9])[0-9]{3}$"
-  },
-  "Sverige": {
-    "short_name": "Sweden",
-    "alpha_2": "SE",
-    "alpha_3": "SWE",
-    "pattern": "^(S-|s-){0,1}[0-9]{3} [0-9]{2}$"
-  },
-  "Türkiye": {
-    "short_name": "Turkey",
-    "alpha_2": "TR",
-    "alpha_3": "TUR",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Schweiz": {
-    "short_name": "Switzerland",
-    "alpha_2": "CH",
-    "alpha_3": "CHE",
-    "pattern": "^[0-9]{4}$"
-  },
-  "United Kingdom": {
-    "short_name": "United Kingdom",
-    "alpha_2": "GB",
-    "alpha_3": "GBR",
-    "pattern": "^(GIR 0AA)|((([A-Z]{1,2}[0-9][0-9]?)|(([A-Z][A-HJKPSTUW])|([A-Z][0-9][A-Z])) [0-9][A-Z]{2}))$"
-  },
-  "Albania": {
-    "short_name": "Shqipëria",
-    "alpha_2": "AL",
-    "alpha_3": "ALB",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Andorra": {
-    "short_name": "Andorra",
-    "alpha_2": "AD",
-    "alpha_3": "AND",
-    "pattern": "^AD[0-9]{3}$"
-  },
-  "Armenia": {
-    "short_name": "Հայաստան",
-    "alpha_2": "AM",
-    "alpha_3": "ARM",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Azerbaijan": {
-    "short_name": "Azərbaycan",
-    "alpha_2": "AZ",
-    "alpha_3": "AZE",
-    "pattern": "^[A-Z]{2}-[0-9]{4}$"
-  },
-  "Belarus": {
-    "short_name": "Беларусь",
-    "alpha_2": "BY",
-    "alpha_3": "BLR",
-    "pattern": "^[0-9]{6}$"
-  },
-  "Bosnia and Herzegovina": {
-    "short_name": "Bosna i Hercegovina",
-    "alpha_2": "BA",
-    "alpha_3": "BIH",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Georgia": {
-    "short_name": "საქართველო",
-    "alpha_2": "GE",
-    "alpha_3": "GEO",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Iceland": {
-    "short_name": "Ísland",
-    "alpha_2": "IS",
-    "alpha_3": "ISL",
-    "pattern": "^[0-9]{3}$"
-  },
-  "Kosovo": {
-    "short_name": "Kosova",
-    "alpha_2": "XK",
-    "alpha_3": "XKX",
-    "pattern": "^(KS-)?[0-9]{5}$"
-  },
-  "Liechtenstein": {
-    "short_name": "Liechtenstein",
-    "alpha_2": "LI",
-    "alpha_3": "LIE",
-    "pattern": "^(948[5-9]|949[0-7])-?[0-9]{4}$"
-  },
-  "Macedonia (the former Yugoslav Republic of)": {
-    "short_name": "Македонија",
-    "alpha_2": "MK",
-    "alpha_3": "MKD",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Moldova (Republic of)": {
-    "short_name": "Moldova",
-    "alpha_2": "MD",
-    "alpha_3": "MDA",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Monaco": {
-    "short_name": "Monaco",
-    "alpha_2": "MC",
-    "alpha_3": "MCO",
-    "pattern": "^(MC-)?980[0-9]{2}$"
-  },
-  "Montenegro": {
-    "short_name": "Crna Gora",
-    "alpha_2": "ME",
-    "alpha_3": "MNE",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Norway": {
-    "short_name": "Norge",
-    "alpha_2": "NO",
-    "alpha_3": "NOR",
-    "pattern": "^[0-9]{4}$"
-  },
-  "Russia": {
-    "short_name": "Россия",
-    "alpha_2": "RU",
-    "alpha_3": "RUS",
-    "pattern": "^[0-9]{6}$"
-  },
-  "San Marino": {
-    "short_name": "San Marino",
-    "alpha_2": "SM",
-    "alpha_3": "SMR",
-    "pattern": "^(4789[0-9])|(47891)-(000|999)$"
-  },
-  "Serbia": {
-    "short_name": "Србија",
-    "alpha_2": "RS",
-    "alpha_3": "SRB",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Ukraine": {
-    "short_name": "Україна",
-    "alpha_2": "UA",
-    "alpha_3": "UKR",
-    "pattern": "^[0-9]{5}$"
-  },
-  "Vatican City State": {
-    "short_name": "Città del Vaticano",
-    "alpha_2": "VA",
-    "alpha_3": "VAT",
-    "pattern": "^00120$"
-  }
+    "Österreich": {
+        "short_name": "Austria",
+        "alpha_2": "AT",
+        "alpha_3": "AUT",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇦🇹"
+    },
+    "Belgique": {
+        "short_name": "Belgium",
+        "alpha_2": "BE",
+        "alpha_3": "BEL",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇧🇪"
+    },
+    "България": {
+        "short_name": "Bulgaria",
+        "alpha_2": "BG",
+        "alpha_3": "BGR",
+        "pattern": "^([0-9]{4})$|^[0-9]{5}$",
+        "flag": "🇧🇬"
+    },
+    "Hrvatska": {
+        "short_name": "Croatia",
+        "alpha_2": "HR",
+        "alpha_3": "HRV",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇭🇷"
+    },
+    "Κύπρος": {
+        "short_name": "Cyprus",
+        "alpha_2": "CY",
+        "alpha_3": "CYP",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇨🇾"
+    },
+    "Česká republika": {
+        "short_name": "Czech Republic",
+        "alpha_2": "CZ",
+        "alpha_3": "CZE",
+        "pattern": "^[0-9]{3} [0-9]{2}$",
+        "flag": "🇨🇿"
+    },
+    "Danmark": {
+        "short_name": "Denmark",
+        "alpha_2": "DK",
+        "alpha_3": "DNK",
+        "pattern": "^[0-9]{3,4}$",
+        "flag": "🇩🇰"
+    },
+    "Eesti": {
+        "short_name": "Estonia",
+        "alpha_2": "EE",
+        "alpha_3": "EST",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇪🇪"
+    },
+    "Suomi": {
+        "short_name": "Finland",
+        "alpha_2": "FI",
+        "alpha_3": "FIN",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇫🇮"
+    },
+    "France": {
+        "short_name": "France",
+        "alpha_2": "FR",
+        "alpha_3": "FRA",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇫🇷"
+    },
+    "Deutschland": {
+        "short_name": "Germany",
+        "alpha_2": "DE",
+        "alpha_3": "DEU",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇩🇪"
+    },
+    "Ελλάδα": {
+        "short_name": "Greece",
+        "alpha_2": "GR",
+        "alpha_3": "GRC",
+        "pattern": "^[0-9]{3} [0-9]{2}$",
+        "flag": "🇬🇷"
+    },
+    "Magyarország": {
+        "short_name": "Hungary",
+        "alpha_2": "HU",
+        "alpha_3": "HUN",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇭🇺"
+    },
+    "Éire": {
+        "short_name": "Ireland",
+        "alpha_2": "IE",
+        "alpha_3": "IRL",
+        "pattern": "^[0-9A-Z]{3} [0-9A-Z]{4}$",
+        "flag": "🇮🇪"
+    },
+    "Italia": {
+        "short_name": "Italy",
+        "alpha_2": "IT",
+        "alpha_3": "ITA",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇮🇹"
+    },
+    "Latvija": {
+        "short_name": "Latvia",
+        "alpha_2": "LV",
+        "alpha_3": "LVA",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇱🇻"
+    },
+    "Lietuva": {
+        "short_name": "Lithuania",
+        "alpha_2": "LT",
+        "alpha_3": "LTU",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇱🇹"
+    },
+    "Luxembourg": {
+        "short_name": "Luxembourg",
+        "alpha_2": "LU",
+        "alpha_3": "LUX",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇱🇺"
+    },
+    "Malta": {
+        "short_name": "Malta",
+        "alpha_2": "MT",
+        "alpha_3": "MLT",
+        "pattern": "^[A-Z]{3} [0-9]{4}$",
+        "flag": "🇲🇹"
+    },
+    "Nederland": {
+        "short_name": "Netherlands",
+        "alpha_2": "NL",
+        "alpha_3": "NLD",
+        "pattern": "^[1-9][0-9]{3} ?(?!sa|sd|ss)[a-z]{2}$",
+        "flag": "🇳🇱"
+    },
+    "Polska": {
+        "short_name": "Poland",
+        "alpha_2": "PL",
+        "alpha_3": "POL",
+        "pattern": "^[0-9]{2}-[0-9]{3}$",
+        "flag": "🇵🇱"
+    },
+    "Portugal": {
+        "short_name": "Portugal",
+        "alpha_2": "PT",
+        "alpha_3": "PRT",
+        "pattern": "^[0-9]{4}-[0-9]{3}$",
+        "flag": "🇵🇹"
+    },
+    "România": {
+        "short_name": "Romania",
+        "alpha_2": "RO",
+        "alpha_3": "ROU",
+        "pattern": "^[0-9]{6}$",
+        "flag": "🇷🇴"
+    },
+    "Slovensko": {
+        "short_name": "Slovakia",
+        "alpha_2": "SK",
+        "alpha_3": "SVK",
+        "pattern": "^[0-9]{3} [0-9]{2}$",
+        "flag": "🇸🇰"
+    },
+    "Slovenija": {
+        "short_name": "Slovenia",
+        "alpha_2": "SI",
+        "alpha_3": "SVN",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇸🇮"
+    },
+    "España": {
+        "short_name": "Spain",
+        "alpha_2": "ES",
+        "alpha_3": "ESP",
+        "pattern": "^(5[0-2]|[0-4][0-9])[0-9]{3}$",
+        "flag": "🇪🇸"
+    },
+    "Sverige": {
+        "short_name": "Sweden",
+        "alpha_2": "SE",
+        "alpha_3": "SWE",
+        "pattern": "^(S-|s-){0,1}[0-9]{3} [0-9]{2}$",
+        "flag": "🇸🇪"
+    },
+    "Türkiye": {
+        "short_name": "Turkey",
+        "alpha_2": "TR",
+        "alpha_3": "TUR",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇹🇷"
+    },
+    "Schweiz": {
+        "short_name": "Switzerland",
+        "alpha_2": "CH",
+        "alpha_3": "CHE",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇨🇭"
+    },
+    "United Kingdom": {
+        "short_name": "United Kingdom",
+        "alpha_2": "GB",
+        "alpha_3": "GBR",
+        "pattern": "^(GIR 0AA)|((([A-Z]{1,2}[0-9][0-9]?)|(([A-Z][A-HJKPSTUW])|([A-Z][0-9][A-Z])) [0-9][A-Z]{2}))$",
+        "flag": "🇬🇧"
+    },
+    "Albania": {
+        "short_name": "Shqipëria",
+        "alpha_2": "AL",
+        "alpha_3": "ALB",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇦🇱"
+    },
+    "Andorra": {
+        "short_name": "Andorra",
+        "alpha_2": "AD",
+        "alpha_3": "AND",
+        "pattern": "^AD[0-9]{3}$",
+        "flag": "🇦🇩"
+    },
+    "Armenia": {
+        "short_name": "Հայաստան",
+        "alpha_2": "AM",
+        "alpha_3": "ARM",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇦🇲"
+    },
+    "Azerbaijan": {
+        "short_name": "Azərbaycan",
+        "alpha_2": "AZ",
+        "alpha_3": "AZE",
+        "pattern": "^[A-Z]{2}-[0-9]{4}$",
+        "flag": "🇦🇿"
+    },
+    "Belarus": {
+        "short_name": "Беларусь",
+        "alpha_2": "BY",
+        "alpha_3": "BLR",
+        "pattern": "^[0-9]{6}$",
+        "flag": "🇧🇾"
+    },
+    "Bosnia and Herzegovina": {
+        "short_name": "Bosna i Hercegovina",
+        "alpha_2": "BA",
+        "alpha_3": "BIH",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇧🇦"
+    },
+    "Georgia": {
+        "short_name": "საქართველო",
+        "alpha_2": "GE",
+        "alpha_3": "GEO",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇬🇪"
+    },
+    "Iceland": {
+        "short_name": "Ísland",
+        "alpha_2": "IS",
+        "alpha_3": "ISL",
+        "pattern": "^[0-9]{3}$",
+        "flag": "🇮🇸"
+    },
+    "Kosovo": {
+        "short_name": "Kosova",
+        "alpha_2": "XK",
+        "alpha_3": "XKX",
+        "pattern": "^(KS-)?[0-9]{5}$",
+        "flag": "🇽🇰"
+    },
+    "Liechtenstein": {
+        "short_name": "Liechtenstein",
+        "alpha_2": "LI",
+        "alpha_3": "LIE",
+        "pattern": "^(948[5-9]|949[0-7])-?[0-9]{4}$",
+        "flag": "🇱🇮"
+    },
+    "Macedonia (the former Yugoslav Republic of)": {
+        "short_name": "Македонија",
+        "alpha_2": "MK",
+        "alpha_3": "MKD",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇲🇰"
+    },
+    "Moldova (Republic of)": {
+        "short_name": "Moldova",
+        "alpha_2": "MD",
+        "alpha_3": "MDA",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇲🇩"
+    },
+    "Monaco": {
+        "short_name": "Monaco",
+        "alpha_2": "MC",
+        "alpha_3": "MCO",
+        "pattern": "^(MC-)?980[0-9]{2}$",
+        "flag": "🇲🇨"
+    },
+    "Montenegro": {
+        "short_name": "Crna Gora",
+        "alpha_2": "ME",
+        "alpha_3": "MNE",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇲🇪"
+    },
+    "Norway": {
+        "short_name": "Norge",
+        "alpha_2": "NO",
+        "alpha_3": "NOR",
+        "pattern": "^[0-9]{4}$",
+        "flag": "🇳🇴"
+    },
+    "Russia": {
+        "short_name": "Россия",
+        "alpha_2": "RU",
+        "alpha_3": "RUS",
+        "pattern": "^[0-9]{6}$",
+        "flag": "🇷🇺"
+    },
+    "San Marino": {
+        "short_name": "San Marino",
+        "alpha_2": "SM",
+        "alpha_3": "SMR",
+        "pattern": "^(4789[0-9])|(47891)-(000|999)$",
+        "flag": "🇸🇲"
+    },
+    "Serbia": {
+        "short_name": "Србија",
+        "alpha_2": "RS",
+        "alpha_3": "SRB",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇷🇸"
+    },
+    "Ukraine": {
+        "short_name": "Україна",
+        "alpha_2": "UA",
+        "alpha_3": "UKR",
+        "pattern": "^[0-9]{5}$",
+        "flag": "🇺🇦"
+    },
+    "Vatican City State": {
+        "short_name": "Città del Vaticano",
+        "alpha_2": "VA",
+        "alpha_3": "VAT",
+        "pattern": "^00120$",
+        "flag": "🇻🇦"
+    }
 }

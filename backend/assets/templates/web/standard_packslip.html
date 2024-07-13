@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>Packing Slip</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+        }
+        .block-1 {
+            display: flex;
+            justify-content: space-between;
+        }
+        .block-1 .address {
+            width: 30%;
+            flex: 1;
+        }
+        .block-1 .barcode-svg {
+            width: 70%;
+            flex: 1;
+        }
+
+        h1 {
+            text-align: center;
+        }
+        h2 {
+            font-size: 30px;
+        }
+        .address p {
+            font-size: 18px;
+            font-weight: bold;            
+        }
+
+        #warning {
+            font-size: 25px;
+            color: red;
+            font-weight: bold;
+            margin-bottom: 10px;            
+        }
+
+        .order-details, .item-table {
+            width: 90%;
+            margin-bottom: 10px;
+        }
+        .item-table th, .item-table td {
+            border: 1px solid #000;
+            /* border-collapse: collapse; */
+            padding: 8px;
+            text-align: left;            
+        }
+        .item-table th {
+            background-color: #f2f2f2;
+            border-collapse: collapse;
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div class="container">        
+        <div class="block-1">
+            <div class="address">            
+                <span>Liefern an: </span>
+                {% if order.shipAddress.name1 %}
+                    <p>{{ order.shipAddress.name1 }} </p>
+                    <p>{{ order.shipAddress.name2 }} </p>
+                    <p>{{ order.shipAddress.name3 }} </p>
+                    <p>{{ order.shipAddress.street1 }}</p>
+                {% else %}
+                    <p id="warning">Keine Lieferadresse angegeben!</p>
+
+                {% endif %}
+                <p>{{ order.shipAddress.zipCode }} {{ order.shipAddress.city }}</p>
+                <p>
+                    {% if order.shipAddress.province %}
+                    <span>{{ order.shipAddress.province }},</span> 
+                    {% endif %}
+                    {{ order.shipAddress.country }}
+                </p>
+            </div>
+    
+            <div class="barcode-svg">
+                <img src="{{ barcode }}" alt="Barcode" width="250px"></img>
+            </div>
+        </div>
+
+        <h2>{{ order.orderId }}</h2>
+        
+        <div class="order-details">
+            <!-- <h3>Order Details</h3> -->
+            <!-- <p>Seller ID: {{ order.sellerId }}</p> -->
+            <!-- <p>Sales Channel: {{ order.salesChannel }}</p> -->
+            <!-- <p>Order Status: {{ order.status }}</p> -->             
+            <p>Bestellt am: {{ order.purchasedAt }}</p>
+            <p>Erstellt am: {{ order.createdAt }}</p>
+            <p>Bestellnummer: {{ order.orderId }}</p>
+            <!-- <p>Updated At: {{ order.updatedAt }}</p> -->             
+        </div>
+
+        <div class="item-table">
+            <!-- <h3>Items</h3> -->
+            <table>
+                <thead>
+                    <tr>
+                        <!-- <th>SKU</th> -->
+                        <th>Menge</th>
+                        <th>Produkt</th>                        
+                        <th>Einzelpreis</th>
+                        <th>Zwischensumme</th>
+                        <th>Steuer</th>
+                        <th>Gesamt</th>
+                        <!-- <th>Image</th> -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order.items %}
+                    <tr>
+                        <td>{{ item.quantity }}</td>                        
+                        <td>
+                            <span>{{ item.name }}</span> <br/>
+                            <span><strong>SKU</strong>: {{ item.sku }}</span>
+                        </td>                        
+                        <td>{{ item.unitPrice }}</td>
+                        <td>{{ item.subtotal }}</td>
+                        <td>{{ item.tax }}</td>
+                        <td>{{ item.total }}</td>
+                        <!-- <td><img src="{{ item.image }}" alt="{{ item.name }}" width="50"></td> -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p> Wir bedanken uns für Ihre Bestellung. </p>
+    </div>
+
+    <!-- Footer text -->
+    <div class="footer">
+        <p>Dieses Dokument wurde automatisch generiert und ist ohne Unterschrift gültig.</p>
+    </div>
+
+    <div style="page-break-after:always"></div>
+
+</body>
+</html>

@@ -13,7 +13,13 @@ docker build --target builder -t yixing/ecommerce-api-builder .
 # Second stage
 docker build -t yixing/ecommerce-api .
 ```
+Install MongoDB and Redis before running the application.
+```shell 
+docker run --name redis -p 6379:6379 --restart=always -d redis
 
+docker run --name mongodb -p 27017:27017 -d mongodb/mongodb-community-server:latest
+
+```
 
 ```shell 
 # Run code

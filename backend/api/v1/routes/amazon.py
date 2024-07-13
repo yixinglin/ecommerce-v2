@@ -1,8 +1,8 @@
 import os
 from typing import Any, List, Union, Dict
-from fastapi import APIRouter, Request, Response, Query, Body, Path
+from fastapi import APIRouter, Request, Response, Query, Body, Path, Form
 from sp_api.base import Marketplaces
-from core.db import OrderQueryParams
+from core.db import OrderQueryParams, RedisDataManager
 from core.log import logger
 from models.orders import StandardOrder
 from rest.amazon.base import AmazonSpAPIKey
@@ -10,7 +10,7 @@ from rest.amazon.bulkOrderService import AmazonBulkPackSlipDE
 from schemas import ResponseSuccess
 from rest import AmazonOrderMongoDBManager, AmazonCatalogManager
 from core.config import settings
-from schemas.basic import BasicResponse
+from schemas.basic import BasicResponse, ResponseNotFound
 from vo.amazon import DailyShipment, DailySalesCountVO, PackSlipRequestBody
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -20,8 +20,7 @@ amz_order = APIRouter(tags=['AMAZON Services'])
 
 
 def get_asin_image_url_dict(marketplace: Marketplaces) -> dict:
-    with AmazonCatalogManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                              key_index=0, marketplace=marketplace) as man:
+    with AmazonCatalogManager(key_index=0, marketplace=marketplace) as man:
         catalogItems = man.get_all_catalog_items()
     result = dict()
     for catalogItem in catalogItems:
@@ -37,16 +36,25 @@ def get_asin_image_url_dict(marketplace: Marketplaces) -> dict:
                response_model=BasicResponse[dict])
 def get_amazon_orders(days_ago: int = Query(7, description="Fetch data for the last x days"),
                       status: List[str] = Query(None, description="Filter orders by status"),
+                      offset: int = Query(0, description="Offset for pagination"),
+                      limit: int = Query(100, description="Limit for pagination"),
                       api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
                       ):
     marketplace = Marketplaces.DE
-    with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                   key_index=api_key_index, marketplace=marketplace) as man:
+    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=marketplace) as man:
         purchasedDateFrom = time_utils.days_ago(days_ago)
         params = OrderQueryParams()
         params.purchasedDateFrom = purchasedDateFrom
         params.status = status
+        params.offset = offset
+        params.limit = limit
         orders = man.find_orders_by_query_params(params)
+
+    lengthOrders = len(orders)
+    if len(orders) > 0:
+        start = offset
+        end = min(len(orders), offset + limit)
+        orders = orders[start:end]
 
     # Add image URL to each order item
     asin_to_image_url = get_asin_image_url_dict(marketplace)
@@ -58,8 +66,12 @@ def get_amazon_orders(days_ago: int = Query(7, description="Fetch data for the l
 
     data = {"orders": orders,
             "api_client": man.api.get_account_id(),
-            "length": len(orders)}
+            "offset": offset,
+            "limit": limit,
+            "length": end - start,
+            "size": lengthOrders}
     return ResponseSuccess(data=data)
+
 
 @amz_order.get("/orders/ordered-items-count/daily/{days_ago}",
                summary="Get daily ordered items count",
@@ -68,8 +80,7 @@ def get_daily_ordered_items_count(response: Response,
                                   days_ago: int = Path(description="Fetch data for the last x days"),
                                   country: str = Query("DE", description="Marketplace ")) -> Any:
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
-    with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                   key_index=0, marketplace=marketplace) as man:
+    with AmazonOrderMongoDBManager(key_index=0, marketplace=marketplace) as man:
         daily = man.get_daily_mfn_sales(days_ago=days_ago)
 
     # Convert daily-sales data to DailySalesCountVO objects
@@ -97,8 +108,9 @@ def get_daily_ordered_items_count(response: Response,
                summary="Get daily ordered items count in html format",
                response_class=HTMLResponse, )
 def view_daily_ordered_items_count_html(request: Request, response: Response,
-                                        days_ago: int=Path(description="Fetch data for the last x days"),
-                                        country: str=Query("DE", description="Marketplace to use (DE, UK, US"),) -> Any:
+                                        days_ago: int = Path(description="Fetch data for the last x days"),
+                                        country: str = Query("DE",
+                                                             description="Marketplace to use (DE, UK, US"), ) -> Any:
     data = get_daily_ordered_items_count(days_ago=days_ago, response=response, country=country)
     templates = Jinja2Templates(directory=os.path.join("assets", "templates", "web"))
     return templates.TemplateResponse(name="AmazonDailySalesCount.html",
@@ -110,8 +122,9 @@ def view_daily_ordered_items_count_html(request: Request, response: Response,
 @amz_order.get("/orders/unshipped",
                summary="Get unshipped order numbers",
                response_model=BasicResponse[dict])
-def get_unshipped_order_numbers(country: str=Query("DE", description="Country of the marketplace"),
-                                up_to_date: bool = Query(False, description="Save orders from api before returning data"),
+def get_unshipped_order_numbers(country: str = Query("DE", description="Country of the marketplace"),
+                                up_to_date: bool = Query(False,
+                                                         description="Save orders from api before returning data"),
                                 api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
                                 ) -> List[str]:
     """
@@ -121,14 +134,14 @@ def get_unshipped_order_numbers(country: str=Query("DE", description="Country of
 
     """
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
-    with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                   key_index=api_key_index, marketplace=marketplace) as man:
+    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=marketplace) as man:
         unshipped_orders = man.find_unshipped_orders(days_ago=7, up_to_date=up_to_date)
         order_numbers = [order.orderId for order in unshipped_orders]
         data = {"orderNumbers": order_numbers, "upToDate": up_to_date,
                 "api_client": man.api.get_account_id(),
                 "length": len(order_numbers)}
         return ResponseSuccess(data=data)
+
 
 @amz_order.get("/orders/sc-urls",
                summary="Get seller central urls",
@@ -141,13 +154,15 @@ def get_seller_central_urls():
     return ResponseSuccess(data=urls)
 
 
-
 @amz_order.post("/orders/packslip/parse",
-               summary="Parse Amazon packing slip and extract all shipments.",
-               response_model=BasicResponse[Union[List[StandardOrder], List[List[str]]]])
-def parse_amazon_pack_slip_html(body: PackSlipRequestBody=Body(None, description="Packing slip data")):
+                summary="Parse Amazon packing slip and extract all shipments.",
+                response_model=BasicResponse[dict])
+def parse_amazon_pack_slip_html(
+        body: PackSlipRequestBody = Body(None, description="Packing slip data in html format")
+):
     """
     Parse Amazon packing slip and extract all shipping addresses, store it to MongoDB.
+    Also cache the packing slip data to Redis for 12 hours.
     :param html:
     :param country: Country code using to filtering the packing slips
     :param format: csv, json
@@ -163,14 +178,58 @@ def parse_amazon_pack_slip_html(body: PackSlipRequestBody=Body(None, description
     # Result to return
     if country == "DE":
         # Result to return
-        orders = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
+        # orders = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
         # Update shipping address to MongoDB
-        orders_: StandardOrder = AmazonBulkPackSlipDE(html_content).extract_all()
-        with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                       key_index=0, marketplace=marketplace) as man:
+        proc = AmazonBulkPackSlipDE(html_content)
+        orders_: List[StandardOrder] = proc.extract_all()
+        orders = orders_ if format_ == "json" or format_ == "csv" else AmazonBulkPackSlipDE(html_content).extract_all(
+            format=format_)
+        proc.make_page_map()  # Cache packing slip data to Redis for 12 hours.
+        with AmazonOrderMongoDBManager(key_index=0, marketplace=marketplace) as man:
             for order_ in orders_:
                 man.add_shipping_address_to_order(order_.orderId, order_.shipAddress)
     else:
         raise RuntimeError(f"Unsupported marketplace [{country}]")
-    return ResponseSuccess(data=orders)
+
+    data = {
+        "orders": orders,
+        "formatIn": formatIn,
+        "formatOut": format_,
+        "message": f"{len(orders)} addresses have been successfully parsed from the packing slip and saved to the database.",
+        "length": len(orders),
+    }
+    return ResponseSuccess(data=data)
+
+
+@amz_order.post("/orders/packslip/cache",
+                summary="Upload Amazon packing slip and store it to Redis.",
+                response_model=BasicResponse[dict])
+async def upload_amazon_pack_slip_redis(request: Request,):
+    html_content = await request.body()    # html content in bytes
+    html_content = html_content.decode('utf-8') # convert bytes to string
+    TIME_TO_LIVE_SEC = 3600 * 48  # 48 hours
+    man = RedisDataManager()
+    KEY = f"AMZPS:{time_utils.now(pattern='%Y%m%d%H%M%S')}"
+    man.set(KEY, html_content, time_to_live_sec=TIME_TO_LIVE_SEC)
+    data = {
+        "key": KEY,
+        "message": "Packing slip has been successfully uploaded to Redis.",
+        "timeToLiveSec": TIME_TO_LIVE_SEC,
+        "length": 1,
+    }
+    return ResponseSuccess(data=data)
+
+@amz_order.get("/orders/packslip/uncache",
+            summary="Delete Amazon packing slip from Redis cache.",
+            response_class=HTMLResponse,
+               )
+def download_amazon_pack_slip_redis(
+        key: str = Query(None, description="Packing slip key in Redis to uncache data")
+    ):
+    man = RedisDataManager()
+    content = man.get(key)  # html content
+    if content is None:
+        return ResponseNotFound(message=f"Packing slip with key {key} not found in Redis cache.")
+    return content
+
 

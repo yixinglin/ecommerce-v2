@@ -1,6 +1,7 @@
-from typing import List, Union
+import time
+from typing import List, Union, Tuple
 from utils.stringutils import jsonpath, remove_duplicates
-from core.db import MongoDBDataManager
+from core.db import MongoDBDataManager, ShipmentMongoDBDataManager
 from core.exceptions import ShipmentExistsException
 from core.log import logger
 from models.shipment import StandardShipment, Address, Parcel, Event
@@ -25,13 +26,13 @@ Unterwegs: 	20103790166, INTRANSIT
 """
 
 
-class GlsShipmentMongoDBManager(MongoDBDataManager):
+class GlsShipmentMongoDBManager(ShipmentMongoDBDataManager):
     """
     This class is responsible for managing the shipment data in the MongoDB database.
     """
 
-    def __init__(self, db_host, db_port, key_index):
-        super().__init__(db_host, db_port)
+    def __init__(self, key_index):
+        super().__init__()
         self.carrier_name = "gls"
         self.db_name = "carrier"
         self.collection_name = "shipments"
@@ -39,14 +40,6 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
             key = GlsApiKey.from_json(index=key_index)
             self.api = GlsShipmentApi(api_key=key)
             logger.info(f"Using {self.carrier_name}-API with alias [{key.alias}]")
-
-    def join_shipment_id(self, shipment: StandardShipment) -> str:
-        """
-        Generate a unique shipment id based on the shipment details.
-        :param shipment:  StandardShipment object
-        :return:  A unique shipment id
-        """
-        return ";".join(shipment.references)
 
     def save_shipment(self, shipment: StandardShipment) -> str:
         """
@@ -57,7 +50,7 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         :return: The shipment id of the saved shipment.
         """
         # Check if the shipment data is already in the database. If not, insert it.
-        _id = self.join_shipment_id(shipment)
+        _id = shipment.shipment_id()
         shipmentDB = self.find_shipment_by_id(_id)
         if shipmentDB:
             # Shipment already exists in database
@@ -74,6 +67,12 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         shipment.carrier = self.carrier_name
         shipment.createdAt = created_at
         shipment.label = resp_data['labels'][0]
+
+        if not isinstance(parcelNumbers, list):
+            parcelNumbers = [parcelNumbers]
+            trackIds = [trackIds]
+            parcelLocations = [parcelLocations]
+
         for i in range(len(parcelNumbers)):
             shipment.parcels[i].parcelNumber = parcelNumbers[i]
             shipment.parcels[i].trackNumber = trackIds[i]
@@ -91,6 +90,37 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
 
         result = mdb_shipments_collection.insert_one(document)
         return result.inserted_id
+
+    def save_shipments(self, shipments: List[StandardShipment]) -> Tuple[List[str], List[str]]:
+        """
+        Save multiple shipments to the database.
+        :param shipments:  List of StandardShipment objects
+        :return: List of shipment ids of the saved shipments. The first list contains the new shipment ids,
+        and the second list contains the existing shipment ids.
+        """
+        new_ids = []
+        exist_ids = []
+        fail_ids = []
+        _id = ""
+        # Validate all shipments before saving
+        self.api.validate_shipments(shipments)
+        for shipment in shipments:
+            try:
+                _id = shipment.shipment_id()
+                _id = self.save_shipment(shipment)
+                logger.info(f"Saved shipment with id [{_id}]")
+                new_ids.append(_id)
+                time.sleep(0.2)
+            except ShipmentExistsException as e:
+                logger.warning(str(e))
+                exist_ids.append(_id)
+            # Handle other exceptions to avoid crashing the program
+            except Exception as e:
+                logger.error(f"Error while creating shipment {_id}: {str(e)}")
+                fail_ids.append(_id)
+        return new_ids, exist_ids
+
+
     def is_shipment_cycle_completed(self, shipment: StandardShipment) -> bool:
         """
         Check if the shipment is completed by checking if all the parcels are delivered.
@@ -141,7 +171,7 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         # Update tracking information in database
         mdb_shipments_collection = self.db_client[self.db_name][self.collection_name]
         for shipment in shipments:
-            _id = self.join_shipment_id(shipment)
+            _id = shipment.shipment_id()
             mdb_shipments_collection.update_one(
                 {"_id": _id},
                 {"$set": {"details.parcels": [p.dict() for p in shipment.parcels]}}
@@ -159,7 +189,7 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         :param shipment_data: Shipment data from the database
         :return: StandardShipment object
 
-        TODO: Details就是StandardShipment的属性，所以这里可以直接用Details，不需要再转换一次
+        Details就是StandardShipment的属性，所以这里可以直接用Details，不需要再转换一次
         """
         standard_shipment = StandardShipment.parse_obj(shipment_data['details'])
         return standard_shipment
@@ -194,6 +224,9 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         """
         filter_ = {"_id": {"$in": ids}, "details.carrier": self.carrier_name}
         result = self.find_shipments(filter_=filter_)
+        # Sort the shipment by ids
+        map_shipments = {s.shipment_id(): s for s in result}
+        result = [map_shipments[id] for id in ids if id in map_shipments.keys()]
         return result
 
     def find_shipment_by_id(self, id: str) -> Union[StandardShipment, None]:
@@ -228,14 +261,15 @@ class GlsShipmentMongoDBManager(MongoDBDataManager):
         :param references:  List of reference numbers
         :return: PDF data
         """
+        references = remove_duplicates(references)
         logger.info(f"Getting bulk shipment labels for references: {references}")
         bulkPdfDataList: List[bytes] = []
-        for ref in references:
-            shipment = self.find_shipment_by_id(id=ref)
+        shipments = self.find_shipments_by_ids(references)
+        for shipment in shipments:
             if not shipment:
-                raise RuntimeError(f"Shipment with reference number [{ref}] not found in database.")
+                raise RuntimeError(f"Shipment with reference number [{shipment.shipment_id()}] not found in database.")
             if shipment.carrier != self.carrier_name:
-                raise RuntimeError(f"Shipment with reference number [{ref}] is not from {self.carrier_name}.")
+                raise RuntimeError(f"Shipment with reference number [{shipment.shipment_id()}] is not from {self.carrier_name}.")
             # shipment_details = StandardShipment.parse_obj(shipment['details'])
             pdfData: bytes = utilpdf.str_to_pdf(shipment.label)
             pdfData = self.__decorate_shipment(shipment, pdfData)

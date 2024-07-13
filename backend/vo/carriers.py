@@ -64,5 +64,6 @@ class PickSlipItemVO(BaseModel):
     purchasedAt: Union[str, None] = Field(default=None, description="The date of the purchase")
     zipCode: Union[str, None] = Field(default=None, description="The zip code of the recipient")
     city: Union[str, None] = Field(default=None, description="The city of the recipient")
+    note: Union[str, None] = Field(default=None, description="The note of the pick slip item")
 
 

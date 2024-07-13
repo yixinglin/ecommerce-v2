@@ -17,11 +17,22 @@ class Settings(BaseSettings):
     # Emails
     SMTP_SETTINGS: str  # Path to SMTP settings file (JSON)
 
+    # SSL
+    SSL_ENABLED: bool = os.getenv('SSL_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
+    SSL_CERT_FILE: str = os.getenv('SSL_CERT_FILE', None)
+    SSL_KEY_FILE: str = os.getenv('SSL_KEY_FILE', None)
+
     # Sqlite Database
     DB_SQLITE_URI: str
-
+    # MongoDB Database
     DB_MONGO_URI: str
     DB_MONGO_PORT: int = os.getenv('DB_MONGO_PORT', 27017)
+    # Redis Cache
+    REDIS_HOST: str = os.getenv('REDIS_HOST', 'localhost')
+    REDIS_PORT: int = os.getenv('REDIS_PORT', 6379)
+    REDIS_DB: int = os.getenv('REDIS_DB', 0)
+    REDIS_USERNAME: str = os.getenv('REDIS_USERNAME', None)
+    REDIS_PASSWORD: str = os.getenv('REDIS_PASSWORD', None)
 
     AMAZON_ACCESS_KEY: str
     METRO_ACCESS_KEY: str
@@ -35,6 +46,7 @@ class Settings(BaseSettings):
 
     SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
     SCHEDULER_GLS_TRACKING_FETCH_ENABLED: bool = os.getenv('SCHEDULER_GLS_TRACKING_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
+
 
     def __init__(self, _env_file=None, **values):
         super().__init__(**values)

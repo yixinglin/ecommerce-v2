@@ -12,5 +12,10 @@ database
 ssh
 *.tar.gz
 test*.py
+*.xlsx
+
+asserts/pic/*
+asserts/media/*
 
 
+/test/amazon_packslips.py

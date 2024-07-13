@@ -32,7 +32,16 @@ app.add_middleware(
     allow_headers=["*"],   # Allows all headers
 )
 
+
+os.makedirs("./assets/media", exist_ok=True)
+app.mount("/media", StaticFiles(directory="./assets/media"), name="media")
+os.makedirs("./assets/static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="./assets/static"), name="static")
+os.makedirs("./assets/pic", exist_ok=True)
+app.mount("/pic", StaticFiles(directory="./assets/pic"), name="pic")
+
+
+
 
 init_db_sqlite(app)
 

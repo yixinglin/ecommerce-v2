@@ -21,7 +21,7 @@ class AmazonBulkConfirm {
     waitForElm(this.mountPoint).then(() => {
       alert("Press Ctrl+I to fill all track id edit boxes");
       listen_ctrl_key_event('i', (event) => {
-        navigator.clipboard.readText().then(text => {          
+        navigator.clipboard.readText().then(text => {                
             const trackIdMap = this.getTrackIdMap(text);
             this.fillAllTrackIdEditBox(trackIdMap);
         }).catch(err => {
@@ -43,13 +43,15 @@ class AmazonBulkConfirm {
     return orderIds;
   }
 
-  getTrackIdMap(text) {
-    text = text.trim();
-    const lines = text.split('\n');
+  getTrackIdMap(text) {    
+    text = text.trim();    
+    const lines = text.split('\n');    
     const trackIdMap = {};
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
+      console.log(line);
       const [orderId, trackId] = line.split(':');
+      console.log(orderId, trackId);
       trackIdMap[orderId.trim()] = trackId.trim();
     }
     return trackIdMap;

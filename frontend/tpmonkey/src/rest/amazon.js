@@ -3,7 +3,7 @@ import tm from '../utils/http.js'
 const apiUrl = `${BASE_URL}/api/v1/amazon`;
 
 function getUnshippedOrders() {
-    return tm.get(`${apiUrl}/orders/unshipped`, {}, 'json');
+    return tm.get(`${apiUrl}/orders/unshipped?up_to_date=true`, {}, 'json');
 }
 
 function getSellerCenterUrls() {
@@ -15,4 +15,10 @@ function parsePackSlips(data) {
         {"Content-Type": "application/json"}, 'json');
 }
 
-export { getUnshippedOrders, getSellerCenterUrls, parsePackSlips }
+function uploadPackSlipsToRedisCache(data) {
+    return tm.post(`${apiUrl}/orders/packslip/cache`, data, 
+        {"Content-Type": "text/html"}, 'json');
+}
+
+export { getUnshippedOrders, getSellerCenterUrls, 
+    parsePackSlips, uploadPackSlipsToRedisCache }

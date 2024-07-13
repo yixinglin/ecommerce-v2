@@ -1,9 +1,12 @@
 import re
+from copy import deepcopy
 from typing import List, Union
 import bs4
 import utils.city as city
 import utils.time as util_time
 import utils.translate as trans
+import utils.stringutils as stringutils
+from core.db import RedisDataManager
 from core.log import logger
 from models.orders import StandardOrder, OrderItem
 from models.shipment import Address
@@ -22,7 +25,9 @@ class AmazonBulkPackSlipDE:
         Note: Only German shipping addresses are supported.
         :param html: The HTML content of the shipping slip page.
         """
-        self.soup = bs4.BeautifulSoup(html, 'html.parser')
+        self.html = html
+        if html is not None:
+            self.soup = bs4.BeautifulSoup(html, 'html.parser')
 
     def get_order_ids(self) -> List[str]:
         """
@@ -54,6 +59,51 @@ class AmazonBulkPackSlipDE:
             if len(shipping_address) > 3:
                 shipping_addresses.append(shipping_address)
         return shipping_addresses
+
+    def __create_barcode_node(self, barcode: str):
+        barcode_b64 = stringutils.generate_barcode_svg(barcode)
+        node = self.soup.new_tag('div',  style="position: absolute; top: 10; right: 0; z-index: 0;")
+        img_tag = self.soup.new_tag('img', src=barcode_b64, alt="Barcode", width="250px")
+        node.append(img_tag)
+        return node
+
+    def make_page_map(self) -> dict:
+        slips = self.soup.select('div.myo-packing-slips div[id^="myo-packing-slip"]')
+        new_hr = self.soup.new_tag('<hr class="myo-page-separator myo-no-print">')
+        slips[0].insert(0, new_hr)
+        order_ids = self.get_order_ids()
+        page_map = {}
+        man_redis = RedisDataManager()
+        TIME_TO_LIVE = 3600 * 12  # 12 hours
+        for i, slip in enumerate(slips):
+            order_id = order_ids[i]
+            # Slip中插入条形码。
+            barcode_node = self.__create_barcode_node(order_id)
+            # 确保父元素相对定位
+            slip['style'] = slip.get('style', '') + ' position: relative;'
+            # slip.insert(0, barcode_node)
+            slip.select_one("hr:first-of-type").insert_after(barcode_node)
+            page_map[order_id] = slip
+            man_redis.set(f"PACK_AMZ:{order_id}", str(slip), time_to_live_sec=TIME_TO_LIVE)
+        return page_map
+
+    @staticmethod
+    def add_packslip_to_container(orderIds: List[str]) -> str:
+        man_redis = RedisDataManager()
+        page_map = {id: bs4.BeautifulSoup(man_redis.get(f"PACK_AMZ:{id}"), 'html.parser')
+                        for id in orderIds }
+
+        with open("assets/static/packslip-amazon.html", "r", encoding="utf-8") as fp:
+            soup = bs4.BeautifulSoup(fp.read(), 'html.parser')
+        container = soup.select_one('div.myo-packing-slips')
+        # Clear all child nodes from the container
+        container.clear()
+        # Add packing slips to the container
+        for orderId in orderIds:
+            slip = page_map.get(orderId)
+            if slip:
+                container.append(slip)
+        return str(soup)
 
     def adjust_shipping_address(self, shipping_address: List[str]) -> List[str]:
         """
@@ -90,7 +140,7 @@ class AmazonBulkPackSlipDE:
             raise RuntimeError(f"Only German addresses are supported. {shipping_address}")
 
         # Filtering items included DHL, Packstation, Postfiliale
-        keyword = ["dhl", "packstation", "postfiliale"]
+        keyword = ["dhl", "packstation", "postfiliale", "paket station"]
         for kw in keyword:
             if kw in ";".join(shipping_address).lower():
                 raise RuntimeError(f"Address included [{kw}] are not supported. {shipping_address}")
@@ -131,9 +181,6 @@ class AmazonBulkPackSlipDE:
             raise RuntimeError(f"Invalid street name: {shipping_address[4]}")
         if not city.valid_zip_code(shipping_address[3]):
             raise RuntimeError(f"Invalid zip code: {shipping_address[3]}")
-
-        # Todo Not a product needing a transparent code
-
         return shipping_address
 
     def get_order_items(self) -> list:
@@ -224,7 +271,7 @@ class AmazonBulkPackSlipDE:
         orderlines = []
         for i, item in enumerate(items):
             orderline = OrderItem(
-                id = f"slipid_{i}",
+                id=f"slipid_{i}",
                 name=item['title'],
                 sku=item['sku'],
                 asin=item['asin'],

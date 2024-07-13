@@ -43,6 +43,10 @@ class GLSRequestBody(BaseModel):
     addresses: Addresses
     parcels: List[Parcel]
 
+    def clearServices(self):
+        for parcel in self.parcels:
+            parcel.services = []
+
     @classmethod
     def instance(cls, shipment: StandardShipment):
         delivery = Address(

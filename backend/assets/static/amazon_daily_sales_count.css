@@ -62,6 +62,7 @@ border-radius: 15px;
 color: red;
 margin-left: 5px;
 }
+
 .btn {
 font-family: Arial, sans-serif;
 font-size: 15px;
@@ -74,9 +75,22 @@ border-radius: 40px;
 cursor: pointer;
 }
 
-.btn:hover {
+.btn.group1:hover {
     background-color: #015cbe;
 }
+
+.btn.group1:focus {
+    background-color: #034994;
+}
+
+.btn.group2 {
+    background-color: rgb(3, 107, 50);
+}
+
+.btn.group2:focus {
+    background-color: rgb(2, 85, 34);
+}
+
 
 .item_container {
     font: Arial, sans-serif;

@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Union
+
+from models.orders import OrderItem, StandardOrder
 
 """
     These classes represent the models that display the daily sales count to users.
@@ -34,5 +36,8 @@ class PackSlipRequestBody(BaseModel):
     data: str = Field(description="The data to be converted to pack slip format.")
     formatOut: str = Field(default=None, description="Format of the output data. e.g. csv, json, etc.")
 
-
-
+# class AmazonOrderItem(OrderItem):
+#     isTransparency: bool = Field(default=False, description="True if the item is transparent, False otherwise.")
+#
+# class AmazonStandardOrder(StandardOrder):
+#     items: Union[List[AmazonOrderItem], None] =  Field(default=None, description="List of order items.")

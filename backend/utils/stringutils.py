@@ -1,6 +1,9 @@
+import base64
 from collections import OrderedDict, Counter
-
 import jsonpath as jp_
+import barcode
+from barcode.writer import SVGWriter
+
 
 def isEmpty(string):
     return string is None or string.strip() == ""
@@ -25,3 +28,39 @@ def remove_duplicates(lst: list):
 
 def count_elements(lst):
     return dict(Counter(lst))
+
+def to_german_price(price: float):
+    return "{:.2f} €".format(price)
+
+def generate_barcode_svg(code: str) -> str:
+    """
+    Generates a barcode SVG image from a code.
+    :param code:  The code to generate the barcode for.
+    :return:  The SVG image as a base64 string.
+    """
+    EAN = barcode.get_barcode_class('code128')
+    # 设置条形码高度为1厘米，字体大小是8px
+    barcode_svg = EAN(code, writer=SVGWriter())
+    # barcode_svg = EAN(code, writer=SVGWriter())
+    svg_string: str = barcode_svg.render(writer_options={'height': 10, 'font_size': 8})
+    svg_string = svg_string.decode('utf-8')
+    # to base64
+    svg_string = "data:image/svg+xml;base64," + str(base64.b64encode(svg_string.encode('utf-8')), 'utf-8')
+    return svg_string
+
+
+def base64_encode_str(text: str) -> str:
+    """
+    Encodes a string to base64.
+    :param text:  The text to encode.
+    :return:  The base64 encoded string.
+    """
+    return str(base64.b64encode(text.encode('utf-8')), 'utf-8')
+
+def base64_decode_str(base64_str: str) -> str:
+    """
+    Decodes a base64 string.
+    :param base64_str:  The base64 string to decode.
+    :return:  The decoded string.
+    """
+    return str(base64.b64decode(base64_str.encode('utf-8')), 'utf-8')

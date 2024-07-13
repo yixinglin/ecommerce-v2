@@ -32,6 +32,10 @@ def alpha2_to_country_name(alpha2):
         name = alpha2
     return name
 
+# 函数：根据 alpha-2 代码生成国旗 emoji
+def alpha2_to_flag(alpha2: str):
+    alpha2 = alpha2.upper()
+    return chr(ord(alpha2[0]) + 127397) + chr(ord(alpha2[1]) + 127397)
 
 def country_name_details(native_name="Deutschland"):
     with open(PTH_COUNTRIES_JSON, encoding="utf-8") as f:
@@ -62,8 +66,8 @@ def valid_zip_code(zipcode, countryCode='DE') -> bool:
     return re.fullmatch(pattern, zipcode) is not None
 
 def identify_german_street(address):
-    address = address.replace(' - ','-').replace(' / ','/')
-    pattern = r"([A-Za-zäöüÄÖÜß])-([A-Za-zäöüÄÖÜß])"   # e.g. "M-Str." to "M_Str."
+    address = address.replace(' - ','-').replace(' / ','/').replace("'", "")
+    pattern = r"([A-Za-zäöüÄÖÜß.])-([A-Za-zäöüÄÖÜß])"   # e.g. "M-Str." to "M_Str."
     address = re.sub(pattern,  r'\1_\2', address)
     pattern = r"([\d]+)\s([A-Za-z])"   # e.g. "2 A"  to "2A"
     address = re.sub(pattern, r'\1\2', address)

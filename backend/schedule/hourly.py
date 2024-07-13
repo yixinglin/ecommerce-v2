@@ -32,8 +32,7 @@ def save_amazon_orders_job(key_index, marketplace):
 
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with AmazonOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                       key_index=key_index, marketplace=marketplace) as man:
+        with AmazonOrderMongoDBManager(key_index=key_index, marketplace=marketplace) as man:
             man.save_all_orders(days_ago=7, FulfillmentChannels=["MFN"])
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
@@ -48,8 +47,7 @@ def save_tracking_info_job(key_index):
     :return:
     """
     if settings.SCHEDULER_GLS_TRACKING_FETCH_ENABLED:
-        with GlsShipmentMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                       key_index=key_index) as man:
+        with GlsShipmentMongoDBManager(key_index=key_index) as man:
             shipments = man.get_incomplete_shipments(days_ago=7)
             ids = [';'.join(s.references) for s in shipments]
             logger.info(f"Fetching tracking info for {len(ids)} shipments: {';'.join(ids)}")
@@ -66,8 +64,7 @@ def save_kaufland_orders_job(key_index, storefront):
         return
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                         key_index=key_index, storefront=storefront) as man:
+        with KauflandOrderMongoDBManager( key_index=key_index, storefront=storefront) as man:
             man.save_all_orders(days_ago=14)
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
@@ -86,8 +83,7 @@ def save_amazon_catalog_job(key_index, marketplace):
         return
     try:
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
-        with AmazonCatalogManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT,
-                                  key_index=key_index, marketplace=marketplace) as man:
+        with AmazonCatalogManager(key_index=key_index, marketplace=marketplace) as man:
             man.save_all_catalogs()
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")
@@ -113,8 +109,8 @@ def common_scheduler_4hrs():
     To schedule jobs every 4 hours
     :return:
     """
-    save_tracking_info_job(key_index=settings.GLS_ACCESS_KEY_INDEX)
-    logger.info("Successfully scheduled common scheduler job...")
+    # save_tracking_info_job(key_index=settings.GLS_ACCESS_KEY_INDEX)
+    # logger.info("Successfully scheduled common scheduler job...")
 
 # 添加每天9:00-17:00每半小时执行一次的任务
 @hourlyScheduler.scheduled_job(CronTrigger(minute='0,30', hour='7-14'))

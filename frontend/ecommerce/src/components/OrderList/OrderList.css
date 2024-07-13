@@ -1,0 +1,226 @@
+body {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: hsla(0, 0%, 29%);
+    margin: 0;
+    padding: 0;
+}
+
+.order-list-title {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 2em;
+    color: hsla(0, 0%, 29%);
+    margin-bottom: 10px;
+}
+
+.order-list-actions.filters {
+    font-family: Arial, sans-serif;
+    margin-left: 50px;
+}
+
+.order-list-actions.download {
+    font-family: Arial, sans-serif;
+    margin-left: 50px;    
+}
+
+.order-list-actions button {
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    color: white;
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid hsl(204, 79%, 37%);
+    background-color: hsl(204, 79%, 44%);
+    width: auto;
+    margin-top: 10px;
+    margin-right: 10px;
+    padding: 6px;
+}
+
+.order-list-actions button:hover {
+    background-color: hsl(204, 79%, 37%);    
+}
+
+.order-list-title {
+    font-family: Arial, sans-serif;
+    margin-left: 50px;
+}
+
+select {
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    color: hsla(0, 0%, 29%);
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid hsl(0, 0%, 80%);
+    margin-right: 15px;
+}
+
+
+.no-orders {
+    font-family: Arial, sans-serif;
+    font-size: 3em;
+    color: hsla(0, 0%, 69%);
+    font-weight: bold;
+    margin-top: 50px;
+    text-align: center;
+}
+
+.pagination {
+    margin-left: 50px;
+    margin-bottom: 20px;
+}
+
+/* .pagination button {
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    color: white;
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid hsl(204, 79%, 37%);
+    background-color: hsl(204, 79%, 44%);    
+    margin-left: 20px; 
+    padding: 6px;
+    margin-top: 10px;
+    min-width: 30px;
+} */
+
+/* .pagination.active button {
+    background-color: hsl(204, 82%, 30%);   
+    border-color: hsl(332, 84%, 19%);   
+} */
+
+/* .pagination.panel button {
+    width: 100px;
+}
+
+.pagination button:hover {
+    background-color: hsl(203, 85%, 36%);    
+} */
+
+
+
+.list-container {
+    background-color: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;    
+}
+
+.order-container {
+    background-color: hsl(0, 0%, 85%);
+    border-radius: 10px;
+    border: 1px solid hsl(0, 0%, 60%);
+    box-shadow: 5px 10px 5px hsla(0, 0%, 60%);
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+}
+
+li {
+    list-style: none;
+}
+
+.isTransparency {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 1em;
+    font-weight: bold;
+    color: white;
+    background-color: hsla(214, 91%, 38%, 0.829);
+    border-radius: 5px;
+    padding-left: 15px;    
+    padding-right: 15px;   
+    padding-top: 5px; 
+    padding-bottom: 5px; 
+    box-shadow: 5px 5px 5px hsla(0, 0%, 60%);        
+}
+
+/* .isNotTransparency {
+    background-color: hsla(215, 33%, 65%, 0.747);
+    border-radius: 10px;
+    display: none;
+} */
+
+.order-list-item .order-id {
+    font-family: monospace;
+    font-weight: bold;
+    padding: 10px;
+    /* padding-left: 30px; */
+    font-size: 1.8em;
+    margin-bottom: 2px;
+    margin-top: 2px;
+    border: 1px solid hsl(0, 0%, 36%);
+    border-radius: 5px;
+}
+
+.order-list-item .order-id:hover {
+    background-color: hsla(249, 94%, 27%, 0.863);
+    color: white;
+}
+
+.order-list-item .order-status-unshipped {
+    background-color: darkorange;
+}
+
+.order-list-item .order-status-shipped {
+    background-color: #12bdbd;
+}
+
+.order-list-item .order-status-canceled {
+    background-color: hsl(0, 0%, 51%);
+    color: white;
+}
+
+
+
+.order-line-container {    
+    margin-bottom: 5px;
+    display: flex;
+}
+
+.order-line-container .order-cell {
+    flex: 1;
+    padding-right: 40px;
+}
+
+
+.order-line-image img {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    margin-right: 20px;
+    border: 1px solid hsl(0, 0%, 80%);
+    box-shadow: 5px 5px 5px hsl(0, 1%, 37%);
+}
+
+
+.order-line-buyer {
+    font-family: Arial, sans-serif;
+    background-color: rgb(185, 185, 185);
+    font-size: 1em;    
+    border-radius: 10px;
+    border: 1px solid hsl(0, 0%, 80%);
+    padding-left: 20px;
+    padding-bottom: 10px;
+    margin-bottom: 5px;    
+    display: flex;     
+}
+
+.order-line-buyer .buyer-cell {
+    flex: 1;
+    margin-top: 10px;    
+}
+
+.order-line-buyer span {
+    font-family: Arial, sans-serif;
+    font-size: 1em;
+    color: hsla(0, 0%, 29%);
+    margin-right: 5px;    
+    margin-bottom: 1px;
+}
+
+
+
+

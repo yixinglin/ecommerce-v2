@@ -17,7 +17,7 @@ module.exports = {
     },
     plugins: [
         new webpack.DefinePlugin({
-            'BASE_URL': JSON.stringify('http://192.168.8.140:5018')
+            'BASE_URL': JSON.stringify('http://192.168.8.95:5018')
         })
     ]
 }

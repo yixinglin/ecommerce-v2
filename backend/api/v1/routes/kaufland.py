@@ -17,8 +17,7 @@ kfld_order = APIRouter(tags=['Kaufland Services'])
                summary="Get daily ordered items count",
                 response_model=BasicResponse[List[DailySalesCountVO]])
 def get_daily_ordered_items_count(response: Response, days_ago: int = 7) -> Any:
-    with KauflandOrderMongoDBManager(settings.DB_MONGO_URI, settings.DB_MONGO_PORT, settings.DB_MONGO_PORT,
-                                     key_index=0) as man:
+    with KauflandOrderMongoDBManager(key_index=0) as man:
         daily = man.get_daily_sales(days_ago=days_ago)
     daily_sales_count_vo = []
     # convert to vo

@@ -3,25 +3,32 @@ from datetime import datetime, timedelta
 from random import random
 from typing import List
 from pymongo.collection import Collection
-from sp_api.base import Marketplaces
+from sp_api.base import Marketplaces, SellingApiRequestThrottledException
 from core.db import MongoDBDataManager, OrderMongoDBDataManager, OrderQueryParams
 from core.log import logger
 from models.orders import OrderItem, StandardOrder, OrderStatus
-from models.shipment import StandardShipment, Address
+from models.shipment import Address
 from utils.city import is_company_name, alpha2_to_country_name
-from utils.stringutils import jsonpath, isEmpty
+from utils.stringutils import jsonpath, isEmpty, remove_duplicates
 from .base import DATETIME_PATTERN, now, AmazonSpAPIKey, AmazonAddress
 from .order import AmazonOrderAPI
 from .product import AmazonCatalogAPI
 
 
 # https://developer-docs.amazon.com/sp-api/docs/orders-api-v0-reference#updateshipmentstatus
+# MAP_ORDER_STATUS = {
+#     OrderStatus.pending: "Pending",
+#     OrderStatus.confirmed: "Unshipped",
+#     OrderStatus.processing: "Unshipped",
+#     OrderStatus.shipped: "Shipped",
+#     OrderStatus.cancelled: "Canceled",
+# }
+
 MAP_ORDER_STATUS = {
-    OrderStatus.pending: "Pending",
-    OrderStatus.confirmed: "Unshipped",
-    OrderStatus.processing: "Unshipped",
-    OrderStatus.shipped: "Shipped",
-    OrderStatus.cancelled: "Canceled",
+    "Pending": OrderStatus.pending.value,
+    "Unshipped": OrderStatus.confirmed.value,
+    "Shipped": OrderStatus.shipped.value,
+    "Canceled": OrderStatus.cancelled.value,
 }
 
 class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
@@ -31,7 +38,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
     FILTER_01 = {"order.OrderStatus": "Unshipped",
               "order.FulfillmentChannel": "MFN"}
 
-    def __init__(self, db_host: str, db_port: int, key_index: int,
+    def __init__(self,  key_index: int,
                  marketplace: Marketplaces, *args, **kwargs):
         """
          Initialize the AmazonOrderMongoDBManager.
@@ -40,7 +47,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         :param key_index:  Index of the API key to use.
         :param marketplace:  e.g. Marketplaces.DE
         """
-        super().__init__(db_host, db_port, *args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.db_name = "amazon_data"
         self.db_collection = "orders"
         self.marketplace = marketplace
@@ -87,7 +94,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
             time.sleep(0.5)  # Wait for 1 second to avoid throttling
 
         order_items = self.api.get_order_items(order_id).payload
-        time.sleep(0.5)  # Wait for 1 second to avoid throttling
+        time.sleep(0.7)  # Wait for 1 second to avoid throttling
 
         # Check if the order has been stored in MongoDB
         order_from_db = mdb_orders_collection.find_one({"_id": order_id})
@@ -194,6 +201,29 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
             result = self.save_order(order_id, order=order)
         return result
 
+    def add_pack_slip_to_order(self, order_id: str, pack_slip: str):
+        """
+        Add pack slip to an order in MongoDB.
+        :param order_id:
+        :param pack_slip:
+        :return:
+        """
+        mdb_orders_collection = self.db_client[self.db_name][self.db_collection]
+        # Check if the order has been stored in MongoDB
+        order_from_db = mdb_orders_collection.find_one({"_id": order_id})
+        # if order dose not exist in MongoDB, fetch the order from Amazon API and add the pack slip
+        if not order_from_db:
+            order = self.api.get_order(order_id).payload
+            self.save_order(order_id, order=order)
+
+        # Update the order with the pack slip
+        result = (mdb_orders_collection.update_one(
+            {"_id": order_id},
+            {"$set": {"packslip": pack_slip}},
+            upsert=True)
+        )
+
+        return result
 
     def save_all_orders(self, days_ago=30, **kwargs):
         """
@@ -211,11 +241,14 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                 if self.need_update(order):
                     logger.info(f"Fetched Amazon order [{order_id}] purchased at {order['PurchaseDate']}...")
                     self.save_order(order_id, order=order)
+            except SellingApiRequestThrottledException as e:
+                logger.error(f"Throttled while fetching order [{order_id}]: {e}, Error Type: {type(e).__name__}")
+                time.sleep(10)
             except Exception as e:
                 logger.error(f"Error fetching order [{order_id}]: {e}, Error Type: {type(e).__name__}")
                 time.sleep(1)  # Wait for 1 second to avoid throttling
 
-    def find_orders(self, **kwargs) -> List[StandardOrder]:
+    def find_orders(self, offset=0, limit=9999, **kwargs) -> List[StandardOrder]:
         """
         Find orders in MongoDB.
 
@@ -227,7 +260,11 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         find_orders(filter={"order.OrderStatus": "Unshipped", "order.FulfillmentChannel": "MFN"})
         """
         orders_collection:Collection = self.db_client[self.db_name][self.db_collection]
-        results = list(orders_collection.find(**kwargs))
+        results = list(orders_collection.find(**kwargs)
+                       .sort({"order.PurchaseDate": -1})
+                       .skip(offset)
+                       .limit(limit)
+                       )
         results = [self.to_standard_order(r) for r in results]
         return results
 
@@ -245,6 +282,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         if query_params.orderIds:
             query['_id'] = {"$in": query_params.orderIds}
 
+
         query['account_id'] = self.api.get_account_id()
         return self.find_orders(filter=query)
 
@@ -252,7 +290,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
 
     def find_orders_by_ids(self, ids: List[str]) -> List[StandardOrder]:
         """
-        Find orders by IDs in MongoDB.
+        Find orders by IDs in MongoDB while preserving the order of the given IDs.
 
         @Note: This function is a low-level function. Do not modify without proper review.
 
@@ -304,8 +342,6 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
         return orders
 
 
-
-
     def to_standard_order(self, order: dict) -> StandardOrder:
         orderId = order['_id']
         orderItems = order['items']['OrderItems']
@@ -320,12 +356,16 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                                 asin=item['ASIN'],
                                 ean="",
                                 quantity=quantity,
-                                unit_price=unit_price,
+                                unitPrice=unit_price,
                                 subtotal=unit_price * quantity,
                                 tax=tax,
                                 total=unit_price * quantity + tax,
                                 description="",
                                 image="")
+            additionalFields = {
+                "isTransparency": bool(jsonpath(item, '$.IsTransparency', False)),
+            }
+            stdItem.additionalFields = additionalFields
             standardOrderItems.append(stdItem)
 
         empty_addr = Address(name1="", name2="", name3="",
@@ -343,20 +383,30 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
             shipAddress = empty_addr
 
         shipAddress.email = jsonpath(order, '$.order.BuyerInfo.BuyerEmail', "")
+        additionalFields = {}
+        orderStatus = order['order']['OrderStatus']
         standardOrder = StandardOrder(orderId=orderId,
                                       sellerId=order['account_id'],
                                       salesChannel="SalesChannel",
                                       createdAt=order['order']['PurchaseDate'],
                                       updatedAt=order['order']['LastUpdateDate'],
                                       purchasedAt=order['order']['PurchaseDate'],
-                                      status=order['order']['OrderStatus'],
+                                      status=orderStatus,
                                       items=standardOrderItems,
                                       shipAddress=shipAddress,
                                       billAddress=None,
+                                      additionalFields=additionalFields,
                                       # trackIds=None,
                                       # parcelNumbers=None
                                       )
+        additionalFields['isTransparency'] = self.need_transparency_code(standardOrder)
         return standardOrder
+
+    def need_transparency_code(self, order: StandardOrder):
+        for item in order.items:
+            if item.additionalFields.get('isTransparency', False):
+                return True
+        return False
 
     def get_unshipped_orderlines(self, days_ago=7, up_to_date=True) -> List[OrderItem]:
         """
@@ -473,9 +523,9 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
 
 class AmazonCatalogManager(MongoDBDataManager):
 
-    def __init__(self, db_host: str, db_port: int, key_index: int,
+    def __init__(self, key_index: int,
                  marketplace: Marketplaces, ):
-        super().__init__(db_host, db_port)
+        super().__init__()
         self.db_name = "amazon_data"
         self.db_collection = "catalog"
         self.marketplace: Marketplaces = marketplace
@@ -501,7 +551,7 @@ class AmazonCatalogManager(MongoDBDataManager):
             time.sleep(1)
         # There is a 10% chance to fetch from API and update database
         else:
-            if random() < 0.05:
+            if random() < 0.01:
                 logger.info(f"Random selected catalog item [{asin}] to fetch again...")
                 item = self.api.get_catalog_item(asin)
                 time.sleep(1)

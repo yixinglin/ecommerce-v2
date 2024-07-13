@@ -9,8 +9,8 @@ from core.db import MongoDBDataManager
 
 class KauflandOrderMongoDBManager(MongoDBDataManager):
 
-    def __init__(self, db_host: str, db_port: int, key_index, storefront: Storefront):
-        super().__init__(db_host, db_port)
+    def __init__(self, key_index, storefront: Storefront):
+        super().__init__()
         client = Client.from_json(index=key_index)
         self.api = Orders(client=client, storefront=storefront)
         self.storefront = storefront

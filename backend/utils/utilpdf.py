@@ -5,6 +5,9 @@ import PyPDF2
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
 
+
+# import weasyprint
+
 PARCEL_LABEL = (4.126 * inch, 5.835 * inch)
 GLS_TEXT_POS = (8 * mm, 65 * mm)
 
@@ -16,7 +19,6 @@ def str_to_pdf(base64_pdf_string: str) -> bytes:
     """
     pdf_bytes = base64.b64decode(base64_pdf_string)
     return pdf_bytes
-
 
 def pdf_to_str(pdf: bytes) -> str:
     """
@@ -95,3 +97,23 @@ def add_watermark(pdf_bytes: bytes,
     watermarked_pdf_bytes = io.BytesIO()
     pdf_writer.write(watermarked_pdf_bytes)
     return watermarked_pdf_bytes.getvalue()
+
+# def html_to_pdf(html_string: str,) -> bytes:
+#     """
+#     Converts an HTML string to a PDF file.
+#     :param html_string:  The HTML string to convert.
+#     :return:  The PDF file as bytes.
+#     """
+#     # pdf_bytes = weasyprint.HTML(string=html_string).write_pdf()
+#     pdfkit.from_string(html_string, 'output.pdf')
+#     return None
+
+
+# import asyncio
+# from pyppeteer import launch
+# async def html_to_pdf(html_content):
+#     browser = await launch()
+#     page = await browser.newPage()
+#     await page.setContent(html_content)
+#     await page.pdf({'path': "output.pdf"})
+#     await browser.close()

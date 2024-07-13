@@ -70,6 +70,8 @@ class StandardShipment(BaseModel):
     label: str = Field(default="", description="Label of the shipment in base64 format")
     createdAt: str = Field(default="", description="Timestamp of the creation of the shipment")
 
+    def shipment_id(self):
+        return ";".join(self.references)
 
 def create_shipment_example():
     # Create a German address

@@ -23,15 +23,16 @@ class OrderItem(BaseModel):
     id: str = Field(description="Unique identifier for the item")
     name: str = Field(description="Name of the item")
     sku: str = Field(description="Unique identifier for the item")
-    asin: str = Field(description="Amazon Standard Identification Number (ASIN) for the item")
-    ean: str = Field(description="European Article Number (EAN) for the item")
+    asin: str = Field(default="",description="Amazon Standard Identification Number (ASIN) for the item")
+    ean: str = Field(default="", description="European Article Number (EAN) for the item")
     quantity: int = Field(description="Quantity of the item")
-    unit_price: float = Field(default=0, description="Price of the item per unit")
+    unitPrice: float = Field(default=0, description="Price of the item per unit")
     subtotal: float = Field(default=0, description="Total price of the item")
     tax: float = Field(default=0, description="Tax amount for the item")
     total: float = Field(default=0, description="Total price of the item including tax")
     description: str = Field(default="", description="Description of the item")
     image: str = Field(default="", description="URL of the item image")
+    additionalFields: dict = Field(default={}, description="Additional fields for the item")
 
 class StandardOrder(BaseModel):
     orderId: str = Field(description="Unique identifier for the order")
@@ -46,6 +47,7 @@ class StandardOrder(BaseModel):
     items: list[OrderItem] = Field(default=None, description="List of items in the order")
     trackIds: List[str] = Field(default=[""], description="List of tracking IDs for the order")
     parcelNumbers: List[str] = Field(default=[""], description="List of parcel numbers for the order")
+    additionalFields: dict = Field(default={}, description="Additional fields for the order")
 
 
 

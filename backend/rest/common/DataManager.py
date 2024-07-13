@@ -11,8 +11,8 @@ class CommonMongoDBManager(MongoDBDataManager):
     """
     This class is only used to query data from MongoDB.
     """
-    def __init__(self, db_host, db_port):
-        super().__init__(db_host, db_port)
+    def __init__(self):
+        super().__init__()
         logger.info("CommonMongoDBManager init")
 
     def __enter__(self):

@@ -1,22 +1,27 @@
 from io import BytesIO
-from typing import List, Tuple
+from typing import List
 import pandas as pd
 import hashlib
 from openpyxl.reader.excel import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
-from core.db import MongoDBDataManager, OrderMongoDBDataManager, ShipmentMongoDBDataManager
+from core.config import settings
+from core.log import logger
+from models.convert import convert_to_standard_shipment
 from models.orders import StandardOrder
+from models.pickpack import BatchOrderConfirmEvent
 from models.shipment import StandardShipment
 from rest.common.DataManager import CommonMongoDBManager
-from schemas.basic import ExternalService
-from utils.stringutils import count_elements, remove_duplicates
-from utils.time import datetime_to_date
+from rest.gls.DataManager import GlsShipmentMongoDBManager
+import utils.stringutils as stringutils
+import utils.time as time_utils
+import utils.utilpdf as utilpdf
 from vo.carriers import PickSlipItemVO
+from core.db import RedisDataManager
 
 
 class PickPackMongoDBManager(CommonMongoDBManager):
-    def __init__(self, db_host, db_port):
-        super().__init__(db_host, db_port)
+    def __init__(self):
+        super().__init__()
 
     def __generate_order_key(self, orderItems: List[PickSlipItemVO], encode=False):
         items = sorted(orderItems, key=lambda x: x.sku)
@@ -33,8 +38,8 @@ class PickPackMongoDBManager(CommonMongoDBManager):
 
     def get_pick_items(self, orders: List[StandardOrder]) -> List[PickSlipItemVO]:
         """
-        TODO: Get all pick items by references of orders.
-        :param refs: List of references
+        Get all pick items from the orders.
+        :param  orders: List of orders to be picked
         :return:
         """
         pickItems = []
@@ -61,15 +66,15 @@ class PickPackMongoDBManager(CommonMongoDBManager):
 
     def make_pick_slip(self, orders: List[StandardOrder]) -> List[PickSlipItemVO]:
         """
-        TODO: Get a pick slip by references. The pick slip is aggregated by sku and title
-        :param refs: List of references
-        :return:
+        Generate a pick slip. The pick slip is aggregated by sku and title
+        :param orders: List of orders to be picked
+        :return: List of PickSlipItemVO
         """
         pickItems = self.get_pick_items(orders)
         items = map(lambda x: x.dict(), pickItems)
         df = pd.DataFrame.from_dict(items)
         df_slip = df.groupby(['sku', 'title'], as_index=False) \
-                   .agg({'quantity': 'sum', 'sku': 'first', 'orderKey': 'first'})
+            .agg({'quantity': 'sum', 'sku': 'first', 'orderKey': 'first'})
         df_slip.sort_values(by=['sku', 'title'], inplace=True)
         # Convert to list of dict
         slips = df_slip.to_dict(orient='records')
@@ -80,28 +85,37 @@ class PickPackMongoDBManager(CommonMongoDBManager):
     def sort_packing_orders(self, orders: List[StandardOrder]) -> List[str]:
         """
         Sort the packing orders by the number of orderlines, orderKey and orderId
-        :param refs: References of the orders to be sorted
-        :return: List of references sorted by the criteria
+        :param  orders: List of orders to be packed
+        :return: List of orderIds
         """
         pickItems = self.get_pick_items(orders)
         # Sort by [num_orderlines, orderKey and orderId]
-        line_counts = count_elements(map(lambda x: x.orderId, pickItems))
-        sku_counts = count_elements(map(lambda x: x.sku, pickItems))
-        items = list(sorted(pickItems, key=lambda x: (line_counts[x.orderId],  x.orderKey, x.orderId)))
+        line_counts = stringutils.count_elements(map(lambda x: x.orderId, pickItems))
+        sku_counts = stringutils.count_elements(map(lambda x: x.sku, pickItems))
+        items = list(sorted(pickItems, key=lambda x: (line_counts[x.orderId], x.orderKey, x.orderId)))
         sorted_refs = list(map(lambda x: x.orderId, items))
-        return remove_duplicates(sorted_refs)
+        return stringutils.remove_duplicates(sorted_refs)
 
-    def __add_excel_style(self, ws):
-        # 遍历所有行，并根据orderId设置背景色
+    def __get_excel_row_color_by_task_id(self, task_id: int = 0):
         gray_fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
         white_fill = PatternFill(start_color="95B3D7", end_color="95B3D7", fill_type="solid")
+        if task_id % 2 == 0:
+            return white_fill
+        else:
+            return gray_fill
+
+    def __add_excel_style(self, ws, task_id_col_index=None):
         # 定义边框样式
         thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
                              top=Side(style='thin'), bottom=Side(style='thin'))
 
         alignment = Alignment(vertical="top", wrap_text=True)
         for row in range(2, ws.max_row + 1):  # 从第二行开始，因为第一行是表头
-            fill = white_fill if row % 2 == 0 else gray_fill
+            if task_id_col_index is None:
+                fill = self.__get_excel_row_color_by_task_id(row)
+            else:
+                task_id = int(ws.cell(row=row, column=task_id_col_index).value)
+                fill = self.__get_excel_row_color_by_task_id(task_id)
             for col in range(1, ws.max_column + 1):
                 cell = ws.cell(row=row, column=col)
                 cell.fill = fill
@@ -114,15 +128,15 @@ class PickPackMongoDBManager(CommonMongoDBManager):
 
     def pick_slip_to_excel(self, orders: List[StandardOrder]) -> bytes:
         """
-        TODO: Generate a pick slip excel file by references
-        :param refs: List of references
-        :return:
+        Generate a manifest file in excel format for picking orders.
+        :param orders: List of orders to be picked
+        :return: Bytes of the manifest file in excel format.
         """
         pickItems = self.make_pick_slip(orders)
         items = [o.dict() for o in pickItems]
         df_pick_slip = pd.DataFrame.from_dict(items)
         # Reduce columes
-        df_pick_slip = df_pick_slip[['sku', 'quantity', 'storageLocation','title']]
+        df_pick_slip = df_pick_slip[['sku', 'quantity', 'storageLocation', 'title']]
         # Sort by sku
         df_pick_slip.sort_values(by=['sku'], inplace=True)
         # Convert dataframe to excel bytes
@@ -146,6 +160,11 @@ class PickPackMongoDBManager(CommonMongoDBManager):
             return new_excel_bytes.read()
 
     def pack_slips_to_excel(self, orders: List[StandardOrder]) -> bytes:
+        """
+        Generate a manifest file in excel format for packing orders.
+        :param orders: List of orders to be packed
+        :return: Bytes of the manifest file in excel format.
+        """
         items = self.get_pick_items(orders)
 
         items = [o.dict() for o in items]
@@ -159,7 +178,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
         df_order_lines['taskId'] = df_order_lines['taskId'].apply(lambda x: f"{x: 03d}")
         # Format purchasedAt,
         df_order_lines['purchasedAt'] = df_order_lines['purchasedAt'] \
-            .apply(lambda x: f"{datetime_to_date(x, target_pattern=r'%d.%m.%Y')}")
+            .apply(lambda x: f"{time_utils.datetime_to_date(x, target_pattern=r'%d.%m.%Y')}")
 
         with BytesIO() as excel_bytes:
             df_order_lines.to_excel(excel_bytes, index=False, sheet_name="pack_orders")
@@ -172,7 +191,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
                 col_letter = ws.cell(row=1, column=col_num).column_letter
                 ws.column_dimensions[col_letter].width = width
 
-            self.__add_excel_style(ws)
+            self.__add_excel_style(ws, task_id_col_index=2)
 
             # 将修改后的工作簿写回BytesIO对象
             new_excel_bytes = BytesIO()
@@ -180,10 +199,84 @@ class PickPackMongoDBManager(CommonMongoDBManager):
             new_excel_bytes.seek(0)
             return new_excel_bytes.read()
 
+    def bulk_shipment_for_orders(self, orders: List[StandardOrder],
+                                 batchId: str, carrier: str,
+                                 sort_by_order_key: bool = False) -> BatchOrderConfirmEvent:
+        """
+        Bulk create shipments for orders, and store the batch-data in Redis cache.
+        :param orders:  List of orders to be shipped
+        :param batchId:   Batch Id
+        :param carrier:   Carrier name
+        :param sort_by_order_key:   Whether to sort the orders by orderKey
+        :return:
+        """
+        logger.info(f"Batch {batchId} to create of {len(orders)} orders.")
+        map_orders = {o.orderId: o for o in orders}
+        shipments: List[StandardShipment] \
+            = list(map(lambda x: convert_to_standard_shipment(x, carrier), orders))
+        logger.info(f"Batch {batchId} to create of {len(shipments)} shipments.")
+        man_carrier = None
+        if carrier == "gls":
+            man_carrier = GlsShipmentMongoDBManager(key_index=settings.GLS_ACCESS_KEY_INDEX).connect()
+            new_ids, exist_ids = man_carrier.save_shipments(shipments)
+        else:
+            raise RuntimeError(f"Carrier {carrier} is not supported yet.")
 
+        logger.info(f"New shipment ids: {new_ids}")
+        logger.info(f"Exist shipment ids: {exist_ids}")
+        logger.info(f"#Shipments already exist: {len(exist_ids) + len(new_ids)}")
+        message = f"Batch {batchId} created.\n" \
+                  f"{len(new_ids)} labels created, and {len(exist_ids)} labels already exist. " \
+                  f"{len(exist_ids) + len(new_ids)} shipment(s) stored in total."
+        orderIds = new_ids + exist_ids
+        orders = [map_orders[o] for o in orderIds]
 
+        if sort_by_order_key:
+            orderIds = self.sort_packing_orders(orders)
+            logger.info(f"# Sorted orderIds: {len(orderIds)}")
 
+        # Sort shipments by orderIds
+        shipments = man_carrier.find_shipments_by_ids(orderIds)
+        label_pdf = man_carrier.get_bulk_shipments_labels(orderIds)
+        shipmentIds = []
+        for ship in shipments:
+            tid = ";".join([p.parcelNumber for p in ship.parcels])
+            shipmentIds.append(tid)
 
+        # Save batch-data to Redis Cache
+        createdAt = time_utils.now()
+        event = BatchOrderConfirmEvent(
+            createdAt=createdAt,
+            taskId=batchId,
+            batchId=batchId,
+            orderIds=orderIds,
+            shipmentIds=shipmentIds,
+            message=message,
+            parcelLabelB64=utilpdf.pdf_to_str(label_pdf),
+        )
 
+        if man_carrier is not None: man_carrier.close()
+        self.cache_batch_event(event)
+        return event
 
+    def get_batch_order_confirm_event(self, batchId: str) -> BatchOrderConfirmEvent:
+        """
+        Get the batch-data from Redis cache.
+        :param batchId:   Batch Id
+        :return: BatchOrderConfirmEvent
+        """
+        man = RedisDataManager()
+        event_dict = man.get_json(batchId)
+        if event_dict is None:
+            return None
+        return BatchOrderConfirmEvent(**event_dict)
+
+    def generate_batch_id(self, prefix: str = "Any") -> str:
+        current_time = time_utils.now(pattern='%Y%m%dT%H%M%SZ')
+        return f"BAT:{prefix}-{current_time}"
+
+    def cache_batch_event(self, event: BatchOrderConfirmEvent):
+        man = RedisDataManager()
+        TIME_TO_LIVE_SEC = 60 * 60 * 24 * 14  # 14 day
+        man.set_json(event.batchId, event.dict(), time_to_live_sec=TIME_TO_LIVE_SEC)
 

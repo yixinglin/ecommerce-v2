@@ -1,4 +1,3 @@
-import os
 from api import app
 from uvicorn import run
 from core.config import settings
