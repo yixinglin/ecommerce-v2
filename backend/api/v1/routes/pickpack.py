@@ -153,6 +153,7 @@ def bulk_gls_shipments_by_references(refs: List[str]):
     Returns a Batch-ID of the bulk-shipment-event.
     :param refs: A list of references
     :return: Data with batchId, orderIds, trackIds, slips, labels, message, length
+    TODO 有BUG，需要修复。
     """
     carrier = "gls"
     refs = remove_duplicates(refs)
@@ -178,6 +179,7 @@ def bulk_gls_shipments_by_references(refs: List[str]):
         "message": f"GLS shipments of {num_orders} orders created successfully.\n" + batchEvent.message,
         "length": len(batchEvent.orderIds)
     }
+
     return ResponseSuccess(data=data)
 
 

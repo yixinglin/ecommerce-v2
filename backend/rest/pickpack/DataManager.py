@@ -237,6 +237,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
 
         # Sort shipments by orderIds
         shipments = man_carrier.find_shipments_by_ids(orderIds)
+        # TODO: 这里可能有问题，会导致重复或者缺漏某些订单。
         label_pdf = man_carrier.get_bulk_shipments_labels(orderIds)
         shipmentIds = []
         for ship in shipments:
