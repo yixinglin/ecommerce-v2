@@ -37,3 +37,9 @@ source .venv/Scripts/activate
 export $(grep -v '^#' conf/dev.env | xargs) && printenv  && python main.py
 
 ```
+
+# Unit tests:
+```shell
+python pytest_integration.py
+python pytest_units.py
+```

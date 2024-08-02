@@ -1,1 +1,4 @@
 test_*
+*.xlsx
+*.csv
+source.json

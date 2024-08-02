@@ -243,7 +243,7 @@ class AmazonOrderMongoDBManager(OrderMongoDBDataManager):
                     self.save_order(order_id, order=order)
             except SellingApiRequestThrottledException as e:
                 logger.error(f"Throttled while fetching order [{order_id}]: {e}, Error Type: {type(e).__name__}")
-                time.sleep(10)
+                time.sleep(60)
             except Exception as e:
                 logger.error(f"Error fetching order [{order_id}]: {e}, Error Type: {type(e).__name__}")
                 time.sleep(1)  # Wait for 1 second to avoid throttling
