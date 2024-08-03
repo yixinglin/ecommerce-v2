@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
 
-from rest.amazon.base import AmazonSpAPIKey
-from rest.amazon.product import AmazonCatalogAPI
+from external.amazon.base import AmazonSpAPIKey
+from external.amazon.product import AmazonCatalogAPI
 from sp_api.base import Marketplaces
 
 
@@ -24,7 +24,7 @@ class TestAmazonCatalogAPI(unittest.TestCase):
         api.catalogClient = catalog_client_mock  # Replace the catalogClient with the mocked one
 
         # Call the get_catalog_item method
-        result = api.get_catalog_item('12345')
+        result = api.fetch_catalog_item('12345')
 
         # Assert that the correct item is returned
         self.assertEqual(result, {'asin': '12345', 'name': 'Product 1'})
@@ -43,7 +43,7 @@ class TestAmazonCatalogAPI(unittest.TestCase):
         api.catalogClient = catalog_client_mock  # Replace the catalogClient with the mocked one
 
         # Call the get_catalog_item method with an invalid ASIN
-        result = api.get_catalog_item('invalid_asin')
+        result = api.fetch_catalog_item('invalid_asin')
 
         # Assert that the result is None
         self.assertIsNone(result)

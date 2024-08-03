@@ -10,12 +10,12 @@ from models.convert import convert_to_standard_shipment
 from models.orders import StandardOrder
 from models.pickpack import BatchOrderConfirmEvent
 from models.shipment import StandardShipment
-from rest.common.DataManager import CommonMongoDBManager
-from rest.gls.DataManager import GlsShipmentMongoDBManager
+from crud.common.DataManager import CommonMongoDBManager
+from services.gls.GlsShipmentService import GlsShipmentService
 import utils.stringutils as stringutils
 import utils.time as time_utils
 import utils.utilpdf as utilpdf
-from vo.carriers import PickSlipItemVO
+from schemas.carriers import PickSlipItemVO
 from core.db import RedisDataManager
 
 
@@ -217,7 +217,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
         logger.info(f"Batch {batchId} to create of {len(shipments)} shipments.")
         man_carrier = None
         if carrier == "gls":
-            man_carrier = GlsShipmentMongoDBManager(key_index=settings.GLS_ACCESS_KEY_INDEX).connect()
+            man_carrier = GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX).connect()
             new_ids, exist_ids = man_carrier.save_shipments(shipments)
         else:
             raise RuntimeError(f"Carrier {carrier} is not supported yet.")
@@ -236,7 +236,7 @@ class PickPackMongoDBManager(CommonMongoDBManager):
             logger.info(f"# Sorted orderIds: {len(orderIds)}")
 
         # Sort shipments by orderIds
-        shipments = man_carrier.find_shipments_by_ids(orderIds)
+        shipments = man_carrier.query_shipments_by_ids(orderIds)
         # TODO: 这里可能有问题，会导致重复或者缺漏某些订单。
         label_pdf = man_carrier.get_bulk_shipments_labels(orderIds)
         shipmentIds = []

@@ -22,4 +22,4 @@ def test_amazon_pickpack_service():
 
 if __name__ == '__main__':
     test_amazon_integration()
-    test_amazon_pickpack_service()
+    # test_amazon_pickpack_service()

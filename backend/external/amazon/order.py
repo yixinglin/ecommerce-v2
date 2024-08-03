@@ -2,7 +2,7 @@ from datetime import timedelta
 from sp_api.api import Orders
 from sp_api.base import Marketplaces
 from core.log import logger
-from .base import AmazonSpAPIKey, today
+from external.amazon.base import AmazonSpAPIKey, today
 
 
 class AmazonOrderAPI:
@@ -24,7 +24,7 @@ class AmazonOrderAPI:
     def get_account_id(self):
         return self.key.get_account_id()
 
-    def get_all_orders(self, days_ago=30, **kwargs):
+    def fetch_all_orders(self, days_ago=30, **kwargs):
         """
         Fetches all orders from the Amazon Sp API for the specified marketplace and account.
         :param days_ago:  Number of days to fetch orders from (default 30)
@@ -44,7 +44,7 @@ class AmazonOrderAPI:
             orders.extend(response.Orders)  # Add the additional orders to the list
         return orders
 
-    def get_order(self, order_id):
+    def fetch_order(self, order_id):
         """
         Fetches the details of an Amazon order by its ID.
         :param order_id:  ID of the Amazon order to fetch
@@ -54,7 +54,7 @@ class AmazonOrderAPI:
         logger.info(f"[API] Fetching Amazon order {order_id} updated at {result.payload['LastUpdateDate']}")
         return result
 
-    def get_order_items(self, order_id):
+    def fetch_order_items(self, order_id):
         """
         Fetches the items of an Amazon order by its ID.
         :param order_id:  ID of the Amazon order to fetch items for

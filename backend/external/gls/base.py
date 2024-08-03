@@ -1,13 +1,38 @@
+import json
+import os
 from typing import List
 from pydantic import BaseModel, Field
 import utils.stringutils as stringutils
+from core.config import settings
 from models.shipment import StandardShipment
+
+"""
+Gls API Key Model
+"""
+class GlsApiKey(BaseModel):
+    url: str
+    alias: str
+    username: str
+    password: str
+    shipperId: str
+
+    @classmethod
+    def from_json(cls, index):
+        """
+        Load API key from JSON file
+        :param keyName: Name of the API key in the JSON file
+        :return:
+        """
+        file_path = os.path.join('conf', 'apikeys',
+                                 settings.GLS_ACCESS_KEY)
+        with open(file_path, 'r') as fp:
+            data = json.load(fp)
+        k = cls(**data["keys"][index])
+        return k
 
 """
 Gls Request Body Model
 """
-
-
 class Address(BaseModel):
     name1: str
     name2: str

@@ -23,6 +23,7 @@ class TestAmazonIntegration(unittest.TestCase):
         :return:
         """
         source = load_source()
+        self.source = source
         self.base_url = source['urls'].get('test_env_url')
         self.base_order_url = f"{self.base_url}/api/v1/amazon/orders"
         logger.info("Testing Amazon Integration")
@@ -89,6 +90,29 @@ class TestAmazonIntegration(unittest.TestCase):
         logger.info(f"Sample Item: {items[0]['dailyShipments'][0]['sellerSKU']}")
 
         logger.info("Test order_items_count function passed\n")
+
+    def test_parse_pack_slip_page(self):
+        # /orders/packslip/parse
+        logger.info("Testing parse_pack_slip_page function")
+        url = self.source['urls']["amazon_pack_slip_page"]
+        response = requests.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = response.text
+        body = {
+            "country": "DE",
+            "formatIn": "html",
+            "data": content,
+            "formatOut": "object"
+        }
+        url = f"{self.base_order_url}/packslip/parse"
+        response = requests.post(url, json=body)
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        logger.info(f"Message: {data.get('message')}")
+        logger.info(f"#items: {len(data.get('data').get('orders'))}")
+
+        logger.info("Test parse_pack_slip_page function passed\n")
+
 
 
 class TestAmazonPickPackService(unittest.TestCase):

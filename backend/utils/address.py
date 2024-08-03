@@ -92,6 +92,25 @@ def is_company_name(company_name: str) -> bool:
     match = re.search(keywords, company_name)
     return bool(match)
 
+def adjust_name_fields(name1, name2, name3, max_length=40):
+    tmp = ""
+    if len(name1) >= max_length:
+        tmp = name1[max_length:]
+        name1 = name1[:max_length]
+        if len(name3) > 0 or len(name2) > max_length:
+            name2 = tmp + " || " + name2
+        else:
+            name3 = name2
+            name2 = tmp
+    if len(name2) >= max_length:
+        tmp = name2[max_length:]
+        name2 = name2[:max_length]
+        if len(name3) > 0:
+            name3 = tmp + " || " + name3
+        else:
+            name3 = tmp
+    return [name1, name2, name3]
+
 
 # Test patterns
 postcodes = {

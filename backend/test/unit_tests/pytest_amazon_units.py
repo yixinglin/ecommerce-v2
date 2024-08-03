@@ -1,14 +1,15 @@
 import logging
 import unittest
 from typing import List
-
 import requests
-
+from sp_api.base import Marketplaces
+from core.db import OrderQueryParams
 from models.orders import StandardOrder
-from rest.amazon.bulkOrderService import AmazonBulkPackSlipDE
+from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService
+from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
 import json
 
-import utils.city as city_utils
+import utils.address as city_utils
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,6 +21,49 @@ class TestAmazonUnits(unittest.TestCase):
         with open("test/source.json") as f:
             self.source = json.load(f)
 
+    def test_query_orders(self):
+        logger.info("Testing query_orders")
+        with AmazonOrderService(0,
+                marketplace=Marketplaces.DE) as svc:
+            params = OrderQueryParams()
+            params.purchasedDateFrom = "2024-05-01T01:14:51Z"
+            params.purchasedDateTo = "2024-08-31T23:59:59Z"
+            params.status = ["Canceled"]
+            orders = svc.find_orders_by_query_params(params)
+            logger.info(f"Found {params.status} {len(orders)} orders")
+            for order in orders:
+                self.assertEqual(order.status, "Canceled")
+
+            filter_ = {"order.OrderStatus": "Unshipped",
+                       "order.FulfillmentChannel": "MFN"}
+            orders = svc.find_orders(offset=0, limit=100, filter=filter_)
+            logger.info(f"Found {len(orders)} orders with filter {filter_}")
+            for order in orders:
+                self.assertEqual(order.status, "Unshipped")
+
+            orderId = orders[0].orderId
+            logger.info(f"Found order {orderId}")
+            order = svc.find_order_by_id(orderId)
+            self.assertEqual(order.orderId, orderId)
+
+            orderId = "303-3875440-9470748" # "305-6648619-7627559" 303-3875440-9470748
+            # svc.save_order(order_id=orderId)
+
+        logger.info("Testing query_orders passed")
+
+    def test_catalog(self):
+        logger.info("Testing catalog")
+        with AmazonCatalogService(0, marketplace=Marketplaces.DE) as svc:
+            catalog_map = svc.create_asin_image_url_dict()
+            catalog_items = catalog_map.keys()
+            logger.info(f"Found {len(catalog_items)} catalog items")
+            catalog_item = svc.query_catalog_item('B0CPSMQW95')
+            svc.save_catalog("B0CPSMQW95")
+            cnt = svc.remove_catalog_item("B0CPSMQW95")
+            self.assertEqual(cnt, 1)
+
+
+        logger.info("Testing catalog passed")
 
     def test_parse_pack_slip_page(self):
         logger.info("Testing parse_pack_slip_page")
@@ -73,7 +117,8 @@ class TestAmazonUnits(unittest.TestCase):
         for order in orders:
             street = order.shipAddress.street1
             streetName, houseNumber = city_utils.identify_german_street(street)
-            logger.info(f"Order {order.orderId} has street {street} identified as {streetName} + {houseNumber}")
+            # logger.info(f"Order {order.orderId} has street {street} identified as {streetName} + {houseNumber}")
+
 
         logger.info("Testing parse_pack_slip_page passed")
 

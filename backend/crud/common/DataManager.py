@@ -1,9 +1,6 @@
 import re
-from sp_api.base import Marketplaces
 from core.db import MongoDBDataManager
 from core.log import logger
-from rest.amazon.DataManager import AmazonOrderMongoDBManager, AmazonCatalogManager
-from rest.gls.DataManager import GlsShipmentMongoDBManager
 from schemas.basic import ExternalService
 
 

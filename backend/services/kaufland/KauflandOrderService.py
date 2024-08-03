@@ -3,11 +3,12 @@ import time
 from datetime import timedelta, datetime
 import pymongo
 from core.log import logger
-from .base import Orders, Storefront, today, now, DATETIME_PATTERN, Client
+from external.kaufland.base import Orders, Storefront, today, now, DATETIME_PATTERN, Client
 from core.db import MongoDBDataManager
 
 
-class KauflandOrderMongoDBManager(MongoDBDataManager):
+# TODO: 还没做重构，先放着不用管
+class KauflandOrderSerice(MongoDBDataManager):
 
     def __init__(self, key_index, storefront: Storefront):
         super().__init__()

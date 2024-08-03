@@ -3,12 +3,11 @@ from typing import Any, List
 
 from fastapi import APIRouter, Response, Request
 from fastapi.responses import HTMLResponse
-from core.config import settings
-from rest.kaufland.DataManager import KauflandOrderMongoDBManager
+from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from fastapi.templating import Jinja2Templates
 
 from schemas import BasicResponse, ResponseSuccess
-from vo.kaufland import DailySalesCountVO, Product
+from schemas.kaufland import DailySalesCountVO, Product
 
 kfld_order = APIRouter(tags=['Kaufland Services'])
 
@@ -17,7 +16,7 @@ kfld_order = APIRouter(tags=['Kaufland Services'])
                summary="Get daily ordered items count",
                 response_model=BasicResponse[List[DailySalesCountVO]])
 def get_daily_ordered_items_count(response: Response, days_ago: int = 7) -> Any:
-    with KauflandOrderMongoDBManager(key_index=0) as man:
+    with KauflandOrderSerice(key_index=0) as man:
         daily = man.get_daily_sales(days_ago=days_ago)
     daily_sales_count_vo = []
     # convert to vo

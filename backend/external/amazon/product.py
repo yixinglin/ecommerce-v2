@@ -1,10 +1,7 @@
-from typing import Tuple
-
 from sp_api.api import Catalog
 from sp_api.base import Marketplaces
-
 from core.log import logger
-from .base import AmazonSpAPIKey
+from external.amazon.base import AmazonSpAPIKey
 
 
 class AmazonCatalogAPI:
@@ -21,7 +18,7 @@ class AmazonCatalogAPI:
         self.catalogClient = Catalog(credentials=credentials,
                                      marketplace=self.marketplace)
 
-    def get_catalog_item(self, asin: str):
+    def fetch_catalog_item(self, asin: str):
         """
         Get catalog item for given ASIN
         :param asin:  ASIN of the product

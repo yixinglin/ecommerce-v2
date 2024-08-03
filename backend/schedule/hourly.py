@@ -5,11 +5,11 @@ import time
 from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
 from core.log import logger
-from rest.amazon.DataManager import AmazonOrderMongoDBManager, AmazonCatalogManager
+from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService
 from core.config import settings
-from rest.gls.DataManager import GlsShipmentMongoDBManager
-from rest.kaufland.DataManager import KauflandOrderMongoDBManager
-from rest.kaufland.base import Storefront
+from services.gls.GlsShipmentService import GlsShipmentService
+from services.kaufland.KauflandOrderService import KauflandOrderSerice
+from external.kaufland.base import Storefront
 
 hourlyScheduler = AsyncIOScheduler()
 
@@ -32,7 +32,7 @@ def save_amazon_orders_job(key_index, marketplace):
 
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with AmazonOrderMongoDBManager(key_index=key_index, marketplace=marketplace) as man:
+        with AmazonOrderService(key_index=key_index, marketplace=marketplace) as man:
             man.save_all_orders(days_ago=7, FulfillmentChannels=["MFN"])
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
@@ -47,7 +47,7 @@ def save_tracking_info_job(key_index):
     :return:
     """
     if settings.SCHEDULER_GLS_TRACKING_FETCH_ENABLED:
-        with GlsShipmentMongoDBManager(key_index=key_index) as man:
+        with GlsShipmentService(key_index=key_index) as man:
             shipments = man.get_incomplete_shipments(days_ago=7)
             ids = [';'.join(s.references) for s in shipments]
             logger.info(f"Fetching tracking info for {len(ids)} shipments: {';'.join(ids)}")
@@ -64,7 +64,7 @@ def save_kaufland_orders_job(key_index, storefront):
         return
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with KauflandOrderMongoDBManager( key_index=key_index, storefront=storefront) as man:
+        with KauflandOrderSerice(key_index=key_index, storefront=storefront) as man:
             man.save_all_orders(days_ago=14)
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
@@ -83,7 +83,7 @@ def save_amazon_catalog_job(key_index, marketplace):
         return
     try:
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
-        with AmazonCatalogManager(key_index=key_index, marketplace=marketplace) as man:
+        with AmazonCatalogService(key_index=key_index, marketplace=marketplace) as man:
             man.save_all_catalogs()
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")

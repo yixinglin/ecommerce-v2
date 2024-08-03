@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import List
 import pymongo
 from tortoise.contrib.fastapi import register_tortoise
@@ -104,16 +105,32 @@ class OrderMongoDBDataManager(MongoDBDataManager):
     def __init__(self):
         super().__init__()
 
-    def find_orders(self, filter_: dict, *args, **kwargs) -> List[StandardOrder]:
+    @abstractmethod
+    def query_orders(self, filter_: dict, *args, **kwargs) -> List[StandardOrder]:
         raise NotImplementedError()
 
-    def find_order_by_id(self, id: str, *args, **kwargs) -> StandardOrder:
+    @abstractmethod
+    def query_order_by_id(self, id: str, *args, **kwargs) -> StandardOrder:
         raise NotImplementedError()
 
-    def find_orders_by_ids(self, ids: str, *args, **kwargs) -> List[StandardOrder]:
+    @abstractmethod
+    def query_orders_by_ids(self, ids: str, *args, **kwargs) -> List[StandardOrder]:
         raise NotImplementedError()
 
-    def find_unshipped_orders(self, *args, **kwargs) -> List[StandardOrder]:
+    @abstractmethod
+    def query_unshipped_orders(self, *args, **kwargs) -> List[StandardOrder]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def save_order(self, order_id, document):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def update_order(self, order_id, document) -> StandardOrder:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def delete_order(self, id: str, *args, **kwargs) -> bool:
         raise NotImplementedError()
 
 
@@ -122,17 +139,27 @@ class ShipmentMongoDBDataManager(MongoDBDataManager):
     def __init__(self):
         super().__init__()
 
-    def find_shipments(self, filter_: dict) -> List[StandardShipment]:
+    @abstractmethod
+    def query_shipments(self, filter_: dict) -> List[StandardShipment]:
         raise NotImplementedError()
 
-    def find_shipment_by_id(self, id: str) -> StandardShipment:
+    @abstractmethod
+    def query_shipment_by_id(self, id: str) -> StandardShipment:
         raise NotImplementedError()
 
-    def find_shipments_by_ids(self, ids: str) -> List[StandardShipment]:
+    @abstractmethod
+    def query_shipments_by_ids(self, ids: str) -> List[StandardShipment]:
         raise NotImplementedError()
 
-    def get_bulk_shipments_labels(self, refs: List[str]) -> bytes:
+
+    @abstractmethod
+    def save_shipment(self, document):
         raise NotImplementedError()
+
+    @abstractmethod
+    def delete_shipment(self, id: str, *args, **kwargs) -> bool:
+        raise NotImplementedError()
+
 
     def get_shipment_id(self, shipment: StandardShipment):
-        return ";".shipment.references
+        return ";".join(shipment.references)

@@ -1,34 +1,20 @@
 import os
-from typing import Any, List, Union, Dict
-from fastapi import APIRouter, Request, Response, Query, Body, Path, Form
-from sp_api.base import Marketplaces
-from core.db import OrderQueryParams, RedisDataManager
-from core.log import logger
-from models.orders import StandardOrder
-from rest.amazon.base import AmazonSpAPIKey
-from rest.amazon.bulkOrderService import AmazonBulkPackSlipDE
-from schemas import ResponseSuccess
-from rest import AmazonOrderMongoDBManager, AmazonCatalogManager
-from core.config import settings
-from schemas.basic import BasicResponse, ResponseNotFound
-from vo.amazon import DailyShipment, DailySalesCountVO, PackSlipRequestBody
+from typing import Any, List
+
+from fastapi import APIRouter, Request, Response, Query, Body, Path
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sp_api.base import Marketplaces
+
 import utils.time as time_utils
+from core.db import RedisDataManager
+from external.amazon.base import AmazonSpAPIKey
+from schemas import ResponseSuccess
+from schemas.amazon import DailySalesCountVO, PackSlipRequestBody
+from schemas.basic import BasicResponse, ResponseNotFound
+from services.amazon.AmazonService import AmazonService
 
 amz_order = APIRouter(tags=['AMAZON Services'])
-
-
-def get_asin_image_url_dict(marketplace: Marketplaces) -> dict:
-    with AmazonCatalogManager(key_index=0, marketplace=marketplace) as man:
-        catalogItems = man.get_all_catalog_items()
-    result = dict()
-    for catalogItem in catalogItems:
-        try:
-            result[catalogItem['_id']] = catalogItem['catalogItem']['AttributeSets'][0]['SmallImage']['URL']
-        except KeyError as e:
-            logger.error(f"Error while getting ASIN image URL for {catalogItem['_id']}")
-    return result
 
 
 @amz_order.get("/orders",
@@ -41,35 +27,10 @@ def get_amazon_orders(days_ago: int = Query(7, description="Fetch data for the l
                       api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
                       ):
     marketplace = Marketplaces.DE
-    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=marketplace) as man:
-        purchasedDateFrom = time_utils.days_ago(days_ago)
-        params = OrderQueryParams()
-        params.purchasedDateFrom = purchasedDateFrom
-        params.status = status
-        params.offset = offset
-        params.limit = limit
-        orders = man.find_orders_by_query_params(params)
-
-    lengthOrders = len(orders)
-    if len(orders) > 0:
-        start = offset
-        end = min(len(orders), offset + limit)
-        orders = orders[start:end]
-
-    # Add image URL to each order item
-    asin_to_image_url = get_asin_image_url_dict(marketplace)
-    for od in orders:
-        for odline in od.items:
-            odline.image = asin_to_image_url.get(odline.asin, "")
-
-    # TODO Add tracking id to each order
-
-    data = {"orders": orders,
-            "api_client": man.api.get_account_id(),
-            "offset": offset,
-            "limit": limit,
-            "length": end - start,
-            "size": lengthOrders}
+    with AmazonService(key_index=api_key_index, marketplace=marketplace) as svc:
+        data = svc.query_amazon_orders(days_ago=days_ago, status=status,
+                                       offset=offset, limit=limit,
+                                       up_to_date=False)
     return ResponseSuccess(data=data)
 
 
@@ -80,26 +41,8 @@ def get_daily_ordered_items_count(response: Response,
                                   days_ago: int = Path(description="Fetch data for the last x days"),
                                   country: str = Query("DE", description="Marketplace ")) -> Any:
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
-    with AmazonOrderMongoDBManager(key_index=0, marketplace=marketplace) as man:
-        daily = man.get_daily_mfn_sales(days_ago=days_ago)
-
-    # Convert daily-sales data to DailySalesCountVO objects
-    daily_sales_vo = []
-    for day in daily:
-        # Convert dailyShipments JSON array to list of DailyShipment objects
-        daily_shipments = [DailyShipment(**item) for item in day['dailyShipments']]
-        # Create DailySalesCountVO object
-        vo = DailySalesCountVO(purchaseDate=day['purchaseDate'],
-                               hasUnshippedOrderItems=day['dailyShippedItemsCount'] < day['dailyOrdersItemsCount'],
-                               dailyShippedItemsCount=day['dailyShippedItemsCount'],
-                               dailyOrdersItemsCount=day['dailyOrdersItemsCount'],
-                               dailyShipments=daily_shipments)
-        daily_sales_vo.append(vo)
-
-    asin_image_url = get_asin_image_url_dict(marketplace)
-    for day in daily_sales_vo:
-        for shipment in day.dailyShipments:
-            shipment.imageUrl = asin_image_url.get(shipment.asin, "")
+    with AmazonService(key_index=0, marketplace=marketplace) as svc:
+        daily_sales_vo = svc.sum_daily_ordered_items(days_ago=days_ago)
     return ResponseSuccess(data=daily_sales_vo, )
 
 
@@ -134,13 +77,9 @@ def get_unshipped_order_numbers(country: str = Query("DE", description="Country 
 
     """
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
-    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=marketplace) as man:
-        unshipped_orders = man.find_unshipped_orders(days_ago=7, up_to_date=up_to_date)
-        order_numbers = [order.orderId for order in unshipped_orders]
-        data = {"orderNumbers": order_numbers, "upToDate": up_to_date,
-                "api_client": man.api.get_account_id(),
-                "length": len(order_numbers)}
-        return ResponseSuccess(data=data)
+    with AmazonService(key_index=api_key_index, marketplace=marketplace) as svc:
+        data = svc.query_unshipped_order_numbers(up_to_date=up_to_date)
+    return ResponseSuccess(data=data)
 
 
 @amz_order.get("/orders/sc-urls",
@@ -172,32 +111,9 @@ def parse_amazon_pack_slip_html(
     format_ = body.formatOut
     country = body.country
     html_content = body.data
-
-    # html_content = requests.get("https://www.hamster25.buzz/amazon/amazon-delivery-de-03.html").content
     marketplace = AmazonSpAPIKey.name_to_marketplace(country)
-    # Result to return
-    if country == "DE":
-        # Result to return
-        # orders = AmazonBulkPackSlipDE(html_content).extract_all(format=format_)
-        # Update shipping address to MongoDB
-        proc = AmazonBulkPackSlipDE(html_content)
-        orders_: List[StandardOrder] = proc.extract_all()
-        orders = orders_ if format_ == "json" or format_ == "csv" else AmazonBulkPackSlipDE(html_content).extract_all(
-            format=format_)
-        proc.make_page_map()  # Cache packing slip data to Redis for 12 hours.
-        with AmazonOrderMongoDBManager(key_index=0, marketplace=marketplace) as man:
-            for order_ in orders_:
-                man.add_shipping_address_to_order(order_.orderId, order_.shipAddress)
-    else:
-        raise RuntimeError(f"Unsupported marketplace [{country}]")
-
-    data = {
-        "orders": orders,
-        "formatIn": formatIn,
-        "formatOut": format_,
-        "message": f"{len(orders)} addresses have been successfully parsed from the packing slip and saved to the database.",
-        "length": len(orders),
-    }
+    with AmazonService(key_index=0, marketplace=marketplace) as svc:
+        data = svc.parse_amazon_pack_slip_page(html_content, formatIn)
     return ResponseSuccess(data=data)
 
 

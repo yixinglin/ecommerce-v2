@@ -7,40 +7,17 @@ Example usage:
 Generate a label via API call, then add some strings on it for customization.
 """
 import json
-import os
 from copy import deepcopy
 from typing import List
 import requests
-from pydantic import BaseModel
 from core.config import settings
 from core.log import logger
 from models.shipment import StandardShipment
+from utils.address import adjust_name_fields
 from utils.auth import basic_auth
-from .base import GLSRequestBody, GLS_HEADERS_EU
+from external.gls.base import GLSRequestBody, GLS_HEADERS_EU, GlsApiKey
 
 MAX_NAME_LENGTH = 37
-
-
-class GlsApiKey(BaseModel):
-    url: str
-    alias: str
-    username: str
-    password: str
-    shipperId: str
-
-    @classmethod
-    def from_json(cls, index):
-        """
-        Load API key from JSON file
-        :param keyName: Name of the API key in the JSON file
-        :return:
-        """
-        file_path = os.path.join('conf', 'apikeys',
-                                 settings.GLS_ACCESS_KEY)
-        with open(file_path, 'r') as fp:
-            data = json.load(fp)
-        k = cls(**data["keys"][index])
-        return k
 
 
 class GlsShipmentApi:
@@ -61,8 +38,8 @@ class GlsShipmentApi:
         # Validate length of the given names
         address = shipment.consignee
         address.name1, address.name2, address.name3 \
-            = self.adjustNameFields(address.name1, address.name2, address.name3)
-        if not self.__checkNameLength((address.name1, address.name2, address.name3)):
+            = adjust_name_fields(address.name1, address.name2, address.name3, MAX_NAME_LENGTH)
+        if not self.__check_name_length((address.name1, address.name2, address.name3)):
             raise RuntimeError(f"Name length exceeds maximum limit of {MAX_NAME_LENGTH} characters {address}")
         return shipment
 
@@ -74,7 +51,7 @@ class GlsShipmentApi:
             ans.append(ship)
         return ans
 
-    def generate_label(self, shipment: StandardShipment) -> dict:
+    def create_label(self, shipment: StandardShipment) -> dict:
         """
         Generate a label for a given shipment
         :param shipment:
@@ -100,67 +77,11 @@ class GlsShipmentApi:
                                f"for request {body.dict()}: {resp.text}")
         return data
 
-    def __checkNameLength(self, names: List[str]):
+    def __check_name_length(self, names: List[str]):
         for name in names:
             if len(name) > MAX_NAME_LENGTH:
                 return False
         return True
-
-    # def adjustNameFields(self, name1, name2, name3):
-    #     tmp = ""
-    #     if len(name1) >= MAX_NAME_LENGTH:
-    #         tmp = name1[MAX_NAME_LENGTH:]
-    #         name1 = name1[:MAX_NAME_LENGTH]
-    #         if len(name3) > 0:
-    #             name2 = tmp + " || " + name2
-    #         else:
-    #             name3 = name2
-    #             name2 = tmp
-    #     if len(name2) >= MAX_NAME_LENGTH:
-    #         tmp = name2[MAX_NAME_LENGTH:]
-    #         name2 = name2[:MAX_NAME_LENGTH]
-    #         if len(name3) > 0:
-    #             name3 = tmp + " || " + name3
-    #         else:
-    #             name3 = tmp
-    #     return [name1, name2, name3]
-
-
-    def adjustNameFields(self, name1, name2, name3):
-        tmp = ""
-        if len(name1) >= MAX_NAME_LENGTH:
-            tmp = name1[MAX_NAME_LENGTH:]
-            name1 = name1[:MAX_NAME_LENGTH]
-            if len(name3) > 0 or len(name2) > MAX_NAME_LENGTH:
-                name2 = tmp + " || " + name2
-            else:
-                name3 = name2
-                name2 = tmp
-        if len(name2) >= MAX_NAME_LENGTH:
-            tmp = name2[MAX_NAME_LENGTH:]
-            name2 = name2[:MAX_NAME_LENGTH]
-            if len(name3) > 0:
-                name3 = tmp + " || " + name3
-            else:
-                name3 = tmp
-        return [name1, name2, name3]
-
-
-    # def adjustNameFields(self, name1, name2, name3):
-    #     MAX_LENGTH = 37
-    #     names = [name1, name2, name3]
-    #
-    #     for i in range(len(names)):
-    #         if len(names[i]) > MAX_LENGTH:
-    #             excess_part = names[i][MAX_LENGTH:]
-    #             names[i] = names[i][:MAX_LENGTH].rstrip()
-    #             if excess_part:
-    #                 if i < len(names) - 1:
-    #                     if names[i + 1]:
-    #                         names[i + 1] = excess_part.lstrip() + ' | ' + names[i + 1].lstrip()
-    #                     else:
-    #                         names[i + 1] = excess_part.lstrip()
-    #     return names[0], names[1], names[2]
 
     def fetch_tracking_info(self, trackId: List[str]) -> dict:
         # https://api.gls-group.eu/public/v1/tracking/references

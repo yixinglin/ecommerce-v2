@@ -2,19 +2,18 @@ import os
 from io import BytesIO
 from typing import List
 
-from fastapi import APIRouter, Query, Body
+from fastapi import APIRouter, Query
 from sp_api.base import Marketplaces
 from starlette.requests import Request
 from starlette.responses import StreamingResponse, HTMLResponse, Response
 from starlette.templating import Jinja2Templates
-import utils.utilpdf as utilpdf
 import utils.time as utils_time
 from core.db import OrderQueryParams
 from core.log import logger
 from models.pickpack import BatchOrderConfirmEvent
-from rest.amazon.DataManager import AmazonOrderMongoDBManager
-from rest.amazon.bulkOrderService import AmazonBulkPackSlipDE
-from rest.pickpack.DataManager import PickPackMongoDBManager
+from services.amazon.AmazonService import AmazonOrderService, AmazonService
+from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
+from crud.pickpack.DataManager import PickPackMongoDBManager
 from schemas import BasicResponse, ResponseSuccess
 from utils.stringutils import remove_duplicates, to_german_price, generate_barcode_svg
 import utils.stringutils as stringutils
@@ -44,7 +43,7 @@ def download_batch_pick_slip_by_references_amazon(refs: str):
     :return:
     """
     refs = remove_duplicates(refs.split(";"))
-    with AmazonOrderMongoDBManager(key_index=0, marketplace=Marketplaces.DE) as man_amz:
+    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amz:
         orders = man_amz.find_orders_by_ids(refs)
     with PickPackMongoDBManager() as man_pp:
         excel_bytes = man_pp.pick_slip_to_excel(orders)
@@ -64,7 +63,7 @@ def download_pack_slips_excel_amazon(refs: str):
     :return:
     """
     refs = remove_duplicates(refs.split(";"))
-    with AmazonOrderMongoDBManager(key_index=0, marketplace=Marketplaces.DE) as man_amz:
+    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amz:
         with PickPackMongoDBManager() as man_pp:
             orders = man_amz.find_orders_by_ids(refs)
             refs = man_pp.sort_packing_orders(orders)
@@ -87,7 +86,7 @@ def download_all_orders_excel_amazon(days_ago: int = Query(7, description="Days 
     :return:
     """
     api_key_index = 0
-    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
+    with AmazonOrderService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
         query = OrderQueryParams()
         query.limit = 99999
         query.offset = 0
@@ -113,7 +112,7 @@ def download_unshipped_pack_slips_excel_amazon(
     :return:
     """
     # Get unshipped orders
-    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
+    with AmazonOrderService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
         orders = man.find_unshipped_orders(days_ago=days_ago, up_to_date=up_to_date)
     if len(orders) == 0:
         logger.info("No unshipped orders found.")
@@ -133,8 +132,8 @@ def download_unshipped_pick_slips_excel_amazon(
     Download unshipped pick slips excel file
     :return:
     """
-    with AmazonOrderMongoDBManager(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
-        orders = man.find_unshipped_orders(days_ago=days_ago, up_to_date=up_to_date)
+    with AmazonService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
+        orders = man.query_unshipped_order_numbers(up_to_date=up_to_date)
     if len(orders) == 0:
         logger.info("No unshipped orders found.")
         return ResponseSuccess(data=[], size=0, message="No unshipped orders found.")
@@ -158,7 +157,7 @@ def bulk_gls_shipments_by_references(refs: List[str]):
     carrier = "gls"
     refs = remove_duplicates(refs)
     with PickPackMongoDBManager() as man_pp:
-        with AmazonOrderMongoDBManager(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
+        with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
             orders = man_amazon.find_orders_by_ids(refs)
             # Filter out orders that need transparency code
             orders = [o for o in orders if not man_amazon.need_transparency_code(o)]
@@ -188,7 +187,7 @@ def bulk_gls_shipments_by_references(refs: List[str]):
                response_class=HTMLResponse, )
 def get_pack_slip_html(request: Request, response: Response,
                        orderId: str):
-    with AmazonOrderMongoDBManager(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
+    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
         order = man_amazon.find_order_by_id(orderId)
 
     for item in order.items:
