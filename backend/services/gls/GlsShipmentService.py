@@ -1,16 +1,14 @@
 import time
 from typing import List, Union, Tuple
-
-from crud.gls import GlsShipmentMongoDB
-from external.gls.base import GlsApiKey
-from utils.stringutils import jsonpath, remove_duplicates
-from core.db import ShipmentMongoDBDataManager
+import utils.time as time_utils
+import utils.utilpdf as utilpdf
 from core.exceptions import ShipmentExistsException
 from core.log import logger
-from models.shipment import StandardShipment, Event
-import utils.utilpdf as utilpdf
+from crud.gls import GlsShipmentMongoDB
+from external.gls.base import GlsApiKey
 from external.gls.shipment import GlsShipmentApi
-import utils.time as time_utils
+from models.shipment import StandardShipment
+from utils.stringutils import jsonpath, remove_duplicates
 
 """
 Database Structure:

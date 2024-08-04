@@ -5,7 +5,7 @@ import requests
 from sp_api.base import Marketplaces
 from core.db import OrderQueryParams
 from models.orders import StandardOrder
-from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService
+from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService, AmazonService
 from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
 import json
 
@@ -62,6 +62,9 @@ class TestAmazonUnits(unittest.TestCase):
             cnt = svc.remove_catalog_item("B0CPSMQW95")
             self.assertEqual(cnt, 1)
 
+        logger.info("Testing save_all_catalogs")
+        with AmazonService(0, marketplace=Marketplaces.DE) as svc:
+            svc.save_all_catalogs()
 
         logger.info("Testing catalog passed")
 

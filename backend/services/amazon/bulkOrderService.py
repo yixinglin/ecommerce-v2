@@ -61,7 +61,7 @@ class AmazonBulkPackSlipDE:
 
     def __create_barcode_node(self, barcode: str):
         barcode_b64 = stringutils.generate_barcode_svg(barcode)
-        node = self.soup.new_tag('div',  style="position: absolute; top: 10; right: 0; z-index: 0;")
+        node = self.soup.new_tag('div', style="position: absolute; top: 10; right: 0; z-index: 0;")
         img_tag = self.soup.new_tag('img', src=barcode_b64, alt="Barcode", width="250px")
         node.append(img_tag)
         return node
@@ -88,9 +88,14 @@ class AmazonBulkPackSlipDE:
 
     @staticmethod
     def add_packslip_to_container(orderIds: List[str]) -> str:
+        """
+        Merge original packing slips into a single HTML page.
+        :param orderIds: A list of order IDs
+        :return: A HTML page containing all packing slips.
+        """
         man_redis = RedisDataManager()
         page_map = {id: bs4.BeautifulSoup(man_redis.get(f"PACK_AMZ:{id}"), 'html.parser')
-                        for id in orderIds }
+                    for id in orderIds}
 
         with open("assets/static/packslip-amazon.html", "r", encoding="utf-8") as fp:
             soup = bs4.BeautifulSoup(fp.read(), 'html.parser')
@@ -98,8 +103,14 @@ class AmazonBulkPackSlipDE:
         # Clear all child nodes from the container
         container.clear()
         # Add packing slips to the container
-        for orderId in orderIds:
+        for i, orderId in enumerate(orderIds):
             slip = page_map.get(orderId)
+            # remove the first page separator
+            if i == 0 and slip:
+                first_hr = slip.select_one("hr:first-of-type")
+                if first_hr:
+                    first_hr.decompose()
+            # Add the packing slip to the container
             if slip:
                 container.append(slip)
         return str(soup)
@@ -243,10 +254,9 @@ class AmazonBulkPackSlipDE:
                 else:
                     ans.append(standardOrder)
             except (RuntimeError, KeyError) as e:
-                    logger.error(f"Error while adjusting shipping address: {e}"
+                logger.error(f"Error while adjusting shipping address: {e}"
                              + ";".join(addresses[i]))
         return ans
-
 
     def to_standard_order(self, orderId, items, address) -> StandardOrder:
         """

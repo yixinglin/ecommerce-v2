@@ -1,27 +1,40 @@
+import hashlib
 from io import BytesIO
 from typing import List
 import pandas as pd
-import hashlib
 from openpyxl.reader.excel import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
+from sp_api.base import Marketplaces
+from starlette.responses import StreamingResponse
+import utils.time as time_utils
+import utils.utilpdf as utilpdf
+import utils.stringutils as stringutils
 from core.config import settings
+from core.db import RedisDataManager, OrderQueryParams
 from core.log import logger
 from models.convert import convert_to_standard_shipment
 from models.orders import StandardOrder
 from models.pickpack import BatchOrderConfirmEvent
 from models.shipment import StandardShipment
-from crud.common.DataManager import CommonMongoDBManager
-from services.gls.GlsShipmentService import GlsShipmentService
-import utils.stringutils as stringutils
-import utils.time as time_utils
-import utils.utilpdf as utilpdf
+from schemas import ResponseSuccess
 from schemas.carriers import PickSlipItemVO
-from core.db import RedisDataManager
+from services.amazon.AmazonService import AmazonService, AmazonOrderService
+from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
+from services.gls.GlsShipmentService import GlsShipmentService
 
 
-class PickPackMongoDBManager(CommonMongoDBManager):
+class PickPackService:
     def __init__(self):
         super().__init__()
+        self.gls_service = GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX)
+        self.redis_manager = RedisDataManager()
+
+    def __enter__(self):
+        self.gls_service.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.gls_service.__exit__(exc_type, exc_val, exc_tb)
 
     def __generate_order_key(self, orderItems: List[PickSlipItemVO], encode=False):
         items = sorted(orderItems, key=lambda x: x.sku)
@@ -215,10 +228,11 @@ class PickPackMongoDBManager(CommonMongoDBManager):
         shipments: List[StandardShipment] \
             = list(map(lambda x: convert_to_standard_shipment(x, carrier), orders))
         logger.info(f"Batch {batchId} to create of {len(shipments)} shipments.")
-        man_carrier = None
+        svc_carrier = None
         if carrier == "gls":
-            man_carrier = GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX).connect()
-            new_ids, exist_ids = man_carrier.save_shipments(shipments)
+            svc_carrier = self.gls_service
+            new_ids, exist_ids = svc_carrier.save_shipments(shipments)
+
         else:
             raise RuntimeError(f"Carrier {carrier} is not supported yet.")
 
@@ -236,9 +250,9 @@ class PickPackMongoDBManager(CommonMongoDBManager):
             logger.info(f"# Sorted orderIds: {len(orderIds)}")
 
         # Sort shipments by orderIds
-        shipments = man_carrier.query_shipments_by_ids(orderIds)
+        shipments = svc_carrier.find_shipments_by_ids(orderIds)
         # TODO: 这里可能有问题，会导致重复或者缺漏某些订单。
-        label_pdf = man_carrier.get_bulk_shipments_labels(orderIds)
+        label_pdf = svc_carrier.get_bulk_shipments_labels(orderIds)
         shipmentIds = []
         for ship in shipments:
             tid = ";".join([p.parcelNumber for p in ship.parcels])
@@ -256,7 +270,6 @@ class PickPackMongoDBManager(CommonMongoDBManager):
             parcelLabelB64=utilpdf.pdf_to_str(label_pdf),
         )
 
-        if man_carrier is not None: man_carrier.close()
         self.cache_batch_event(event)
         return event
 
@@ -281,3 +294,72 @@ class PickPackMongoDBManager(CommonMongoDBManager):
         TIME_TO_LIVE_SEC = 60 * 60 * 24 * 14  # 14 day
         man.set_json(event.batchId, event.dict(), time_to_live_sec=TIME_TO_LIVE_SEC)
 
+
+
+class AmazonPickPackService(PickPackService):
+
+    def __init__(self, key_index: int = 0, marketplace: Marketplaces = Marketplaces.DE):
+        super().__init__()
+        self.amazon_service = AmazonService(key_index=key_index, marketplace=marketplace)
+        self.order_service = self.amazon_service.order_service
+
+    def __enter__(self):
+        super().__enter__()
+        self.amazon_service.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        super().__exit__(exc_type, exc_val, exc_tb)
+        self.amazon_service.__exit__(exc_type, exc_val, exc_tb)
+
+    def download_batch_pick_slip_excel(self, orderIds: List[str]) -> StreamingResponse:
+        orders = self.order_service.find_orders_by_ids(orderIds)
+        excel_bytes = self.pick_slip_to_excel(orders)
+        filename = f"batch_pick_slip_{time_utils.now(pattern='%Y%m%d_%H%M')}"
+        filesize = len(excel_bytes)
+        headers = {'Content-Disposition': f'inline; filename="{filename}.xlsx"', 'Content-Length': str(filesize)}
+        return StreamingResponse(BytesIO(excel_bytes),
+                                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                 headers=headers)
+
+    def download_pack_slip_excel(self, orderIds: List[str]) -> StreamingResponse:
+        orders = self.order_service.find_orders_by_ids(orderIds)
+        refs = self.sort_packing_orders(orders)
+        orders = self.order_service.find_orders_by_ids(refs)
+        excel_bytes = self.pack_slips_to_excel(orders)
+        filename = f"pack_slip_{time_utils.now(pattern='%Y%m%d_%H%M')}"
+        filesize = len(excel_bytes)
+        headers = {'Content-Disposition': f'inline; filename="{filename}.xlsx"', 'Content-Length': str(filesize)}
+        return StreamingResponse(BytesIO(excel_bytes),
+                                 media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                 headers=headers)
+
+    def download_all_orders_excel(self, query: OrderQueryParams) -> StreamingResponse:
+        orders = self.order_service.find_orders_by_query_params(query)
+        if len(orders) == 0:
+            logger.info("No orders found.")
+            return ResponseSuccess(data=[], size=0, message="No orders found.")
+        refs = stringutils.remove_duplicates([order.orderId for order in orders])
+        return self.download_pack_slip_excel(refs)
+
+    def bulk_gls_shipments_by_references(self, refs: List[str], carrier: str):
+        refs = stringutils.remove_duplicates(refs)
+        orders = self.order_service.find_orders_by_ids(refs)
+        # Filter out orders that need transparency code
+        orders = [o for o in orders if not self.order_service.mdb.need_transparency_code(o)]
+        # Number of orders to be shipped
+        num_orders = len(orders)
+        batchId = self.generate_batch_id("AMZ")
+        batchEvent = self.bulk_shipment_for_orders(orders=orders, batchId=batchId, carrier=carrier,
+                                                   sort_by_order_key=True)
+        # Create pack slip for the batch using the original template of Amazon
+        packSlip = AmazonBulkPackSlipDE.add_packslip_to_container(orderIds=batchEvent.orderIds)
+        batchEvent.packSlipB64 = stringutils.base64_encode_str(packSlip)
+        self.cache_batch_event(batchEvent)
+        return {
+            "batchId": batchEvent.batchId,
+            "orderIds": batchEvent.orderIds,
+            "trackIds": batchEvent.shipmentIds,
+            "message": f"GLS shipments of {num_orders} orders created successfully.\n" + batchEvent.message,
+            "length": len(batchEvent.orderIds)
+        }

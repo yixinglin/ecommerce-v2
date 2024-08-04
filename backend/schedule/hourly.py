@@ -5,7 +5,7 @@ import time
 from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
 from core.log import logger
-from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService
+from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService, AmazonService
 from core.config import settings
 from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
@@ -64,8 +64,8 @@ def save_kaufland_orders_job(key_index, storefront):
         return
     try:
         logger.info("Scheduled job to save orders every 2 hours to MongoDB")
-        with KauflandOrderSerice(key_index=key_index, storefront=storefront) as man:
-            man.save_all_orders(days_ago=14)
+        with KauflandOrderSerice(key_index=key_index, storefront=storefront) as svc:
+            svc.save_all_orders(days_ago=14)
     except Exception as e:
         logger.error(f"Error in scheduled job to save orders every 2 hours to MongoDB: {e}")
     finally:
@@ -83,8 +83,8 @@ def save_amazon_catalog_job(key_index, marketplace):
         return
     try:
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
-        with AmazonCatalogService(key_index=key_index, marketplace=marketplace) as man:
-            man.save_all_catalogs()
+        with AmazonService(key_index=key_index, marketplace=marketplace) as svc:
+            svc.save_all_catalogs()
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")
     finally:
@@ -111,6 +111,7 @@ def common_scheduler_4hrs():
     """
     # save_tracking_info_job(key_index=settings.GLS_ACCESS_KEY_INDEX)
     # logger.info("Successfully scheduled common scheduler job...")
+    pass
 
 # 添加每天9:00-17:00每半小时执行一次的任务
 @hourlyScheduler.scheduled_job(CronTrigger(minute='0,30', hour='7-14'))
@@ -125,7 +126,7 @@ def three_hourly_task():
 
 
 # Run the code once when the script is loaded
-next_run_time = datetime.now() + timedelta(seconds=240)
+next_run_time = datetime.now() + timedelta(seconds=600)
 hourlyScheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
-next_run_time = datetime.now() + timedelta(seconds=480)
-hourlyScheduler.add_job(common_scheduler_4hrs, 'date', run_date=next_run_time)
+# next_run_time = datetime.now() + timedelta(seconds=480)
+# hourlyScheduler.add_job(common_scheduler_4hrs, 'date', run_date=next_run_time)

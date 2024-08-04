@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta
 from random import random
-from typing import List, Dict
+from typing import List, Dict, Set
 from sp_api.base import Marketplaces, SellingApiRequestThrottledException
 from core.db import OrderQueryParams
 from core.log import logger
@@ -165,29 +165,29 @@ class AmazonOrderService:
             result = self.save_order(order_id, order=order)
         return result
 
-    def add_pack_slip_to_order(self, order_id: str, pack_slip: str):
-        """
-        Add pack slip to an order in MongoDB.
-        :param order_id:
-        :param pack_slip:
-        :return:
-        """
-        # Check if the order has been stored in MongoDB
-        order_from_db = self.mdb.query_order_by_id(order_id)
-        # if order dose not exist in MongoDB, fetch the order from Amazon API and add the pack slip
-        if not order_from_db:
-            order = self.api.fetch_order(order_id).payload
-            self.save_order(order_id, order=order)
-
-        # Update the order with the pack slip
-        mdb_orders_collection = self.mdb.get_db_collection()
-        result = (mdb_orders_collection.update_one(
-            {"_id": order_id},
-            {"$set": {"packslip": pack_slip}},
-            upsert=True)
-        )
-
-        return result
+    # def add_pack_slip_to_order(self, order_id: str, pack_slip: str):
+    #     """
+    #     Add pack slip to an order in MongoDB.
+    #     :param order_id:
+    #     :param pack_slip:
+    #     :return:
+    #     """
+    #     # Check if the order has been stored in MongoDB
+    #     order_from_db = self.mdb.query_order_by_id(order_id)
+    #     # if order dose not exist in MongoDB, fetch the order from Amazon API and add the pack slip
+    #     if not order_from_db:
+    #         order = self.api.fetch_order(order_id).payload
+    #         self.save_order(order_id, order=order)
+    #
+    #     # Update the order with the pack slip
+    #     mdb_orders_collection = self.mdb.get_db_collection()
+    #     result = (mdb_orders_collection.update_one(
+    #         {"_id": order_id},
+    #         {"$set": {"packslip": pack_slip}},
+    #         upsert=True)
+    #     )
+    #
+    #     return result
 
     def save_all_orders(self, days_ago=30, **kwargs):
         """
@@ -273,6 +273,16 @@ class AmazonOrderService:
             filter_['order.SalesChannel'] = self.salesChannel
         orders = self.find_orders(filter=filter_)
         return orders
+
+    def find_all_asin(self, days_ago=30) -> Set[str]:
+        params = OrderQueryParams()
+        params.purchasedDateFrom = time_utils.days_ago(days_ago)
+        orders = self.find_orders_by_query_params(params)
+        asin = set()
+        for order in orders:
+            for item in order.items:
+                asin.add(item.asin)
+        return asin
 
     def get_daily_mfn_sales(self, days_ago=7) -> List[dict]:
         """
@@ -430,32 +440,32 @@ class AmazonCatalogService:
 
         return self.mdb.save_catalog(asin, document)
 
-    def save_all_catalogs(self):
-        """
-        Fetch all catalog items from Amazon API and save them to MongoDB.
-        :return: None
-        """
-        # Get all ASINs from orders collection
-        pipelines = [
-            {
-                '$unwind': '$items.OrderItems'
-            }, {
-                '$group': {
-                    '_id': None,
-                    'asinList': {
-                        '$addToSet': '$items.OrderItems.ASIN'
-                    }
-                }
-            }
-        ]
-        # Get all ASINs from orders collection
-        mdb_catalog_collection = self.db_client[self.db_name]["orders"]
-        results = mdb_catalog_collection.aggregate(pipelines)
-        asinList = results.next()['asinList']
-
-        # Fetches catalog items from Amazon API and saves them to MongoDB
-        for asin in asinList:
-            self.save_catalog(asin)
+    # def save_all_catalogs(self):
+    #     """
+    #     Fetch all catalog items from Amazon API and save them to MongoDB.
+    #     :return: None
+    #     """
+    #     # Get all ASINs from orders collection
+    #     pipelines = [
+    #         {
+    #             '$unwind': '$items.OrderItems'
+    #         }, {
+    #             '$group': {
+    #                 '_id': None,
+    #                 'asinList': {
+    #                     '$addToSet': '$items.OrderItems.ASIN'
+    #                 }
+    #             }
+    #         }
+    #     ]
+    #     # Get all ASINs from orders collection
+    #     mdb_catalog_collection = self.db_client[self.db_name]["orders"]
+    #     results = mdb_catalog_collection.aggregate(pipelines)
+    #     asinList = results.next()['asinList']
+    #
+    #     # Fetches catalog items from Amazon API and saves them to MongoDB
+    #     for asin in asinList:
+    #         self.save_catalog(asin)
 
     def query_catalog_item(self, asin):
         """
@@ -495,6 +505,13 @@ class AmazonService:
 
     def __init__(self, key_index: int,
                  marketplace: Marketplaces):
+        """
+        This class provides a high-level interface for fetching and manipulating Amazon orders.
+        It handles business logic based on the user requests.
+        :param key_index:  Index of the API key to use.
+        :param marketplace:  Marketplace to use.
+        """
+
         self.catalog_service = AmazonCatalogService(key_index, marketplace)
         self.order_service = AmazonOrderService(key_index, marketplace)
         self.api = self.order_service.api
@@ -570,12 +587,23 @@ class AmazonService:
                 "size": lengthOrders
                 }
 
-    def query_unshipped_order_numbers(self, up_to_date=False):
-        # Fetch all FBM orders within the specified time range and save them to MongoDB
+    def query_unshipped_amazon_orders(self, days_ago=7, up_to_date=False):
+        """
+        Query unshipped Amazon orders.
+        """
         if up_to_date:
             # Fetch latest orders if up-to-date flag is set
-            self.save_all_orders(days_ago=7, FulfillmentChannels=self.fulfillment_channels)
+            self.order_service.save_all_orders(days_ago=days_ago, FulfillmentChannels=self.fulfillment_channels)
         orders = self.order_service.find_unshipped_orders()
+        return {
+            "orders": orders,
+            "api_client": self.api.get_account_id(),
+            "length": len(orders)
+        }
+
+    def query_unshipped_order_numbers(self, days_ago=7, up_to_date=False):
+        data = self.query_unshipped_amazon_orders(days_ago=days_ago, up_to_date=up_to_date)
+        orders = data["orders"]
         order_numbers = [order.orderId for order in orders]
         return {"orderNumbers": order_numbers, "upToDate": up_to_date,
                 "api_client": self.api.get_account_id(),
@@ -607,3 +635,13 @@ class AmazonService:
                        f"database.",
             "length": len(orders),
         }
+
+    def save_all_catalogs(self):
+        """
+        Fetch all catalog items from Amazon API and save them to MongoDB.
+        :return: None
+        """
+        asin_set = self.order_service.find_all_asin(days_ago=30)
+        # Fetches catalog items from Amazon API and saves them to MongoDB
+        for asin in list(asin_set):
+            self.catalog_service.save_catalog(asin)

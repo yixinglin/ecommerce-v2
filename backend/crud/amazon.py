@@ -50,7 +50,7 @@ class AmazonOrderMongoDB(OrderMongoDBDataManager):
 
     def query_orders_by_ids(self, ids: str, *args, **kwargs) -> List[StandardOrder]:
         filter_ = {"_id": {"$in": ids}}
-        orders = list(self.query_orders(filter=filter_))
+        orders = list(self.query_orders(filter=filter_, limit=len(ids)))
         # Sort the orders by the given order IDs
         if len(orders) > 0:
             order_dict = {order.orderId: order for order in orders}

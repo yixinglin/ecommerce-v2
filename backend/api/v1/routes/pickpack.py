@@ -1,103 +1,76 @@
 import os
-from io import BytesIO
 from typing import List
-
 from fastapi import APIRouter, Query
 from sp_api.base import Marketplaces
 from starlette.requests import Request
 from starlette.responses import StreamingResponse, HTMLResponse, Response
 from starlette.templating import Jinja2Templates
+
 import utils.time as utils_time
 from core.db import OrderQueryParams
 from core.log import logger
 from models.pickpack import BatchOrderConfirmEvent
-from services.amazon.AmazonService import AmazonOrderService, AmazonService
-from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
-from crud.pickpack.DataManager import PickPackMongoDBManager
 from schemas import BasicResponse, ResponseSuccess
+from services.amazon.AmazonService import AmazonOrderService, AmazonService
+from services.pickpack.PickPackService import PickPackService, AmazonPickPackService
 from utils.stringutils import remove_duplicates, to_german_price, generate_barcode_svg
-import utils.stringutils as stringutils
 
 pp_amazon = APIRouter(prefix="/amazon", tags=['Pick-Pack Services for Amazon'])
 pp_common = APIRouter(prefix="/common", tags=['Pick-Pack Services Common'])
 
 
-# @pp_amazon.get("/pick-items",
-#                summary="Pick Items by sku.",
-#                response_model=BasicResponse[List[PickSlipItemVO]])
-# def get_pick_items_by_references_amazon(refs: str):
-#     refs = remove_duplicates(refs.split(";"))
-#     with PickPackMongoDBManager() as man:
-#         with AmazonOrderMongoDBManager(key_index=0, marketplace=Marketplaces.DE) as man1:
-#             orders = man1.find_orders_by_ids(refs)
-#             vo = man.get_pick_items(orders)
-#     return ResponseSuccess(data=vo, size=len(vo))
-
-
-@pp_amazon.get("/batch-pick", summary="Download a batch-picking slip in Excel format",
+@pp_amazon.get("/batch-pick",
+               summary="Download a batch-picking slip in Excel format",
                response_class=StreamingResponse, )
-def download_batch_pick_slip_by_references_amazon(refs: str):
+def download_batch_pick_slip_by_references_amazon(refs: str = Query(description="Order references separated by semicolon"),
+                        api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list")):
     """
     List GLS Shipments by references
+    :param api_key_index:
     :param references:
     :return:
     """
     refs = remove_duplicates(refs.split(";"))
-    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amz:
-        orders = man_amz.find_orders_by_ids(refs)
-    with PickPackMongoDBManager() as man_pp:
-        excel_bytes = man_pp.pick_slip_to_excel(orders)
-    filename = f"Batch_PICK_SLIPS_{utils_time.now(pattern='%Y%m%d_%H%M')}"
-    filesize = len(excel_bytes)
-    headers = {'Content-Disposition': f'inline; filename="{filename}.xlsx"', 'Content-Length': str(filesize)}
-    return StreamingResponse(BytesIO(excel_bytes),
-                             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                             headers=headers)
+    with AmazonPickPackService(key_index=api_key_index, marketplace=Marketplaces.DE) as svc:
+        sr = svc.download_batch_pick_slip_excel(orderIds=refs)
+    return sr
 
-@pp_amazon.get("/batch-pack", summary="Download a batch-packing slip in Excel format",
+
+@pp_amazon.get("/batch-pack",
+               summary="Download a batch-packing slip in Excel format",
                response_class=StreamingResponse, )
-def download_pack_slips_excel_amazon(refs: str):
+def download_pack_slips_excel_amazon(refs: str, api_key_index: int = Query(0,
+                                                                           description="Index of API key in settings.API_KEYS list")):
     """
     Download sorted orders excel file. The orders are sorted by order_keys.
     :param refs:
     :return:
     """
     refs = remove_duplicates(refs.split(";"))
-    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amz:
-        with PickPackMongoDBManager() as man_pp:
-            orders = man_amz.find_orders_by_ids(refs)
-            refs = man_pp.sort_packing_orders(orders)
-            orders = man_amz.find_orders_by_ids(refs)
-            excel_bytes = man_pp.pack_slips_to_excel(orders)
-    filename = f"PACK_SLIPS_{utils_time.now(pattern='%Y%m%d_%H%M')}"
-    filesize = len(excel_bytes)
-    headers = {'Content-Disposition': f'inline; filename="{filename}.xlsx"',
-               'Content-Length': str(filesize)}
-    return StreamingResponse(BytesIO(excel_bytes),
-                             media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                             headers=headers)
+    with AmazonPickPackService(key_index=api_key_index, marketplace=Marketplaces.DE) as svc:
+        sr = svc.download_pack_slip_excel(orderIds=refs)
+    return sr
+
 
 @pp_amazon.get("/batch-pack/all",
                summary="Download a batch-packing slip in Excel format which includes all orders",
                response_class=StreamingResponse, )
-def download_all_orders_excel_amazon(days_ago: int = Query(7, description="Days ago to get unshipped orders")):
+def download_all_orders_excel_amazon(days_ago: int = Query(7, description="Days ago to get unshipped orders"),
+                                     api_key_index: int = Query(0,
+                                                                description="Index of API key in settings.API_KEYS list")):
     """
     Download all orders excel file
     :return:
     """
-    api_key_index = 0
-    with AmazonOrderService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
-        query = OrderQueryParams()
-        query.limit = 99999
-        query.offset = 0
-        query.purchasedDateFrom = utils_time.days_ago(days=days_ago)
-        query.status = ["Shipped"]
-        orders = man.find_orders_by_query_params(query)
-    if len(orders) == 0:
-        logger.info("No orders found.")
-        return ResponseSuccess(data=[], size=0, message="No orders found.")
-    refs = remove_duplicates([order.orderId for order in orders])
-    return download_pack_slips_excel_amazon(";".join(refs))
+    query = OrderQueryParams()
+    query.limit = 99999
+    query.offset = 0
+    query.purchasedDateFrom = utils_time.days_ago(days=days_ago)
+    query.status = ["Shipped"]
+    with AmazonPickPackService(key_index=api_key_index, marketplace=Marketplaces.DE) as svc:
+        sr = svc.download_all_orders_excel(query)
+    return sr
+
 
 @pp_amazon.get("/batch-pack/unshipped",
                summary="Download a batch-packing slip in Excel format which includes all unshipped orders",
@@ -112,13 +85,16 @@ def download_unshipped_pack_slips_excel_amazon(
     :return:
     """
     # Get unshipped orders
-    with AmazonOrderService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
-        orders = man.find_unshipped_orders(days_ago=days_ago, up_to_date=up_to_date)
+    with AmazonService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
+        data = man.query_unshipped_amazon_orders(up_to_date=up_to_date, days_ago=days_ago)
+        orders = data['orders']
     if len(orders) == 0:
         logger.info("No unshipped orders found.")
         return ResponseSuccess(data=[], size=0, message="No unshipped orders found.")
     refs = remove_duplicates([order.orderId for order in orders])
-    return download_pack_slips_excel_amazon(";".join(refs))
+    with AmazonPickPackService(key_index=api_key_index, marketplace=Marketplaces.DE) as svc:
+        data = svc.download_pack_slip_excel(orderIds=refs)
+    return data
 
 @pp_amazon.get("/batch-pick/unshipped",
                summary="Download a batch-picking slip in Excel format which includes all unshipped orders",
@@ -133,12 +109,16 @@ def download_unshipped_pick_slips_excel_amazon(
     :return:
     """
     with AmazonService(key_index=api_key_index, marketplace=Marketplaces.DE) as man:
-        orders = man.query_unshipped_order_numbers(up_to_date=up_to_date)
+        data = man.query_unshipped_amazon_orders(up_to_date=up_to_date, days_ago=days_ago)
+        orders = data['orders']
     if len(orders) == 0:
         logger.info("No unshipped orders found.")
         return ResponseSuccess(data=[], size=0, message="No unshipped orders found.")
     refs = remove_duplicates([order.orderId for order in orders])
-    return download_batch_pick_slip_by_references_amazon(";".join(refs))
+
+    with AmazonPickPackService(key_index=api_key_index, marketplace=Marketplaces.DE) as svc:
+        data = svc.download_batch_pick_slip_excel(refs)
+    return data
 
 
 @pp_amazon.post("/bulk-ship/gls",
@@ -155,30 +135,8 @@ def bulk_gls_shipments_by_references(refs: List[str]):
     TODO 有BUG，需要修复。
     """
     carrier = "gls"
-    refs = remove_duplicates(refs)
-    with PickPackMongoDBManager() as man_pp:
-        with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
-            orders = man_amazon.find_orders_by_ids(refs)
-            # Filter out orders that need transparency code
-            orders = [o for o in orders if not man_amazon.need_transparency_code(o)]
-            # Number of orders to be shipped
-            num_orders = len(orders)
-            batchId = man_pp.generate_batch_id("AMZ")
-            batchEvent = man_pp.bulk_shipment_for_orders(orders=orders, batchId=batchId, carrier=carrier,
-                                                         sort_by_order_key=True)
-            # Create pack slip for the batch using the original template of Amazon
-            packSlip = AmazonBulkPackSlipDE.add_packslip_to_container(orderIds=batchEvent.orderIds)
-            batchEvent.packSlipB64 = stringutils.base64_encode_str(packSlip)
-            man_pp.cache_batch_event(batchEvent)
-
-    data = {
-        "batchId": batchEvent.batchId,
-        "orderIds": batchEvent.orderIds,
-        "trackIds": batchEvent.shipmentIds,
-        "message": f"GLS shipments of {num_orders} orders created successfully.\n" + batchEvent.message,
-        "length": len(batchEvent.orderIds)
-    }
-
+    with AmazonPickPackService(key_index=0, marketplace=Marketplaces.DE) as svc:
+        data = svc.bulk_gls_shipments_by_references(refs=refs, carrier=carrier)
     return ResponseSuccess(data=data)
 
 
@@ -186,8 +144,15 @@ def bulk_gls_shipments_by_references(refs: List[str]):
                summary="Display a packing slip in  HTML.",
                response_class=HTMLResponse, )
 def get_pack_slip_html(request: Request, response: Response,
-                       orderId: str):
-    with AmazonOrderService(key_index=0, marketplace=Marketplaces.DE) as man_amazon:
+                       orderId: str,
+                       api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list")):
+    """
+    Display a standard packing slip in HTML.
+    :param orderId:  The order id.
+    :param api_key_index:
+    :return:
+    """
+    with AmazonOrderService(key_index=api_key_index, marketplace=Marketplaces.DE) as man_amazon:
         order = man_amazon.find_order_by_id(orderId)
 
     for item in order.items:
@@ -216,12 +181,13 @@ def get_pack_slip_html(request: Request, response: Response,
 def get_batch_order_confirm_event(batchId: str):
     """
     Return batch-order-confirm event with the given batchId.
+    The event is created by the bulk-shipments-by-references method.
 
     TODO: 给这个端口做个React展示页面，显示运单，装箱单，分拣单，拣货单。
     :param batchId:  The batchId of the event.
     :return:  The BatchOrderConfirmEvent object.
     """
-    with PickPackMongoDBManager() as man:
+    with PickPackService() as man:
         event: BatchOrderConfirmEvent = man.get_batch_order_confirm_event(batchId)
         if event is None:
             return ResponseSuccess(data=None, message="Batch event not found.")
