@@ -1,3 +1,5 @@
+
+
 function appendButton(text, id, selector, clickHandler) {
     $(document).ready(function() {
         // Create a button element
@@ -69,13 +71,13 @@ function listen_ctrl_key_event(key, callback) {
     });
 }
 
-
 function demo() {
     console.log("Hello from utilsui.js!");
     return "";
 }
 
-export {appendButton, demo, waitForElm, setValueToInputElm, Toast, listen_ctrl_key_event };
+export {appendButton, waitForElm, setValueToInputElm, Toast, listen_ctrl_key_event,
+ };
 
 
 

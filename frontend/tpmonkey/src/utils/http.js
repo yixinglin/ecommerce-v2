@@ -1,35 +1,31 @@
 
-function makePostRequest(url, payload, headers, responseType = 'json') {
+function makePostRequest(url, payload, headers) {
   return new Promise((resolve, reject) => {
-    console.log('Making POST request to', url);
-    GM_xmlhttpRequest({
+      GM_xmlhttpRequest({
       method: "POST",
       url: url,
       data: payload,
-      responseType: responseType,
       headers: headers,
-      onload: function (response) {
-        resolve(response.response);
+      onload: function(response) {
+          resolve(response);
       },
-      onerror: function (error) {
-        reject(new Error(`Network error: ${error.error}`));
+      onerror: function(error) {
+          reject(error);
       }
-    });
+      });
   });
 }
 
-function makeGetRequest(url, headers, responseType = 'json') {
+function makeGetRequest(url) {
   return new Promise((resolve, reject) => {
     GM_xmlhttpRequest({
       method: "GET",
       url: url,
-      responseType: responseType,
-      headers: headers,
-      onload: function (response) {
-        resolve(response.response);
+      onload: function(response) {
+        resolve(response);
       },
-      onerror: function (error) {
-        reject(new Error(`Network error: ${error.error}`));
+      onerror: function(error) {
+        reject(error);
       }
     });
   });
@@ -45,4 +41,14 @@ const tm = {
   }
 };
 
-export default tm;
+// Json to form
+function convertJsonToForm(data) {
+  var ans = Object.keys(data).map(function(k) {
+      return encodeURIComponent(k) + '=' + encodeURIComponent(data[k])
+  }).join('&')
+  return ans
+}
+
+export {
+  makeGetRequest, makePostRequest, convertJsonToForm, tm, 
+};

@@ -17,7 +17,8 @@ module.exports = {
     },
     plugins: [
         new webpack.DefinePlugin({
-            'BASE_URL': JSON.stringify('http://192.168.8.95:5018')
+            'BASE_URL': JSON.stringify('http://192.168.8.95:5018'),
+            'GLS_HOST': JSON.stringify('http://gls.dev.hansagt-trade.com')
         })
     ]
 }

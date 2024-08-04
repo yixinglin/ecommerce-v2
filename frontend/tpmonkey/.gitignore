@@ -3,3 +3,4 @@ test
 tm
 node_modules
 dist
+webpack.config.prod.js
