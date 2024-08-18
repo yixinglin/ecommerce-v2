@@ -80,6 +80,11 @@ class MongoDBDataManager:
             raise RuntimeError("Error connecting to MongoDB")
         return self
 
+    def get_client(self):
+        return self.db_client
+
+    def set_client(self, client):
+        self.db_client = client
     def __enter__(self):
         self.connect()
         return self

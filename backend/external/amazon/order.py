@@ -2,7 +2,7 @@ from datetime import timedelta
 from sp_api.api import Orders
 from sp_api.base import Marketplaces
 from core.log import logger
-from external.amazon.base import AmazonSpAPIKey, today
+from .base import AmazonSpAPIKey, today
 
 
 class AmazonOrderAPI:

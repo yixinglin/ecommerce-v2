@@ -1,4 +1,4 @@
-from external.amazon.base import AmazonAddress
+from external.amazon import AmazonAddress
 from models.shipment import Address
 from utils.address import is_company_name, alpha2_to_country_name
 

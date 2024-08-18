@@ -1,0 +1,2 @@
+from .OdooInventoryService import OdooInventoryService
+from .OdooOrderService import OdooProductService, OdooContactService

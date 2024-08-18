@@ -4,7 +4,7 @@ from pymongo.collection import Collection
 
 from core.db import OrderMongoDBDataManager, MongoDBDataManager
 from core.log import logger
-from external.amazon.base import AmazonAddress
+from external.amazon import AmazonAddress
 from models.orders import StandardOrder, OrderItem
 from models.shipment import Address
 from utils.stringutils import jsonpath, isEmpty
@@ -43,10 +43,7 @@ class AmazonOrderMongoDB(OrderMongoDBDataManager):
 
     def query_order_by_id(self, id: str, *args, **kwargs) -> StandardOrder:
         result = self.query_orders_by_ids([id])
-        if result:
-            return result[0]
-        else:
-            return None
+        return result[0] if result else None
 
     def query_orders_by_ids(self, ids: str, *args, **kwargs) -> List[StandardOrder]:
         filter_ = {"_id": {"$in": ids}}

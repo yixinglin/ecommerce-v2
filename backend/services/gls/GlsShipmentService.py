@@ -5,8 +5,7 @@ import utils.utilpdf as utilpdf
 from core.exceptions import ShipmentExistsException
 from core.log import logger
 from crud.gls import GlsShipmentMongoDB
-from external.gls.base import GlsApiKey
-from external.gls.shipment import GlsShipmentApi
+from external.gls import GlsApiKey, GlsShipmentApi
 from models.shipment import StandardShipment
 from utils.stringutils import jsonpath, remove_duplicates
 
@@ -155,7 +154,7 @@ class GlsShipmentService:
         return new_ids, exist_ids
 
 
-    def get_bulk_shipments_labels(self, references: List[str]) -> bytes:
+    def find_bulk_shipments_labels(self, references: List[str]) -> bytes:
         """
         Get the bulk shipment labels by reference numbers.
         :param references:  List of reference numbers
@@ -170,10 +169,10 @@ class GlsShipmentService:
                 raise RuntimeError(f"Shipment with reference number [{shipment.shipment_id()}] not found in database.")
             if shipment.carrier != self.carrier_name:
                 raise RuntimeError(f"Shipment with reference number [{shipment.shipment_id()}] is not from {self.carrier_name}.")
-            # shipment_details = StandardShipment.parse_obj(shipment['details'])
             pdfData: bytes = utilpdf.str_to_pdf(shipment.label)
             pdfData = self.__decorate_shipment(shipment, pdfData)
             bulkPdfDataList.append(pdfData)
+            logger.info(f"Appended shipment [{shipment.shipment_id()}] to PDF.")
         mergedPdfData = utilpdf.concat_pdfs(bulkPdfDataList)
         return mergedPdfData
 

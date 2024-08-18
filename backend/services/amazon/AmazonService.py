@@ -10,9 +10,8 @@ from models.orders import StandardOrder, OrderStatus
 from models.shipment import Address
 from schemas.amazon import DailyShipment, DailySalesCountVO
 from services.amazon.base import standard_to_amazon_address
-from external.amazon.base import DATETIME_PATTERN, now, AmazonSpAPIKey, AmazonAddress
-from external.amazon.order import AmazonOrderAPI
-from external.amazon.product import AmazonCatalogAPI
+from external.amazon import AmazonSpAPIKey, AmazonOrderAPI, AmazonCatalogAPI
+from external.amazon import DATETIME_PATTERN, now
 import utils.time as time_utils
 from services.amazon.bulkOrderService import AmazonBulkPackSlipDE
 
@@ -410,7 +409,7 @@ class AmazonCatalogService:
         :return:
         """
         # mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
-        mdb_catalog_collection = self.mdb.get_db_collection()
+        # mdb_catalog_collection = self.mdb.get_db_collection()
         # Find the catalog item in MongoDB
         # item = mdb_catalog_collection.find_one({"_id": asin})
         item = self.mdb.query_catalog_item(asin)
@@ -418,15 +417,18 @@ class AmazonCatalogService:
         if item is None:
             logger.info(f"Detected new catalog item [{asin}]...")
             item = self.api.fetch_catalog_item(asin)
+            fetchedAt = now()
             time.sleep(1)
         # There is a 10% chance to fetch from API and update database
         else:
             if random() < 0.01:
                 logger.info(f"Random selected catalog item [{asin}] to fetch again...")
                 item = self.api.fetch_catalog_item(asin)
+                fetchedAt = now()
                 time.sleep(1)
             else:
                 item = item['catalogItem']
+                fetchedAt = item.get('fetchedAt', None)
 
         # if item has no attribute "AttributeSets"
         if 'AttributeSets' not in item.keys():
@@ -434,7 +436,7 @@ class AmazonCatalogService:
 
         document = {
             "_id": asin,
-            "fetchAt": now(),
+            "fetchedAt": fetchedAt,
             "catalogItem": item,
         }
 
@@ -567,6 +569,8 @@ class AmazonService:
 
         orders = self.order_service.find_orders_by_query_params(params)
         lengthOrders = len(orders)
+        start = 0
+        end = 0
         if lengthOrders > 0:
             start = offset
             end = min(len(orders), offset + limit)

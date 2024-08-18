@@ -252,7 +252,7 @@ class PickPackService:
         # Sort shipments by orderIds
         shipments = svc_carrier.find_shipments_by_ids(orderIds)
         # TODO: 这里可能有问题，会导致重复或者缺漏某些订单。
-        label_pdf = svc_carrier.get_bulk_shipments_labels(orderIds)
+        label_pdf = svc_carrier.find_bulk_shipments_labels(orderIds)
         shipmentIds = []
         for ship in shipments:
             tid = ";".join([p.parcelNumber for p in ship.parcels])

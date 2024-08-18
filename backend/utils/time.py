@@ -34,6 +34,15 @@ def str_to_datatime(datetime_str, pattern=DATETIME_PATTERN):
     """
     return datetime.strptime(datetime_str, pattern)
 
+def datetime_to_str(datetime_obj, pattern=DATETIME_PATTERN):
+    """
+    Convert a datetime object to string.
+    :param datetime_obj:
+    :param pattern:
+    :return:
+    """
+    return datetime_obj.strftime(pattern)
+
 def diff_datetime(datetime_str1, datetime_str2, pattern=DATETIME_PATTERN):
     """
     Calculate the difference between two datetime strings.

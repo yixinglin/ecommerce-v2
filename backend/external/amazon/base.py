@@ -7,7 +7,8 @@ from sp_api.base import Marketplaces
 from sp_api.api import Sellers
 from core.config import settings
 from pydantic import BaseModel, Field
-from core.db import DATETIME_PATTERN
+
+DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
 
 MARKETPLACES_MAP = {p.name: p for p in Marketplaces}
 
@@ -26,9 +27,7 @@ class AmazonSpAPIKey(BaseModel):
     refresh_token: str
     lwa_app_id: str
     lwa_client_secret: str
-    aws_access_key: str
-    aws_secret_key: str
-    role_arn: str
+
 
     def get_account_id(self):
         return self.account_id

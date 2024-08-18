@@ -15,7 +15,7 @@ from core.log import logger
 from models.shipment import StandardShipment
 from utils.address import adjust_name_fields
 from utils.auth import basic_auth
-from external.gls.base import GLSRequestBody, GLS_HEADERS_EU, GlsApiKey
+from .base import GLSRequestBody, GLS_HEADERS_EU, GlsApiKey
 
 MAX_NAME_LENGTH = 37
 

@@ -170,7 +170,7 @@ def download_gls_labels(request: Request,
         raise RuntimeError("Duplicate references found. Please check and remove them first.")
 
     with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
-        pdfs = man.get_bulk_shipments_labels(references)
+        pdfs = man.find_bulk_shipments_labels(references)
     filename = f"GLS_BULK_{utils_time.now(pattern='%Y%m%d%H%M%S')}.pdf"
     headers = {'Content-Disposition': f'inline; filename="{filename}.pdf"'}
     return StreamingResponse(BytesIO(pdfs),

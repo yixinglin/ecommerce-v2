@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     AMAZON_ACCESS_KEY: str
     METRO_ACCESS_KEY: str
     KAUFLAND_ACCESS_KEY: str
+    ODOO_ACCESS_KEY: str
+    ODOO_ACCESS_KEY_INDEX: int
     GLS_ACCESS_KEY: str
     GLS_ACCESS_KEY_INDEX: int
 
