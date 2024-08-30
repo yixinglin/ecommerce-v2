@@ -11,6 +11,8 @@ services:
             - "5018:5018"
         env_file:
             - conf/prod.env
+        environment:
+            ENV_DISABLE_DONATION_MSG: 1
         volumes:
             - ./assets:/code/assets
             - ./logs:/code/logs
