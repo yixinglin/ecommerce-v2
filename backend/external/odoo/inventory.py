@@ -11,8 +11,8 @@ from .base import OdooAPIKey, OdooAPIBase
 
 class OdooInventoryAPI(OdooAPIBase):
 
-    def __init__(self, api_key: OdooAPIKey):
-        super().__init__(api_key)
+    def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
+        super().__init__(api_key, *args, **kwargs)
 
     def fetch_location_ids(self, domain=[]):
         logger.info("Fetching location ids")

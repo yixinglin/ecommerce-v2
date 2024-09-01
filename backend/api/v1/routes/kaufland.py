@@ -9,7 +9,7 @@ from fastapi.templating import Jinja2Templates
 from schemas import BasicResponse, ResponseSuccess
 from schemas.kaufland import DailySalesCountVO, Product
 
-kfld_order = APIRouter(tags=['Kaufland Services'])
+kfld_order = APIRouter()
 
 
 @kfld_order.get("/orders/ordered-items-count/daily/{days_ago}",

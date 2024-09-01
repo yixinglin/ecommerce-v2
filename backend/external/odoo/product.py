@@ -4,8 +4,8 @@ from .base import OdooAPIKey, OdooAPIBase
 
 class OdooProductAPI(OdooAPIBase):
 
-    def __init__(self, api_key: OdooAPIKey):
-        super().__init__(api_key)
+    def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
+        super().__init__(api_key, *args, **kwargs)
 
     def fetch_product_template_ids(self, domain=[]):
         logger.info("Fetching product template ids")

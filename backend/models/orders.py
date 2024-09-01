@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import List, Union
-
 from pydantic import BaseModel, Field
 from .shipment import Address
 
@@ -50,5 +49,21 @@ class StandardOrder(BaseModel):
     additionalFields: dict = Field(default={}, description="Additional fields for the order")
 
 
+class StandardProduct(BaseModel):
+    id: str = Field(description="Unique identifier for the product")
+    name: str = Field(description="Name of the product")
+    sku: str = Field(description="Unique identifier for the product")
+    ean: str = Field(default="", description="European Article Number (EAN) for the product")
+    code: str = Field(default="", description="Internal code for the product")
+    barcode: str = Field(default="", description="Barcode for the product")
+    cost: float = Field(default=0, description="Net cost of the product")
+    price: float = Field(default=0, description="Net price of the product")
+    taxRate: float = Field(default=0, description="Tax rate for the product")
+    imageUrl: str = Field(default="", description="URL of the product image")
+    description: str = Field(default="", description="Description of the product")
+    weight: float = Field(default=0, description="Weight of the product in kg")
+    uom: str = Field(default="", description="Unit of measurement for the product")
+    active: bool = Field(default=True, description="Whether the product is active or not")
+    additionalFields: dict = Field(default={}, description="Additional fields for the product")
 
 

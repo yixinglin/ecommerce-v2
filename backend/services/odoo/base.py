@@ -7,6 +7,8 @@ from crud.odoo import (OdooQuantMongoDB,
 from external.odoo import OdooAPIKey, OdooInventoryAPI, OdooProductAPI, OdooContactAPI
 from external.odoo import DATETIME_PATTERN as ODOO_DATETIME_PATTERN
 import utils.time as time_utils
+from external.odoo.order import OdooOrderAPI
+from models.orders import StandardProduct
 
 
 def need_to_fetch(query_mothed, id, current_write_date: str):
@@ -61,6 +63,13 @@ def convert_datetime_to_utc_format(odoo_datetime:str):
     datetime_obj = time_utils.str_to_datatime(odoo_datetime, ODOO_DATETIME_PATTERN)
     return time_utils.datetime_to_str(datetime_obj, time_utils.DATETIME_PATTERN)
 
+
+def get_field_value(data, field_name):
+    # Get the value of a field in a dictionary, return None if the value is False
+    val = data.get(field_name, "")
+    if (val is not None and val == False):
+        return ""
+    return val
 
 
 class OdooInventoryServiceBase:
@@ -146,11 +155,14 @@ class OdooInventoryServiceBase:
         }
         return self.mdb_putaway_rule.save_putaway_rule(putaway_rule_id, document)
 
+    def query_quants(self, offset=0, limit=100):
+        data = self.mdb_quant.query_quants(offset, limit)
+
+
 
 class OdooProductServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.key_index = key_index
         self.mdb_product_templ = OdooProductTemplateMongoDB()
         self.mdb_product = OdooProductMongoDB()
@@ -209,6 +221,33 @@ class OdooProductServiceBase:
         }
         return self.mdb_product.save_product(product_id, document)
 
+    def to_standard_product(self, product_templ):
+        alias = product_templ['alias']
+        data = product_templ['data']
+        id = str(data['id'])
+        fetchedAt= product_templ['fetchedAt']
+        additionalFields = {
+            'alias': alias,
+            'fetchedAt': fetchedAt
+        }
+        product = StandardProduct(
+            id=id,
+            name=data['name'],
+            sku=get_field_value(data, 'default_code'),
+            ean="",
+            code=get_field_value(data, 'default_code'),
+            barcode=get_field_value(data, 'barcode'),
+            cost=data['standard_price'],
+            price=data['list_price'],  # data['list_price'],
+            taxRate=0.19,
+            imageUrl="",
+            description=get_field_value(data, 'description'),
+            weight=data['weight'],
+            uom=get_field_value(data, 'uom_name'),
+            active=data['active'],
+            additionalFields=additionalFields
+        )
+        return product
 
 class OdooContactServiceBase:
 
@@ -223,6 +262,7 @@ class OdooContactServiceBase:
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
+
 
     def __enter__(self):
         self.mdb_contact.connect()
@@ -249,3 +289,28 @@ class OdooContactServiceBase:
             'alias': self.api.get_alias()
         }
         return self.mdb_contact.save_contact(contact_id, document)
+
+
+class OdooOrderServiceBase:
+
+    def __init__(self, key_index, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.key_index = key_index
+        self.mdb_order = None
+        if key_index is not None:
+            api_key = OdooAPIKey.from_json(key_index)
+            logger.info(f"Using Odoo API Key: {api_key.alias}")
+            self.api = OdooOrderAPI(api_key)
+            self.alias = self.api.get_alias()
+            self.username = self.api.get_username()
+            logger.info(f"Odoo username: {self.username} ({self.alias})")
+
+    def __enter__(self):
+        # self.mdb_order = OdooOrderMongoDB()
+        # self.mdb_order.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # self.mdb_order.close()
+        pass
+

@@ -78,9 +78,11 @@ class OdooClient(object):
 
 class OdooAPIBase(object):
 
-    def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
+    def __init__(self, api_key: OdooAPIKey, login=True, *args, **kwargs):
         self.api_key = api_key
-        self.client = OdooClient(self.api_key).login()
+        self.client = OdooClient(self.api_key)
+        if login:
+            self.client.login()
 
     def get_username(self):
         return self.api_key.username
@@ -93,8 +95,4 @@ class OdooAPIBase(object):
 
     def fetch_write_date(self, model, ids, *args, **kwargs):
         return self.client.read(model, [ids], {'fields': ['id', 'write_date']})
-
-
-
-
 

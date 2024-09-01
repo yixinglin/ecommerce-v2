@@ -10,6 +10,7 @@ from core.config import settings
 from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
+from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
 
 hourlyScheduler = AsyncIOScheduler()
 
@@ -39,6 +40,7 @@ def save_amazon_orders_job(key_index, marketplace):
     finally:
         # wait for 15 seconds before running the next job, to avoid rate limiting
         time.sleep(15)
+    logger.info("Successfully scheduled Amazon orders scheduler job...")
 
 
 def save_tracking_info_job(key_index):
@@ -90,7 +92,44 @@ def save_amazon_catalog_job(key_index, marketplace):
     finally:
         # wait for 15 seconds before running the next job, to avoid rate limiting
         time.sleep(15)
+    logger.info("Successfully scheduled Amazon catalog scheduler job...")
 
+
+def save_odoo_data_jobs():
+    try:
+        logger.info("Scheduled job to save product data to Odoo")
+        with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+            svc.save_all_product_templates()
+            svc.save_all_products()
+
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save product data to Odoo: {e}")
+    finally:
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
+
+    try:
+        logger.info("Scheduled job to save contact data to Odoo")
+        with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+            svc.save_all_contacts()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save contact data to Odoo: {e}")
+    finally:
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
+
+    try:
+        logger.info("Scheduled job to save inventory data to Odoo")
+        with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+            svc.save_all_quants()
+            svc.save_all_putaway_rules()
+            svc.save_all_internal_locations()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save inventory data to Odoo: {e}")
+    finally:
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
+    logger.info("Successfully scheduled Odoo data scheduler job...")
 
 @hourlyScheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
 def common_scheduler_2hrs():
@@ -98,6 +137,7 @@ def common_scheduler_2hrs():
     To schedule jobs every 2 hours
     :return:
     """
+    save_odoo_data_jobs()
     save_amazon_orders_job(key_index=0, marketplace=Marketplaces.DE)
     save_amazon_catalog_job(key_index=0, marketplace=Marketplaces.DE)
     save_kaufland_orders_job(key_index=0, storefront=Storefront.DE)
@@ -126,7 +166,7 @@ def three_hourly_task():
 
 
 # Run the code once when the script is loaded
-next_run_time = datetime.now() + timedelta(seconds=600)
+next_run_time = datetime.now() + timedelta(seconds=240)
 hourlyScheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
 # next_run_time = datetime.now() + timedelta(seconds=480)
 # hourlyScheduler.add_job(common_scheduler_4hrs, 'date', run_date=next_run_time)

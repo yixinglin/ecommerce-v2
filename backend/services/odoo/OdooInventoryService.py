@@ -1,5 +1,5 @@
 from core.log import logger
-from services.odoo.base import OdooInventoryServiceBase, save_record
+from .base import OdooInventoryServiceBase, save_record
 
 class OdooInventoryService(OdooInventoryServiceBase):
 
@@ -34,10 +34,56 @@ class OdooInventoryService(OdooInventoryServiceBase):
         save_record(fetch_object_ids, fetch_write_date,
                          query_object_by_id, object_name, save_object)
 
-    def query_all_quant(self):
-        # TODO: Query all quant from DB
-        pass
+    def query_all_quants(self, offset, limit):
+        # Query all quants from DB
+        filter_ = {"alias": self.api.get_alias()}
+        data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
+        quants = []
+        for quant in data:
+            quants.append(dict(
+                fetchedAt=quant.get('fetchedAt', ""),
+                quant=quant.get('data', ""),))
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(quants),
+            quants=quants,
+        )
+        return ans
+
+    def query_all_locations(self, offset, limit):
+        # Query all locations from DB
+        filter_ = {"alias": self.api.get_alias()}
+        data = self.mdb_location.query_storage_locations(offset=offset, limit=limit,
+                                                         filter=filter_)
+        locations = []
+        for location in data:
+            locations.append(dict(
+                fetchedAt=location.get('fetchedAt', ""),
+                location=location.get('data', ""),))
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(locations),
+            locations=locations,
+        )
+        return ans
+
+    def query_all_putaway_rules(self, offset, limit):
+        # Query all putaway rules from DB
+        filter_ = {"alias": self.api.get_alias()}
+        data = self.mdb_putaway_rule.query_putaway_rules(offset=offset, limit=limit,
+                                                         filter=filter_)
+        putaway_rules = []
+        for putaway_rule in data:
+            putaway_rules.append(dict(
+                fetchedAt=putaway_rule.get('fetchedAt', ""),
+                putaway_rule=putaway_rule.get('data', ""),))
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(putaway_rules),
+            putaway_rules=putaway_rules,
+        )
+        return ans
 
     def move_quants_by_putaway_rules(self, putaway_rule_id):
         # TODO: Move quant by putaway rule
-        pass
+        raise NotImplementedError()

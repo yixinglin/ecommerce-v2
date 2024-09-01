@@ -13,11 +13,14 @@ class OdooContactMongoDB(MongoDBDataManager):
     def get_db_collection(self):
         return self.db_client[self.db_name][self.db_collection_name]
 
-    def query_contacts(self, offset: int = 0, limit: int = 100, *args, **kwargs):
+    def query_contacts(self, offset: int = 0, limit: int = None, *args, **kwargs):
         collection = self.get_db_collection()
-        return list(collection.find(**kwargs)
-                    .skip(offset).limit(limit)
-                    )
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+        return list(results)
 
     def query_contact_by_ids(self, ids: List[int]):
         filter_ = {"_id": {"$in": ids}}
@@ -55,11 +58,14 @@ class OdooProductTemplateMongoDB(MongoDBDataManager):
     def get_db_collection(self):
         return self.db_client[self.db_name][self.db_collection_name]
 
-    def query_product_templates(self, offset: int = 0, limit=100, *args, **kwargs):
+    def query_product_templates(self, offset: int = 0, limit=None, *args, **kwargs):
         collection = self.get_db_collection()
-        return list(collection.find(**kwargs)
-                    .skip(offset).limit(limit)
-                    )
+        result = collection.find(**kwargs)
+        if offset > 0:
+            result = result.skip(offset)
+        if limit is not None:
+            result = result.limit(limit)
+        return list(result)
 
     def query_product_template_by_ids(self, ids: List[int]):
         filter_ = {"_id": {"$in": ids}}
@@ -89,7 +95,7 @@ class OdooProductMongoDB(OdooProductTemplateMongoDB):
         super().__init__()
         self.db_collection_name = "product.product"
 
-    def query_products(self, offset: int = 0, limit=100, *args, **kwargs):
+    def query_products(self, offset: int = 0, limit=None, *args, **kwargs):
         return super().query_product_templates(offset, limit, *args, **kwargs)
 
     def query_product_by_ids(self, ids: List[int]):
@@ -115,11 +121,14 @@ class OdooStorageLocationMongoDB(MongoDBDataManager):
     def get_db_collection(self):
         return self.db_client[self.db_name][self.db_collection_name]
 
-    def query_storage_locations(self, offset: int = 0, limit=100, *args, **kwargs):
+    def query_storage_locations(self, offset: int = 0, limit=None, *args, **kwargs):
         collection = self.get_db_collection()
-        return list(collection.find(**kwargs)
-                    .skip(offset).limit(limit)
-                    )
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+        return list(results)
 
     def query_storage_location_by_ids(self, ids: List[int]):
         filter_ = {"_id": {"$in": ids}}
@@ -154,11 +163,15 @@ class OdooPutawayRuleMongoDB(MongoDBDataManager):
     def get_db_collection(self):
         return self.db_client[self.db_name][self.db_collection_name]
 
-    def query_putaway_rules(self, offset: int = 0, limit=100, *args, **kwargs):
+    def query_putaway_rules(self, offset: int = 0, limit=None, *args, **kwargs):
         collection = self.get_db_collection()
-        return list(collection.find(**kwargs)
-                    .skip(offset).limit(limit)
-                    )
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+        return list(results)
+
 
     def query_putaway_rule_by_ids(self, ids: List[int]):
         filter_ = {"_id": {"$in": ids}}
@@ -189,11 +202,15 @@ class OdooQuantMongoDB(MongoDBDataManager):
     def get_db_collection(self):
         return self.db_client[self.db_name][self.db_collection_name]
 
-    def query_quants(self, offset: int = 0, limit=100, *args, **kwargs):
+    def query_quants(self, offset: int = 0, limit=None, *args, **kwargs):
         collection = self.get_db_collection()
-        return list(collection.find(**kwargs)
-                    .skip(offset).limit(limit)
-                    )
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+
+        return list(results)
 
     def query_quant_by_ids(self, ids: List[int]):
         filter_ = {"_id": {"$in": ids}}
