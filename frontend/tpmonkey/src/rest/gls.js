@@ -1,5 +1,5 @@
 import {tm} from '../utils/http.js';
-import { makePostRequest, makeGetRequest, convertJsonToForm } from '../utils/http.js';
+import { makePostRequest, convertJsonToForm } from '../utils/http.js';
 import {Toast} from '../utils/utilsui.js';
 
 const apiUrl = `${BASE_URL}/api/v1/carriers/gls`;

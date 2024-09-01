@@ -1,5 +1,5 @@
 import { GermanAddrChecker } from '../../utils/address.js';
-import { makeGetRequest, makePostRequest } from '../../utils/http.js';
+import { makeGetRequest, makePostRequest, tm } from '../../utils/http.js';
 // Script for temporary monkey
 
 var AmazonApi = {
@@ -9,14 +9,14 @@ var AmazonApi = {
      */
     fetchShipmentFromApi: function(orderNumber) {
         var blobUrl = `https://sellercentral.amazon.de/orders-api/order/${orderNumber}`;
-        return makeGetRequest(blobUrl).then( res => {
+        return tm.get(blobUrl).then( res => {
             var data = JSON.parse(res.responseText);
             var proxyEmail = data.order.buyerProxyEmail;
             console.log(proxyEmail);
             var blob = data.order.blob;
             var payload = {"blobs": [blob]};
             var headers = {"Acccept": "application/json", "Content-Type": "application/json"}
-            return makePostRequest("https://sellercentral.amazon.de/orders-st/resolve", 
+            return tm.post("https://sellercentral.amazon.de/orders-st/resolve", 
                         JSON.stringify(payload), headers);
         })
     }
