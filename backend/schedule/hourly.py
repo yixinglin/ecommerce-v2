@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+# from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import time
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
 from core.log import logger
@@ -12,7 +13,7 @@ from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
 
-hourlyScheduler = AsyncIOScheduler()
+hourlyScheduler = BackgroundScheduler()
 
 
 # @hourlyScheduler.scheduled_job('interval', seconds=10)
@@ -87,6 +88,7 @@ def save_amazon_catalog_job(key_index, marketplace):
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
         with AmazonService(key_index=key_index, marketplace=marketplace) as svc:
             svc.save_all_catalogs()
+            svc.clear_expired_catalogs()
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")
     finally:

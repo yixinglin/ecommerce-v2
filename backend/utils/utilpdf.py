@@ -1,12 +1,10 @@
 import base64
 import io
 from typing import List
+
 import PyPDF2
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
-
-
-# import weasyprint
 
 PARCEL_LABEL = (4.126 * inch, 5.835 * inch)
 GLS_TEXT_POS = (8 * mm, 65 * mm)

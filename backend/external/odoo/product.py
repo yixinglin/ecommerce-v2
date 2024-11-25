@@ -9,6 +9,8 @@ class OdooProductAPI(OdooAPIBase):
 
     def fetch_product_template_ids(self, domain=[]):
         logger.info("Fetching product template ids")
+        # Note: Fetch product template excludes inactive templates by default.
+        domain += [('active', 'in', [True, False])]
         product_templ_ids = self.client.search('product.template', [domain])
         return product_templ_ids
 
@@ -26,6 +28,7 @@ class OdooProductAPI(OdooAPIBase):
 
     def fetch_product_ids(self, domain=[]):
         logger.info("Fetching product ids")
+        domain += [('active', 'in', [True, False])]
         product_ids = self.client.search('product.product', [domain])
         return product_ids
 

@@ -11,11 +11,11 @@ odoo_sales = APIRouter(prefix="/sales", )
 odoo_contact = APIRouter(prefix="/contact", )
 
 
-@odoo_contact.get('/contacts')
+@odoo_contact.get('/addresses')
 def get_odoo_contact_list():
     # TODO: Implement Odoo Contact List API
     with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
-        data = svc.query_all_contacts(offset=0, limit=10000)
+        data = svc.query_all_contact_shipping_addresses(offset=0, limit=10000)
     return ResponseSuccess(data=data)
 
 @odoo_sales.post('/orders', summary="Create an Odoo sales order",
@@ -36,7 +36,8 @@ def create_odoo_order(order: VipOrder=
 def get_odoo_product_list():
     # TODO: Implement Odoo Product List API
     with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
-        data = svc.query_all_product_templates(offset=0, limit=10000)
+        # data = svc.query_all_product_templates(offset=0, limit=10000)
+        data = svc.query_all_products(offset=0, limit=10000)
     return ResponseSuccess(data=data)
 
 @odoo_inventory.get('/quants')
@@ -52,4 +53,6 @@ def get_odoo_location_list():
     with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
         data = svc.query_all_locations(offset=0, limit=10000)
     return ResponseSuccess(data=data)
+
+
 

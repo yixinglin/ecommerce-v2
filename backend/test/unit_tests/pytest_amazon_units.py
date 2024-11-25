@@ -65,7 +65,17 @@ class TestAmazonUnits(unittest.TestCase):
         logger.info("Testing save_all_catalogs")
         with AmazonService(0, marketplace=Marketplaces.DE) as svc:
             svc.save_all_catalogs()
+            svc.clear_expired_catalogs()
+            svc.get_catalog_attributes("B0CS6C67XH")
 
+            for asin in list(catalog_items):
+                print(f"ASIN: {asin}", end=" ")
+                try:
+                    attr = svc.get_catalog_attributes(asin)
+                    print(f"Attributes: {attr}")
+                except Exception as e:
+                    print(f"Error: {e}")
+                # self.assertIsNotNone(attr)
         logger.info("Testing catalog passed")
 
     def test_parse_pack_slip_page(self):

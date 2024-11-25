@@ -16,6 +16,7 @@ class OdooInventoryAPI(OdooAPIBase):
 
     def fetch_location_ids(self, domain=[]):
         logger.info("Fetching location ids")
+        domain += [('active', 'in', [True, False])]
         return self.client.search('stock.location', [domain])
 
     def fetch_location_by_ids(self, ids):
@@ -33,6 +34,7 @@ class OdooInventoryAPI(OdooAPIBase):
 
     def fetch_putaway_rule_ids(self, domain = []):
         logger.info("Fetching putaway rule ids")
+        domain += [('active', 'in', [True, False])]
         return self.client.search('stock.putaway.rule', [domain])
 
     def fetch_putaway_rule_by_ids(self, ids):

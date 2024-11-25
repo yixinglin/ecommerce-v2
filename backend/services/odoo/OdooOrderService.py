@@ -2,7 +2,7 @@ import re
 
 from core.config import settings
 from core.log import logger
-from models import StandardOrder
+from models import StandardOrder, Address
 from schemas.vip import VipOrder
 from .base import save_record, OdooOrderServiceBase
 from .base import (OdooProductServiceBase, OdooContactServiceBase)
@@ -34,12 +34,11 @@ class OdooProductService(OdooProductServiceBase):
 
     def query_all_product_templates(self, offset, limit):
         # Query all products from DB
-        filter_ = {"alias": self.api.get_alias()}
+        filter_ = {"alias": self.api.get_alias(), "data.active": True,  "data.type": "product"}
         data = self.mdb_product_templ.query_product_templates(offset=offset, limit=limit, filter=filter_)
         products = []
         for product in data:
-            # TODO: To standard product object
-            # p = product.get('data', "")
+            # To standard product object
             p = self.to_standard_product(product)
             products.append(p)
         ans = dict(
@@ -51,11 +50,28 @@ class OdooProductService(OdooProductServiceBase):
 
     def query_product_by_code(self, code):
         filter_ = {"alias": self.api.get_alias(), "data.default_code": code}
+        # TODO：查找product
         data = self.mdb_product.query_products(filter=filter_)
         if len(data) == 0:
             return None
         product = data[0]
         return self.to_standard_product(product)
+
+    def query_all_products(self, offset, limit):
+        # Query all products from DB
+        filter_ = {"alias": self.api.get_alias(), "data.active": True, "data.type": "product"}
+        data = self.mdb_product.query_products(offset=offset, limit=limit, filter=filter_)
+        products = []
+        for product in data:
+            # To standard product object
+            p = self.to_standard_product(product)
+            products.append(p)
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(products),
+            products=products,
+        )
+        return ans
 
 
 class OdooContactService(OdooContactServiceBase):
@@ -88,6 +104,26 @@ class OdooContactService(OdooContactServiceBase):
             alias=self.api.get_alias(),
             size=len(contacts),
             contacts=contacts,
+        )
+        return ans
+
+
+    def query_all_contact_shipping_addresses(self, offset, limit):
+        # Query all shipping addresses of a contact from DB
+        filter_ = {"alias": self.api.get_alias(), "data.active": True}
+        data = self.mdb_contact.query_contacts(offset=offset, limit=limit, filter=filter_)
+        addresses: Address = []
+        for contact in data:
+            try:
+                addr = self.to_standard_address(contact)
+                addresses.append(addr)
+            except Exception as e:
+                logger.error(f"Failed to convert contact to address: {e}")
+                logger.error(f"Contact: {contact['data']['name']}")
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(addresses),
+            addresses=addresses,
         )
         return ans
 
@@ -171,7 +207,7 @@ class OdooOrderService(OdooOrderServiceBase):
         }
 
         logger.info(f"Creating order: {quot_data}")
-        if not settings.DEBUG:
+        if not settings.DEBUG or settings.ODOO_ACCESS_KEY_INDEX == 0:
             self.api.create_order(quot_data)
             logger.info(f"Order created")
 

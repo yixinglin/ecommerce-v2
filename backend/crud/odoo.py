@@ -96,16 +96,39 @@ class OdooProductMongoDB(OdooProductTemplateMongoDB):
         self.db_collection_name = "product.product"
 
     def query_products(self, offset: int = 0, limit=None, *args, **kwargs):
-        return super().query_product_templates(offset, limit, *args, **kwargs)
+        # TODO: 实现查询产品的功能
+        # return super().query_product_templates(offset, limit, *args, **kwargs)
+
+        collection = self.get_db_collection()
+        result = collection.find(**kwargs)
+        if offset > 0:
+            result = result.skip(offset)
+        if limit is not None:
+            result = result.limit(limit)
+        return list(result)
 
     def query_product_by_ids(self, ids: List[int]):
-        return super().query_product_template_by_ids(ids)
+        # TODO: 实现查询产品的功能
+        # return super().query_product_template_by_ids(ids)
+        filter_ = {"_id": {"$in": ids}}
+        products = list(self.query_products(filter=filter_, limit=len(ids)))
+        return products
 
     def query_product_by_id(self, id: int):
-        return super().query_product_template_by_id(id)
+        # TODO: 实现查询产品的功能
+        # return super().query_product_template_by_id(id)
+        result = self.query_product_by_ids(ids=[id])
+        return result[0] if result else None
 
     def save_product(self, product_id, document):
-        return super().save_product_template(product_id, document)
+        # return super().save_product_template(product_id, document)
+        collection = self.get_db_collection()
+        result = collection.update_one(
+            {"_id": product_id},
+            {"$set": document},
+            upsert=True
+        )
+        return result
 
     def to_standard_product(self, product_template: dict):
         #TODO: To Standard Product Object

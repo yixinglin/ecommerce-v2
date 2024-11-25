@@ -1,4 +1,5 @@
 from core.log import logger
+from models.warehouse import Quant
 from .base import OdooInventoryServiceBase, save_record
 
 class OdooInventoryService(OdooInventoryServiceBase):
@@ -38,11 +39,10 @@ class OdooInventoryService(OdooInventoryServiceBase):
         # Query all quants from DB
         filter_ = {"alias": self.api.get_alias()}
         data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
-        quants = []
+        quants: Quant = []
         for quant in data:
-            quants.append(dict(
-                fetchedAt=quant.get('fetchedAt', ""),
-                quant=quant.get('data', ""),))
+            q = self.to_standard_quant(quant)
+            quants.append(q)
         ans = dict(
             alias=self.api.get_alias(),
             size=len(quants),
@@ -52,7 +52,7 @@ class OdooInventoryService(OdooInventoryServiceBase):
 
     def query_all_locations(self, offset, limit):
         # Query all locations from DB
-        filter_ = {"alias": self.api.get_alias()}
+        filter_ = {"alias": self.api.get_alias(), "data.active": True}
         data = self.mdb_location.query_storage_locations(offset=offset, limit=limit,
                                                          filter=filter_)
         locations = []
@@ -69,7 +69,7 @@ class OdooInventoryService(OdooInventoryServiceBase):
 
     def query_all_putaway_rules(self, offset, limit):
         # Query all putaway rules from DB
-        filter_ = {"alias": self.api.get_alias()}
+        filter_ = {"alias": self.api.get_alias(), "data.active": True}
         data = self.mdb_putaway_rule.query_putaway_rules(offset=offset, limit=limit,
                                                          filter=filter_)
         putaway_rules = []

@@ -8,7 +8,10 @@ from external.odoo import OdooAPIKey, OdooInventoryAPI, OdooProductAPI, OdooCont
 from external.odoo import DATETIME_PATTERN as ODOO_DATETIME_PATTERN
 import utils.time as time_utils
 from external.odoo.order import OdooOrderAPI
+from models import Address
 from models.orders import StandardProduct
+from models.warehouse import Quant
+import re
 
 
 def need_to_fetch(query_mothed, id, current_write_date: str):
@@ -155,8 +158,40 @@ class OdooInventoryServiceBase:
         }
         return self.mdb_putaway_rule.save_putaway_rule(putaway_rule_id, document)
 
-    def query_quants(self, offset=0, limit=100):
-        data = self.mdb_quant.query_quants(offset, limit)
+
+    def to_standard_quant(self, quant) -> Quant:
+        data = quant['data']
+        fullname = data['product_id'][1]
+        pattern = r"\[([A-Z0-9\-]+)\]\s(.+)"
+        match = re.match(pattern, fullname)
+        if match:
+            reference_code = match.group(1)
+            product_name = match.group(2)
+        else:
+            reference_code = ""
+            product_name = fullname
+
+        split_location_name = data['location_id'][1].split('/')
+        if len(split_location_name) > 2:
+            location_name = split_location_name[-1]
+        else:
+            location_name = data['location_id'][1]
+
+
+        q = Quant(
+            id=str(data['id']),
+            productName=product_name,
+            quantity=int(data['quantity']),
+            reservedQuantity=int(data['reserved_quantity']),
+            availableQuantity=int(data['available_quantity']),
+            sku=reference_code,
+            unit=data['product_uom_id'][1],
+            locationName=location_name,
+            warehouseName=data['warehouse_id'][1],
+
+        )
+        return q
+
 
 
 
@@ -221,11 +256,11 @@ class OdooProductServiceBase:
         }
         return self.mdb_product.save_product(product_id, document)
 
-    def to_standard_product(self, product_templ):
-        alias = product_templ['alias']
-        data = product_templ['data']
+    def to_standard_product(self, product_data) -> StandardProduct:
+        alias = product_data['alias']
+        data = product_data['data']
         id = str(data['id'])
-        fetchedAt= product_templ['fetchedAt']
+        fetchedAt= product_data['fetchedAt']
         additionalFields = {
             'alias': alias,
             'fetchedAt': fetchedAt
@@ -289,6 +324,33 @@ class OdooContactServiceBase:
             'alias': self.api.get_alias()
         }
         return self.mdb_contact.save_contact(contact_id, document)
+
+    def to_standard_address(self, contact) -> Address:
+        c = contact['data']
+        is_company = bool(c['is_company'])
+        if is_company:
+            name1 = c['name']
+            name2 = ""
+        else:
+            name1 = c['name']
+            name2 = c['parent_name'] if c['parent_name'] else ""
+
+        addr = Address(
+            name1=name1,
+            name2=name2,
+            name3=c['street2'] if c['street2'] else "",
+            street1=c['street'] if c['street'] else "",
+            zipCode=c['zip'] if c['zip'] else "",
+            city=c['city'] if c['city'] else "",
+            province="",
+            email=c['email'] if c['email'] else "",
+            telephone=c['phone'] if c['phone'] else "",
+            mobile=c['mobile'] if c['mobile'] else "",
+            fax="",
+            country=c['country_code'] if c['country_code'] else "",
+        )
+        return addr
+
 
 
 class OdooOrderServiceBase:
