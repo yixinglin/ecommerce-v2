@@ -70,6 +70,21 @@ class GermanLike {
         return lines;
     }
 
+    addAsinWeightToTableView(asin_weights) {        
+        // :param: asin_weights: map asin -> weight
+        const rows = this.dom.querySelectorAll("div.a-spacing-large table.a-keyvalue tr");
+        for(let i=1; i<rows.length; i++) {
+            const tds = rows[i].querySelectorAll("td");
+            const pn = tds[2].querySelectorAll("div.product-name-column-word-wrap-break-all");            
+            const asin = pn[0].textContent.replace("ASIN:", "").trim();
+            const elm = document.createElement("span");   
+            const w = asin_weights[asin];            
+            elm.textContent = `Weight: ${w.toFixed(2)} kg`;
+            tds[2].appendChild(elm);
+        }            
+    }
+    
+
     isDhlParcel(shipment) {
         // Check DHL parcel
         var regPostNumber = /\d{9}/;  // Post number of DHL

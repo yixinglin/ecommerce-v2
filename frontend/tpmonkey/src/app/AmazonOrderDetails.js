@@ -3,7 +3,7 @@ import { GermanLike, AmazonApi } from './components/amazon_order.js';
 import { getCatalogAttributes } from '../rest/amazon.js'
 // import { Carriers } from '../rest/gls.js';
 import {createGlsLabel, getGlsShipmentsByReference, getGlsShipmentsViewByReference, displayGlsLabel} from '../rest/gls.js';
-
+import {Toast} from '../utils/utilsui.js';
 
 class AmazonOrderDetails {
 
@@ -22,9 +22,12 @@ class AmazonOrderDetails {
             console.log('AmazonOrderDetails mounted');
             this.extractor = new GermanLike(document);
             this.orderLines = this.extractor.getOrderLines();
-            this.createButton(1);
-            return this.fetchCatalogAttributes();
-        })            
+            this.createButton(1);                 
+            this.fetchCatalogAttributes();
+        }).catch(err => {
+            console.error(err);
+        });
+
     }
 
     createButton(index) {
@@ -43,12 +46,19 @@ class AmazonOrderDetails {
     fetchCatalogAttributes() {
         console.log('fetchCatalogAttribute111');
         const asins = this.orderLines.map(line => line.asin);
-        getCatalogAttributes(asins).then(res => {            
+        getCatalogAttributes(asins).then(res => {    
             const data = JSON.parse(res.responseText).data;    
             this.catalogAttributes = data.catalog_attributes;
             console.log(this.catalogAttributes);
+            const asin_weight = {};
+            for(const a of this.catalogAttributes) {
+                asin_weight[a.asin] = a.package_dimensions.weight/1000;
+            }
+            console.log(asin_weight);
+            this.extractor.addAsinWeightToTableView(asin_weight);       
         }).catch(err => {
             console.error(err);
+            Toast("Failed to fetch catalog attributes. Please check the ASINs.");
         });
     }
 
