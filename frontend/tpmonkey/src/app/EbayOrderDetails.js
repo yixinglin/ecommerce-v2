@@ -1,5 +1,5 @@
 import { waitForElm} from '../utils/utilsui.js';
-import { Carriers } from '../rest/gls.js';
+import { createGlsLabel, getGlsShipmentsByReference, getGlsShipmentsViewByReference, displayGlsLabel } from '../rest/gls.js';
 import { GermanAddrChecker} from '../utils/address.js';
 
 class EbayOrderDetails {
@@ -124,12 +124,65 @@ class EbayOrderDetails {
         }    
     }
 
+    // #createGlsLabel(shipment) {
+    //     console.log("App3: Creating GLS label", shipment);
+    //     Carriers.createGlsLabel(this.baseurl+'/gls/label', shipment, (trackId) => {
+    //         console.log(trackId);
+    //         this.#addTextTo("div.shipping-info div.line-actions", "Tracking Number: " + trackId, 'red');
+    //     });
+    // }
+
     #createGlsLabel(shipment) {
         console.log("App3: Creating GLS label", shipment);
-        Carriers.createGlsLabel(this.baseurl+'/gls/label', shipment, (trackId) => {
-            console.log(trackId);
-            this.#addTextTo("div.shipping-info div.line-actions", "Tracking Number: " + trackId, 'red');
-        });
+        var shipment2 = {
+            "consignee": {
+              "name1": shipment.name1,
+              "name2": shipment.name2,
+              "name3": shipment.name3,
+              "street1": shipment.street.trim() + " " + shipment.houseNumber,
+              "zipCode": shipment.zip,
+              "city": shipment.city,
+              "province": shipment.state,
+              "country": shipment.country,
+              "email": shipment.email,
+              "telephone": shipment.phone,
+              "mobile": shipment.phone,
+            },
+            "parcels": [
+              {
+                "weight": 1.0,
+                "comment": "",
+                "content": ""
+              },
+            ],
+            "references": [
+              shipment.orderNumber,
+            ]
+        }
+        console.log(shipment2)
+
+        var reference = null;
+        createGlsLabel(shipment2).then(resp => {      
+            // Create a GLS label.          
+            const text = JSON.parse(resp.responseText);        
+            console.log(text);
+            reference = text.data.id;
+            return getGlsShipmentsByReference(reference);        
+        }).then((resp) => {        
+            // Fill out the tracking number in the input field.
+            const shipments = JSON.parse(resp.responseText).data;
+            const shipment = shipments[0];
+            var parcelNumber = shipment.parcels[0].parcelNumber;                                
+            this.#addTextTo("div.shipping-info div.line-actions", "Tracking Number: " + parcelNumber, 'red');
+            return getGlsShipmentsViewByReference(reference);       
+        }).then((resp) => {
+            // Open the GLS label in a new window.
+            displayGlsLabel(resp.responseText);
+        }).catch(resp => {
+            console.error(resp.responseText);            
+            Toast("Error", 1000)
+        })
+
     }
 
     #getFieldByTooltip(text) {

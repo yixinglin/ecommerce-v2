@@ -186,6 +186,11 @@ class AmazonCatalogMongoDB(MongoDBDataManager):
         else:
             return item
 
+    def query_all_catalog_items(self) -> List[dict]:
+        catalog_collection = self.get_db_collection()
+        items = list(catalog_collection.find())
+        return items
+
     def delete_catalog_item(self, asin: str) -> bool:
         catalog_collection = self.get_db_collection()
         result = catalog_collection.delete_one({"_id": asin})

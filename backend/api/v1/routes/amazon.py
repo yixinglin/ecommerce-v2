@@ -93,6 +93,24 @@ def get_seller_central_urls():
     return ResponseSuccess(data=urls)
 
 
+# http://127.0.0.1:5018/api/v1/amazon/orders/catalog-attributes?api_key_index=0&country=DE&asins=B09FKWS793&asins=B01HTH3C8S
+@amz_order.get("/orders/catalog-attributes",
+               summary="Get Amazon catalog attributes",
+               response_model=BasicResponse[dict])
+def get_amazon_catalog_attributes(api_key_index: int = Query(0, description="Index of API key in settings.API_KEYS list"),
+                                  country: str = Query("DE", description="Country of the marketplace"),
+                                  asins: List[str] = Query(None, description="ASIN of the product to get catalog attributes for")):
+    marketplace = AmazonSpAPIKey.name_to_marketplace(country)
+    catalog_attrs = []
+    with AmazonService(key_index=api_key_index, marketplace=marketplace) as svc:
+        for asin in asins:
+            svc.catalog_service.save_catalog(asin)
+            c_attr = svc.get_catalog_attributes(asin)
+            catalog_attrs.append(c_attr)
+    return ResponseSuccess(data={
+        "catalog_attributes": catalog_attrs
+    })
+
 @amz_order.post("/orders/packslip/parse",
                 summary="Parse Amazon packing slip and extract all shipments.",
                 response_model=BasicResponse[dict])

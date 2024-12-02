@@ -4,11 +4,12 @@ from random import random
 from typing import List, Dict, Set
 from sp_api.base import Marketplaces, SellingApiRequestThrottledException
 from core.db import OrderQueryParams
+from core.exceptions import DimensionNotFoundException
 from core.log import logger
 from crud.amazon import AmazonOrderMongoDB, AmazonCatalogMongoDB
 from models.orders import StandardOrder, OrderStatus
 from models.shipment import Address
-from schemas.amazon import DailyShipment, DailySalesCountVO
+from schemas.amazon import DailyShipment, DailySalesCountVO, PackageDimensions, CatalogAttributes
 from services.amazon.base import standard_to_amazon_address
 from external.amazon import AmazonSpAPIKey, AmazonOrderAPI, AmazonCatalogAPI
 from external.amazon import DATETIME_PATTERN, now
@@ -274,6 +275,11 @@ class AmazonOrderService:
         return orders
 
     def find_all_asin(self, days_ago=30) -> Set[str]:
+        """
+        Get all ASINs of all FBM orders within the specified time range in MongoDB.
+        :param days_ago:
+        :return:
+        """
         params = OrderQueryParams()
         params.purchasedDateFrom = time_utils.days_ago(days_ago)
         orders = self.find_orders_by_query_params(params)
@@ -408,10 +414,7 @@ class AmazonCatalogService:
         :param asin:
         :return:
         """
-        # mdb_catalog_collection = self.db_client[self.db_name][self.db_collection]
-        # mdb_catalog_collection = self.mdb.get_db_collection()
         # Find the catalog item in MongoDB
-        # item = mdb_catalog_collection.find_one({"_id": asin})
         item = self.mdb.query_catalog_item(asin)
         # If the catalog item does not exist in MongoDB, fetch it from Amazon API
         if item is None:
@@ -442,33 +445,6 @@ class AmazonCatalogService:
 
         return self.mdb.save_catalog(asin, document)
 
-    # def save_all_catalogs(self):
-    #     """
-    #     Fetch all catalog items from Amazon API and save them to MongoDB.
-    #     :return: None
-    #     """
-    #     # Get all ASINs from orders collection
-    #     pipelines = [
-    #         {
-    #             '$unwind': '$items.OrderItems'
-    #         }, {
-    #             '$group': {
-    #                 '_id': None,
-    #                 'asinList': {
-    #                     '$addToSet': '$items.OrderItems.ASIN'
-    #                 }
-    #             }
-    #         }
-    #     ]
-    #     # Get all ASINs from orders collection
-    #     mdb_catalog_collection = self.db_client[self.db_name]["orders"]
-    #     results = mdb_catalog_collection.aggregate(pipelines)
-    #     asinList = results.next()['asinList']
-    #
-    #     # Fetches catalog items from Amazon API and saves them to MongoDB
-    #     for asin in asinList:
-    #         self.save_catalog(asin)
-
     def query_catalog_item(self, asin):
         """
         Get the catalog item from MongoDB.
@@ -476,6 +452,13 @@ class AmazonCatalogService:
         :return:  The catalog item as a dictionary, or None if not found.
         """
         return self.mdb.query_catalog_item(asin)
+
+    def query_all_catalog_items(self):
+        """
+        Get all catalog items from MongoDB.
+        :return:  A list of catalog items as dictionaries.
+        """
+        return self.mdb.query_all_catalog_items()
 
     def remove_catalog_item(self, asin):
         """
@@ -649,3 +632,68 @@ class AmazonService:
         # Fetches catalog items from Amazon API and saves them to MongoDB
         for asin in list(asin_set):
             self.catalog_service.save_catalog(asin)
+
+    def clear_expired_catalogs(self):
+        """
+        TODO: Remove all expired catalog items from MongoDB.
+        :return: None
+        """
+        # Find all ASINs of catalog items that are not sold for n days
+        asin_set = self.order_service.find_all_asin(days_ago=120)
+        # Query all catalog items from MongoDB
+        items = self.catalog_service.query_all_catalog_items()
+        # Remove all catalog items that are not sold for n days
+        asin_set_in_db = set([item['_id'] for item in items])
+        for asin in asin_set_in_db - asin_set:
+            self.catalog_service.remove_catalog_item(asin)
+
+    def get_catalog_attributes(self, asin):
+        """
+        Get the catalog attributes of an ASIN.
+        :param asin:  ASIN of the catalog item.
+        :return:  The catalog attributes as a dictionary, or None if not found.
+        """
+        item = self.catalog_service.query_catalog_item(asin)
+        if item is None:
+            raise RuntimeError(f"Catalog item [{asin}] not found in Database.")
+        attribute_set = item['catalogItem']['AttributeSets'][0]
+
+
+        if 'PackageDimensions' not in attribute_set and 'ItemDimensions' not in attribute_set:
+            raise DimensionNotFoundException(f"Asin [{asin}] has no PackageDimensions or ItemDimensions")
+
+        pdim = {} if 'PackageDimensions' not in attribute_set else attribute_set['PackageDimensions']
+        idim = {} if 'ItemDimensions' not in attribute_set else attribute_set['ItemDimensions']
+        pdim.update(idim)
+
+        # Standardize data
+        zero_inch = {"value": 0, "Units": "inches"}
+        zero_pound = {"value": 0, "Units": "pounds"}
+        length = pdim['Length'] if "Length" in pdim else zero_inch
+        width = pdim['Width'] if "Width" in pdim else zero_inch
+        height = pdim['Height'] if "Height" in pdim else zero_inch
+        weight = pdim['Weight'] if "Weight" in pdim else zero_pound
+
+        dim = dict()
+        if length["Units"] == "inches": # Inches to millimeters
+            dim["length"] = round(length["value"] * 25.4)
+            dim["width"] = round(width["value"] * 25.4)
+            dim["height"] = round(height["value"] * 25.4)
+        else:
+            raise ValueError(f"Unsupported unit [{length['Units']}]")
+
+        if weight["Units"] == "pounds": # pounds to grams
+            dim["weight"] = round(weight["value"] * 453.592)
+        else:
+            raise ValueError(f"Unsupported unit [{weight['Units']}]")
+
+        package_dimensions = PackageDimensions(**dim)
+        attr = dict()
+        attr["asin"] = asin
+        attr["seller_sku"] = "unknown"
+        attr["brand"] = attribute_set['Brand']
+        attr["title"] = attribute_set['Title']
+        attr["image_url"] = attribute_set['SmallImage']['URL']
+        attr["package_dimensions"] = package_dimensions
+        attribute_set = CatalogAttributes(**attr)
+        return attribute_set

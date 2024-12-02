@@ -58,6 +58,7 @@ def get_gls_shipment_by_reference(ref: str = Query(None, description="GLS Shipme
         carrier_name = shipment.carrier  # shipment["carrier"].upper()
         trackNumbers = [p.trackNumber for p in
                         shipment.parcels]  # [item['trackId'] for item in shipment['data']['parcels']]
+        parcelNumbers = [p.parcelNumber for p in shipment.parcels]
         trackingUrls = [p.locationUrl for p in shipment.parcels]
         createdAt = shipment.createdAt
         consignee = shipment.consignee
@@ -76,6 +77,7 @@ def get_gls_shipment_by_reference(ref: str = Query(None, description="GLS Shipme
             carrier_name=carrier_name,
             trackNumbers=trackNumbers,
             trackingUrls=trackingUrls,
+            parcelNumbers=parcelNumbers,
             createdAt=createdAt,
             labels=labelsData,
             new=new,

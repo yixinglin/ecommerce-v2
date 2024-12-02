@@ -41,3 +41,18 @@ class PackSlipRequestBody(BaseModel):
 #
 # class AmazonStandardOrder(StandardOrder):
 #     items: Union[List[AmazonOrderItem], None] =  Field(default=None, description="List of order items.")
+
+
+class PackageDimensions(BaseModel):
+    length: float = Field(description="Length of the package in mm.")
+    width: float = Field(description="Width of the package in mm.")
+    height: float = Field(description="Height of the package in mm.")
+    weight: float = Field(description="Weight of the package in g.")
+
+class CatalogAttributes(BaseModel):
+    asin: str = Field(description="Amazon Standard Identification Number (ASIN) of the item.")
+    seller_sku: str = Field(description="Seller SKU of the item.")
+    brand: str = Field(description="Brand of the item.")
+    title: str = Field(description="Title of the item.")
+    image_url: str = Field(default=None, description="URL of the item image.")
+    package_dimensions: PackageDimensions = Field(description="Dimensions of the package.")

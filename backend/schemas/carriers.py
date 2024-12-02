@@ -8,6 +8,7 @@ class ShipmentVO(BaseModel):
     carrier_name: str = Field(description="The name of the carrier")
     alias: str = Field(description="The alias of the shipment account")
     trackNumbers: List[str] = Field(description="The list of tracking numbers of the shipment")
+    parcelNumbers: List[str] = Field(description="The list of parcel numbers of the shipment")
     trackingUrls: List[str] = Field(description="The list of tracking urls of the shipment")
     contents: List[str] = Field(description="The content of the parcels in the shipment")
     createdAt: str = Field(description="The date and time when the shipment was created")
