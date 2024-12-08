@@ -1,6 +1,7 @@
 import os
 from typing import List
 from fastapi import APIRouter, Query
+from fastapi.params import Body
 from sp_api.base import Marketplaces
 from starlette.requests import Request
 from starlette.responses import StreamingResponse, HTMLResponse, Response
@@ -11,8 +12,10 @@ from core.db import OrderQueryParams
 from core.log import logger
 from models.pickpack import BatchOrderConfirmEvent
 from schemas import BasicResponse, ResponseSuccess
+from schemas.amazon import FnskuLabel
 from services.amazon.AmazonService import AmazonOrderService, AmazonService
 from services.pickpack.PickPackService import PickPackService, AmazonPickPackService
+from utils.utils_barcodes import generate_barcode_fnsku
 from utils.stringutils import remove_duplicates, to_german_price, generate_barcode_svg
 
 pp_amazon = APIRouter(prefix="/amazon", tags=['Pick-Pack Services for Amazon'])
@@ -192,3 +195,13 @@ def get_batch_order_confirm_event(batchId: str):
         if event is None:
             return ResponseSuccess(data=None, message="Batch event not found.")
     return ResponseSuccess(data=event)
+
+
+@pp_amazon.post("/fnsku",
+                summary="Generate a unique FNSKU code for the given attributes.",
+                response_model=BasicResponse[dict])
+def generate_fnsku_label(label: FnskuLabel = Body(None, description="The FNSKU label object.")):
+    b64 = generate_barcode_fnsku(label.fnsku, label.seller_sku, label.title, label.note)
+    data = dict()
+    data['label'] = b64
+    return ResponseSuccess(data=data)

@@ -56,3 +56,9 @@ class CatalogAttributes(BaseModel):
     title: str = Field(description="Title of the item.")
     image_url: str = Field(default=None, description="URL of the item image.")
     package_dimensions: PackageDimensions = Field(description="Dimensions of the package.")
+
+class FnskuLabel(BaseModel):
+    fnsku: str = Field(description="The unique identifier of the item.")
+    seller_sku: str = Field(description="Seller SKU of the item.")
+    title: str = Field(description="Title of the item.")
+    note: str = Field(default=None, description="Additional information about the item.")
