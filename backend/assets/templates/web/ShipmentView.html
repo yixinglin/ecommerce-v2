@@ -31,16 +31,29 @@
             {% for i in range(data.parcelNumbers|length) %}
             <span>
                 {{ data.parcelNumbers[i] }}
-                 &nbsp;
             </span>
             {% endfor %}
         </div>
 
     <div>
-        <iframe src="data:application/pdf;base64,{{ data.labels }}"
-                height="700" width="600">
-            <p>Your browser does not support iframes.</p>
-        </iframe>
+        <div>
+            <a href="data:application/pdf;base64,{{ data.labels }}"
+                    download="{{ data.filename }}">
+                    Download PDF
+            </a>
+        </div>
+        <div>
+            <iframe src="data:application/pdf;base64,{{ data.labels }}"
+                    height="700" width="600">
+                <p>Your browser does not support iframes.</p>
+            </iframe>
+        </div>
+
+
+<!--        <iframe src="/api/v1/carriers/gls/shipments/bulk-labels?refs={{ data.references[0] }}"-->
+<!--                height="700" width="600">-->
+<!--            <p>Your browser does not support iframes.</p>-->
+<!--        </iframe>-->
     </div>
 </div>
 <p><strong>Reference(s)</strong>: {{ data.references }}</p>

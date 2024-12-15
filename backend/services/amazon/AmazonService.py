@@ -276,7 +276,7 @@ class AmazonOrderService:
 
     def find_all_asin(self, days_ago=30) -> Set[str]:
         """
-        Get all ASINs of all FBM orders within the specified time range in MongoDB.
+        Get all ASINs from all FBM orders within the specified time range in MongoDB.
         :param days_ago:
         :return:
         """
@@ -407,7 +407,7 @@ class AmazonCatalogService:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.mdb.close()
 
-    def save_catalog(self, asin):
+    def save_catalog(self, asin, force_fetch=False):
         """
         Fetch the catalog item from Amazon API and save it to MongoDB. If the catalog item already exists in MongoDB, update it.
         If the catalog item does not exist in MongoDB, insert it.
@@ -416,22 +416,20 @@ class AmazonCatalogService:
         """
         # Find the catalog item in MongoDB
         item = self.mdb.query_catalog_item(asin)
-        # If the catalog item does not exist in MongoDB, fetch it from Amazon API
-        if item is None:
-            logger.info(f"Detected new catalog item [{asin}]...")
+        is_random_fetch = random() < 0.01
+        # Fetch catalog from Amazon API, if
+        # force_fetch is set,
+        # the catalog item does not exist in MongoDB,
+        # random() < 0.01
+        if force_fetch or item is None or is_random_fetch:
+            logger.info(f"Fetching catalog item [{asin}]... is_random_fetch={is_random_fetch}")
             item = self.api.fetch_catalog_item(asin)
+            # TODO: If catalog item is None, log error and return None. Delete the item from MongoDB if it exists.
             fetchedAt = now()
             time.sleep(1)
-        # There is a 10% chance to fetch from API and update database
         else:
-            if random() < 0.01:
-                logger.info(f"Random selected catalog item [{asin}] to fetch again...")
-                item = self.api.fetch_catalog_item(asin)
-                fetchedAt = now()
-                time.sleep(1)
-            else:
-                item = item['catalogItem']
-                fetchedAt = item.get('fetchedAt', None)
+            item = item['catalogItem']
+            fetchedAt = item.get('fetchedAt', None)
 
         # if item has no attribute "AttributeSets"
         if 'AttributeSets' not in item.keys():
@@ -484,7 +482,10 @@ class AmazonCatalogService:
                 self.remove_catalog_item(asin)
         return result
 
-
+    def query_all_asins_from_db(self) -> List[str]:
+        items = self.query_all_catalog_items()
+        asin_set = set([item['_id'] for item in items])
+        return list(asin_set)
 
 class AmazonService:
 
@@ -623,7 +624,7 @@ class AmazonService:
             "length": len(orders),
         }
 
-    def save_all_catalogs(self):
+    def save_all_catalogs_from_orders(self):
         """
         Fetch all catalog items from Amazon API and save them to MongoDB.
         :return: None
@@ -632,6 +633,13 @@ class AmazonService:
         # Fetches catalog items from Amazon API and saves them to MongoDB
         for asin in list(asin_set):
             self.catalog_service.save_catalog(asin)
+
+    def save_all_catalogs_from_db(self, force_fetch=False):
+        asin_set = self.catalog_service.query_all_asins_from_db()
+        for asin in asin_set:
+            self.catalog_service.save_catalog(asin, force_fetch=force_fetch)
+            if force_fetch:
+                time.sleep(2)
 
     def clear_expired_catalogs(self):
         """
@@ -697,3 +705,4 @@ class AmazonService:
         attr["package_dimensions"] = package_dimensions
         attribute_set = CatalogAttributes(**attr)
         return attribute_set
+

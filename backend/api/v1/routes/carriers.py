@@ -62,6 +62,8 @@ def get_gls_shipment_by_reference(ref: str = Query(None, description="GLS Shipme
         trackingUrls = [p.locationUrl for p in shipment.parcels]
         createdAt = shipment.createdAt
         consignee = shipment.consignee
+        # Filename of the shipment label
+        filename = f"GLS_{utils_time.now(pattern='%Y%m%d%H%M%S')}_{shipment.references[0]}.pdf"
         if labels:
             labelsData = shipment.label
         else:
@@ -84,6 +86,7 @@ def get_gls_shipment_by_reference(ref: str = Query(None, description="GLS Shipme
             alias="?",
             messages=messages,
             contents=contents,
+            filename=filename,
 
             name1=consignee.name1,
             name2=consignee.name2,
@@ -173,8 +176,11 @@ def download_gls_labels(request: Request,
 
     with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
         pdfs = man.find_bulk_shipments_labels(references)
-    filename = f"GLS_BULK_{utils_time.now(pattern='%Y%m%d%H%M%S')}.pdf"
-    headers = {'Content-Disposition': f'inline; filename="{filename}.pdf"'}
+    if len(references) == 1:
+        filename = f"GLS_{utils_time.now(pattern='%Y%m%d%H%M%S')}_{references[0]}.pdf"
+    else:
+        filename = f"GLS_BULK_{utils_time.now(pattern='%Y%m%d%H%M%S')}.pdf"
+    headers = {'Content-Disposition': f'inline; filename="{filename}"'}
     return StreamingResponse(BytesIO(pdfs),
                              media_type="application/pdf", headers=headers)
 

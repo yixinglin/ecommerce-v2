@@ -1,5 +1,9 @@
 import os
+import sys
+
 from pydantic_settings import BaseSettings
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 
 class Settings(BaseSettings):
@@ -55,3 +59,15 @@ class Settings(BaseSettings):
 
 
 settings = Settings(_env_file=None)
+
+
+# sudo apt-get install fonts-wqy-zenhei
+if sys.platform == 'linux':
+    pdfmetrics.registerFont(TTFont('noto', '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'))
+    FONT = 'noto'
+elif sys.platform == 'win32':
+    pdfmetrics.registerFont(TTFont('simsun', 'C:/Windows/Fonts/SimSun.ttc'))
+    FONT ='simsun'
+
+
+

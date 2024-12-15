@@ -15,6 +15,7 @@ class ShipmentVO(BaseModel):
     labels: str = Field(description="The base64 encoded pdf of the shipment labels")
     new: bool = Field(description="True if the shipment is new, False otherwise")
     messages: List[str] = Field(description="The list of messages associated with the shipment")
+    filename: str = Field(description="The filename of the shipment labels")
 
     name1: str = Field(description="The name of the first recipient")
     name2: str = Field(default=None, description="The name of the second recipient")

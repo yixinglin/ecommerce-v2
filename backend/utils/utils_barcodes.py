@@ -8,6 +8,7 @@ from reportlab.pdfgen import canvas
 from textwrap import wrap
 from io import BytesIO
 import base64
+from core.config import FONT
 
 def generate_barcode_fnsku(fnsku, sku, title, note):
     # Generate the barcode as SVG in memory
@@ -22,9 +23,7 @@ def generate_barcode_fnsku(fnsku, sku, title, note):
     barcode.write(barcode_svg, options=options)
 
     # PDF Dimensions
-    height = 1.58 * inch  # PDF height
-    width = 3.16 * inch   # PDF width
-
+    height, width = (1.58 * inch, 3.16 * inch)  # PDF dimensions (Amazon)
     # Create the PDF in memory
     pdf_buffer = BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=(width, height))
@@ -36,9 +35,10 @@ def generate_barcode_fnsku(fnsku, sku, title, note):
 
     # Add SKU and Title text
     text_x = 20
-    text_y = 38
+    text_y = 32
     font_size = 7
-    c.setFont("Helvetica", font_size)
+    font = FONT
+    c.setFont(font, font_size)
     c.drawString(text_x, text_y, f"SKU: {sku}")
     c.drawString(text_x, 100, note)
 
@@ -64,7 +64,7 @@ import datetime
 if __name__ == '__main__':
     # 示例使用
     fnsku = "X0026ICM3F"
-    sku = "77380"
+    sku = "77380773807738077380"
     title = """新New - Pflasteräüß Rolle 6cm x 5m, Elastischer Wundverband, Pflaster Box Wundpflaster Heftpflaster, hypoallergen, atmungsaktiv, Weiß Starke Klebekraft (6cm x 5m)"""
     index = 1
     date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")

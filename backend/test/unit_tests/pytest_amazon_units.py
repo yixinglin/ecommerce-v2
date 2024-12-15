@@ -65,7 +65,7 @@ class TestAmazonUnits(unittest.TestCase):
 
         logger.info("Testing save_all_catalogs")
         with AmazonService(0, marketplace=Marketplaces.DE) as svc:
-            svc.save_all_catalogs()
+            svc.save_all_catalogs_from_orders()
             svc.clear_expired_catalogs()
             svc.get_catalog_attributes("B0CS6C67XH")
 

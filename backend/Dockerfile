@@ -11,6 +11,8 @@ WORKDIR /code
 RUN cd /code
 
 # 安装项目依赖
+RUN apt-get update
+RUN apt-get install fonts-wqy-zenhei -y
 # RUN pip install --no-cache-dir -r requirements.txt
 RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
 

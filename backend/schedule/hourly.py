@@ -87,8 +87,9 @@ def save_amazon_catalog_job(key_index, marketplace):
     try:
         logger.info("Scheduled job to save catalog every 2 hours to MongoDB")
         with AmazonService(key_index=key_index, marketplace=marketplace) as svc:
-            svc.save_all_catalogs()
+            svc.save_all_catalogs_from_orders()
             # svc.clear_expired_catalogs()
+            # svc.save_all_catalogs_from_db(force_fetch=True)
     except Exception as e:
         logger.error(f"Error in scheduled job to save catalog to MongoDB: {e}")
     finally:
