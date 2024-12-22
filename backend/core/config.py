@@ -45,6 +45,12 @@ class Settings(BaseSettings):
     ODOO_ACCESS_KEY_INDEX: int
     GLS_ACCESS_KEY: str
     GLS_ACCESS_KEY_INDEX: int
+    LINGXING_ACCESS_KEY: str
+    LINGXING_ACCESS_KEY_INDEX: int
+
+    HTTP_PROXY: str
+    HTTP_PROXY_ENABLED: bool
+    HTTP_PROXY_INDEX: int
 
     SCHEDULER_INTERVAL_SECONDS: int = os.getenv('SCHEDULER_INTERVAL_SECONDS', 3600)
     SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
