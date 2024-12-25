@@ -168,3 +168,37 @@ class ShipmentMongoDBDataManager(MongoDBDataManager):
 
     def get_shipment_id(self, shipment: StandardShipment):
         return ";".join(shipment.references)
+
+
+import motor.motor_asyncio
+
+class AsyncMongoDBDataManager:
+    def __init__(self):
+        self.db_host = settings.DB_MONGO_URI
+        self.db_port = settings.DB_MONGO_PORT
+        self.db_client = None
+
+    def get_client(self):
+        return self.db_client
+
+    async def __aenter__(self):
+        await self.connect()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
+
+    async def close(self):
+        if self.db_client:
+            self.db_client.close()
+            self.db_client = None
+
+    async def connect(self):
+        try:
+            host = f"mongodb://{self.db_host}:{self.db_port}"
+            self.db_client = motor.motor_asyncio.AsyncIOMotorClient(host)  # Connect
+            # names = self.db_client.list_database_names()
+        except Exception as e:
+            logger.error(f"Error connecting to MongoDB: {e}")
+            raise RuntimeError("Error connecting to MongoDB") from e
+        return self

@@ -1,5 +1,6 @@
+import asyncio
 from datetime import datetime, timedelta
-# from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import time
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -13,8 +14,7 @@ from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
 
-hourlyScheduler = BackgroundScheduler()
-
+hourly_scheduler = BackgroundScheduler()
 
 # @hourlyScheduler.scheduled_job('interval', seconds=10)
 def hourly_job():
@@ -134,7 +134,7 @@ def save_odoo_data_jobs():
         time.sleep(15)
     logger.info("Successfully scheduled Odoo data scheduler job...")
 
-@hourlyScheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
+@hourly_scheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
 def common_scheduler_2hrs():
     """
     To schedule jobs every 2 hours
@@ -146,7 +146,7 @@ def common_scheduler_2hrs():
     save_kaufland_orders_job(key_index=0, storefront=Storefront.DE)
     logger.info("Successfully scheduled common scheduler job...")
 
-@hourlyScheduler.scheduled_job('interval', seconds=4 * 3600)
+@hourly_scheduler.scheduled_job('interval', seconds=4 * 3600)
 def common_scheduler_4hrs():
     """
     To schedule jobs every 4 hours
@@ -157,19 +157,71 @@ def common_scheduler_4hrs():
     pass
 
 # 添加每天9:00-17:00每半小时执行一次的任务
-@hourlyScheduler.scheduled_job(CronTrigger(minute='0,30', hour='7-14'))
+@hourly_scheduler.scheduled_job(CronTrigger(minute='0,30', hour='7-14'))
 def half_hour_task():
     print(f"Half-hourly task executed")
 
 # 添加17:01到次日7:59每3小时执行一次的任务
-@hourlyScheduler.scheduled_job(CronTrigger(minute='1', hour='17,20,2,5'))
+@hourly_scheduler.scheduled_job(CronTrigger(minute='1', hour='17,20,2,5'))
 def three_hourly_task():
     print(f"Three-hourly task executed")
 
 
+"""
+AsyncIOScheduler
+
+"""
+
+
+from services.lingxing import (ListingService, BasicDataService,
+                               WarehouseService, FbaShipmentPlanService)
+
+async_hourly_scheduler = AsyncIOScheduler()
+
+@async_hourly_scheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
+async def save_lingxing_job():
+    enabled = settings.SCHEDULER_LINGXING_FETCH_ENABLED
+    if not enabled:
+        logger.info("Scheduled job to save LingXing data is disabled in config")
+        return
+
+    key_index = settings.LINGXING_ACCESS_KEY_INDEX
+    proxy_index = settings.HTTP_PROXY_INDEX
+
+    try:
+        async with BasicDataService(key_index, proxy_index) as svc_basic:
+            async with ListingService(key_index, proxy_index) as svc_listing:
+                await svc_basic.save_all_basic_data()
+                await svc_listing.save_all_listings()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save LingXing data: {e}")
+    finally:
+        await asyncio.sleep(15)
+
+    try:
+        async with WarehouseService(key_index, proxy_index) as svc_inventory:
+            await svc_inventory.save_all_inventories()
+            await svc_inventory.save_all_inventory_bins()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save LingXing inventory data: {e}")
+    finally:
+        await asyncio.sleep(15)
+
+    try:
+        async with FbaShipmentPlanService(key_index, proxy_index) as svc_fba_shipment_plan:
+            await svc_fba_shipment_plan.save_fba_shipment_plans_latest(100)
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save LingXing FBA shipment plan data: {e}")
+    finally:
+        await asyncio.sleep(15)
+
+    logger.info("Successfully scheduled LingXing scheduler job...")
+
 
 # Run the code once when the script is loaded
 next_run_time = datetime.now() + timedelta(seconds=240)
-hourlyScheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
-# next_run_time = datetime.now() + timedelta(seconds=480)
-# hourlyScheduler.add_job(common_scheduler_4hrs, 'date', run_date=next_run_time)
+hourly_scheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
+
+# Run the code once when the script is loaded
+next_run_time = datetime.now() + timedelta(seconds=480)
+async_hourly_scheduler.add_job(save_lingxing_job, 'date', run_date=next_run_time)

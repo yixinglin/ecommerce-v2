@@ -15,7 +15,7 @@ from services.gls.GlsShipmentService import GlsShipmentService
 from schemas.basic import ResponseSuccess, ResponseFailure, CodeEnum, BasicResponse
 from schemas.carriers import ShipmentVO, CreatedShipmentVO
 
-gls = APIRouter(prefix="/gls",  )
+gls = APIRouter(prefix="/gls",)
 
 
 @gls.get("/shipments",

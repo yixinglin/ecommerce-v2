@@ -346,7 +346,7 @@ class AmazonPickPackService(PickPackService):
         refs = stringutils.remove_duplicates(refs)
         orders = self.order_service.find_orders_by_ids(refs)
         # Filter out orders that need transparency code
-        orders = [o for o in orders if not self.order_service.mdb.need_transparency_code(o)]
+        orders = [o for o in orders if not self.order_service.mdb_basic_data.need_transparency_code(o)]
         # Number of orders to be shipped
         num_orders = len(orders)
         batchId = self.generate_batch_id("AMZ")

@@ -64,3 +64,19 @@ def base64_decode_str(base64_str: str) -> str:
     :return:  The decoded string.
     """
     return str(base64.b64decode(base64_str.encode('utf-8')), 'utf-8')
+
+from pypinyin import pinyin, lazy_pinyin
+def chinese_to_pinyin(text: str, tone: bool = True, separator: str = " ") -> str:
+    """
+    将中文转换为拼音
+    :param chinese:
+    :param tone:
+    :return:
+    """
+    if tone:
+        pinying_list = pinyin(text)
+        pinying_list = ["".join(item) for item in pinying_list]
+    else:
+        pinying_list = lazy_pinyin(text)
+    return separator.join(pinying_list)
+

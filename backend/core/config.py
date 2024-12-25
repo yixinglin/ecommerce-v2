@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED: bool = os.getenv('SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
     SCHEDULER_GLS_TRACKING_FETCH_ENABLED: bool = os.getenv('SCHEDULER_GLS_TRACKING_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
-
+    SCHEDULER_LINGXING_FETCH_ENABLED: bool = os.getenv('SCHEDULER_LINGXING_FETCH_ENABLED', 'False').strip().lower() in ['true', '1', 'yes', 'y']
 
     def __init__(self, _env_file=None, **values):
         super().__init__(**values)

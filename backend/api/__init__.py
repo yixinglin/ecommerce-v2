@@ -45,22 +45,24 @@ app.mount("/pic", StaticFiles(directory="./assets/pic"), name="pic")
 
 init_db_sqlite(app)
 
-from schedule import hourlyScheduler, dailyScheduler
+from schedule import hourly_scheduler, daily_scheduler, async_hourly_scheduler
 
 
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting scheduler")
     logger.info(settings)
-    hourlyScheduler.start()
-    dailyScheduler.start()
+    hourly_scheduler.start()
+    daily_scheduler.start()
+    async_hourly_scheduler.start()
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Stopping scheduler")
-    hourlyScheduler.shutdown()
-    dailyScheduler.shutdown()
+    hourly_scheduler.shutdown()
+    daily_scheduler.shutdown()
+    async_hourly_scheduler.shutdown()
 
 
 @app.exception_handler(Exception)

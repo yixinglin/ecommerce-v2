@@ -1,2 +1,4 @@
-from .base import LingxingClient, InventoryClient, ListingClient
+from .base import LingxingClient, BasicDataClient
+from .base import InventoryClient, ListingClient, FbaShipmentPlanClient
+
 from .base import WarehouseType, WarehouseBinType

@@ -1,10 +1,10 @@
 # https://blog.csdn.net/qq_51967017/article/details/131058627
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-dailyScheduler = AsyncIOScheduler()
+daily_scheduler = AsyncIOScheduler()
 
 
-@dailyScheduler.scheduled_job('cron', hour=3, minute=0)
+@daily_scheduler.scheduled_job('cron', hour=3, minute=0)
 def backup_database():
     """
     TODO Backup database every day at 3am
@@ -13,7 +13,7 @@ def backup_database():
     print('Backup database at 3am every day')
 
 
-@dailyScheduler.scheduled_job('cron', hour=1, minute=0)
+@daily_scheduler.scheduled_job('cron', hour=1, minute=0)
 def standardize_raw_data():
     """
     TODO Standardize raw data every day at 1am

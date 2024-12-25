@@ -27,6 +27,8 @@ def generate_barcode_fnsku(fnsku, sku, title, note):
     # Create the PDF in memory
     pdf_buffer = BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=(width, height))
+    c.setTitle(fnsku)
+    c.setSubject("FNSKU Label")
 
     # Convert SVG bytes to a drawing
     barcode_svg.seek(0)  # Reset the pointer to the beginning of the BytesIO buffer
@@ -56,7 +58,6 @@ def generate_barcode_fnsku(fnsku, sku, title, note):
 
     # Encode the PDF buffer to Base64
     pdf_base64 = base64.b64encode(pdf_buffer.read()).decode('utf-8')
-
     return pdf_base64
 
 import datetime
