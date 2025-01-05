@@ -204,12 +204,15 @@ class OdooOrderService(OdooOrderServiceBase):
         quot_data = {
             'partner_id': contactId,  # 客户ID（必填）
             'order_line': order_line_data,  # 订单行信息
+            'client_order_ref': order.orderId,  # 客户订单号（必填）
         }
 
         logger.info(f"Creating order: {quot_data}")
         if not settings.DEBUG or settings.ODOO_ACCESS_KEY_INDEX == 0:
             self.api.create_order(quot_data)
             logger.info(f"Order created")
+        else:
+            logger.info(f"Debug mode, not creating order")
 
         ans = dict(
             contact_name=contactName,

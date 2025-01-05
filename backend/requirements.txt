@@ -48,11 +48,11 @@ pandas==2.2.2
 pillow==10.4.0
 propcache==0.2.1
 pycountry==24.6.1
-pycrypto==2.6.1
+pycryptodome==3.21.0
 pydantic==2.8.2
 pydantic-settings==2.4.0
 pydantic_core==2.20.1
-pymongo==4.9.2
+pymongo==4.9
 PyPDF2==3.0.1
 pypika-tortoise==0.1.6
 pypinyin==0.53.0
