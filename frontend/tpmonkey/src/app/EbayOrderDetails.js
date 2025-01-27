@@ -1,4 +1,4 @@
-import { waitForElm} from '../utils/utilsui.js';
+import { waitForElm, addVersionInfo} from '../utils/utilsui.js';
 import { createGlsLabel, getGlsShipmentsByReference, getGlsShipmentsViewByReference, displayGlsLabel } from '../rest/gls.js';
 import { GermanAddrChecker} from '../utils/address.js';
 
@@ -15,7 +15,8 @@ class EbayOrderDetails {
         console.log("App3: Initialized");
         waitForElm('div.shipping-info')
         .then(() => {
-            console.log("App3: Found order details header");
+            console.log("App3: Found order details header");            
+
             this.#addButtonTo("div.shipping-info div.line-actions",
                 "tm-extract",
                 "Extract[1]", () => this.onHandleExtractButtonClick(),
@@ -24,11 +25,13 @@ class EbayOrderDetails {
             this.#addButtonTo("div.shipping-info div.line-actions",
                 "tm-gls",
                 "GLS[2]", () => this.onHandleGlsButtonClick(),
-            );
+            );            
             var btn = this.findGlsButton();
             btn.style.display  = "none";   
             this.#clickOnMoreInformationButton();           
-        })
+        }).then(() => {
+            addVersionInfo('div.shipping-info div.line-actions', 'tm-version-info');
+        });
     }
 
     #addButtonTo(selector, id, name, callback) {

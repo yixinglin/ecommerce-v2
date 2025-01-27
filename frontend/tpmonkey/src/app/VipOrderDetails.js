@@ -1,6 +1,7 @@
-import { waitForElm} from '../utils/utilsui.js';
+import { waitForElm, addVersionInfo} from '../utils/utilsui.js';
 import {getCookieByName, tm} from '../utils/http.js';
 import {create_order_from_vip} from '../rest/odoo.js'
+import vip_odoo_disclaimer from '../../assets/vip-odoo-disclaimer.html'
 class VipOrderDetails {
 
     constructor(baseurl) {
@@ -8,6 +9,7 @@ class VipOrderDetails {
         console.log("Base URL: ", baseurl);
         this.vipDomain = "http://vip.hansagt-med.com";
         this.baseurl = baseurl;        
+        this.browserLanguage = navigator.language || navigator.languages[0];
     }
 
     init() {
@@ -16,18 +18,26 @@ class VipOrderDetails {
             'Authorization': `Bearer ${token}`,            
             'Accept': 'application/json, text/plain, */*'
         };  
-        this.orderId = window.location.href.split('/').pop();
+        this.orderId = window.location.href.split('/').pop();        
     }
 
-    mount() {
-        console.log("VipOrderDetails mounted");
+    mount() {        
+        // console.log("VipOrderDetails mounted");
         waitForElm('.el-descriptions').then(() => {
-            console.log("vip-order-details found");
-            this.init();
+            this.init();            
+            this.#addDisclaimerTo('.app-container');
+        }).then(() => {
+            console.log("vip-order-details found");            
             this.#addButtonTo('.app-container', 
                 'create-odoo-order-btn', 
                 'Upload to Odoo', () => {this.handleUploadToOdoo()});
-            });
+        }).then(() => {
+            addVersionInfo('.app-container', 'version-info');
+        })
+        .catch(err => {
+            console.error("vip-order-details not found", err);
+        });
+
     }
 
     async handleUploadToOdoo() {
@@ -124,15 +134,55 @@ class VipOrderDetails {
     }
 
     #addButtonTo(selector, id, name, callback) {
-        const container = document.querySelector(selector);
-        const button = document.createElement("button");
-        button.innerText = name;
-        button.id = id;
-        button.addEventListener("click", callback);
-        container.appendChild(button);        
+        // 创建按钮并设置属性
+        const button = $("<button>")
+            .text(name)  // 设置按钮文本
+            .attr("id", id)  // 设置按钮 ID
+            .on("click", callback)  // 绑定点击事件
+            .css({
+                "background-color": "#714B67",
+                "color": "white",
+                "font-size": "14px",
+                "font-family": "Arial, sans-serif",
+                "font-weight": "bold",
+                "border": "none",
+                "border-radius": "6px",
+                "padding": "10px 20px",
+                "cursor": "pointer",
+                "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+                // "trasition": "background-color 0.3s ease, transform 0.2s ease"
+
+            });  // 设置 margin-top
+    
+        // 将按钮插入到指定的容器中
+        $(selector).append(button);
+    
+        // 使用 jQuery 设置样式类
+        button.addClass("custom-button");
     }
 
+    #addDisclaimerTo(selector) {
+        const browserLanguage = navigator.language || navigator.languages[0];
+        // 确定显示的语言，默认为英语
+        let selectedLanguage = 'en'; // 默认语言
+        if (browserLanguage.startsWith('zh')) {
+            selectedLanguage = 'zh'; // 中文
+        } else if (browserLanguage.startsWith('de')) {
+            selectedLanguage = 'de'; // 德语
+        }
 
+        const tempDiv = document.createElement('div'); // 创建一个临时的 <div>
+        tempDiv.innerHTML = vip_odoo_disclaimer; // 将 HTML 字符串赋值为 innerHTML
+        const disclaimerElement = tempDiv; // 获取第一个子节点（实际的 DOM 对象）
+
+        const disclaimer = disclaimerElement.querySelector('#disclaimer-' + selectedLanguage);
+        // console.log(disclaimer);
+
+        const container = document.querySelector(selector);
+        // console.log(this.browserLanguage);
+        // container.insertAdjacentHTML('beforeend', vip_odoo_disclaimer);
+        container.appendChild(disclaimer);
+    }
 
 }
 

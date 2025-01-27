@@ -15,12 +15,21 @@ module.exports = {
     optimization: {
         minimize: false
     },
+    module: {
+        rules: [
+            {
+                test: /\.html$/i,
+                loader: 'html-loader',
+            },
+        ],
+    },
     plugins: [
         new webpack.DefinePlugin({
+            'VERSION': JSON.stringify('1.1.0'),
             'BASE_URL': JSON.stringify('http://127.0.0.1:5018'),
             'USERNAME': JSON.stringify('admin'),
             'PASSWORD': JSON.stringify('123456'),
             'GLS_HOST': JSON.stringify('http://127.0.0.1:5001')
         })
-    ]
+    ],
 }

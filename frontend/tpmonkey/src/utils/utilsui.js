@@ -15,6 +15,18 @@ function appendButton(text, id, selector, clickHandler) {
 
 }
 
+function addVersionInfo(selector, id) {
+    var versionInfo = $('<div></div>')
+      .text('V' + VERSION)
+      .attr('id', id)
+      .css({
+        'font-size': '12px',
+        'color': 'gray'
+      });
+    
+    $(selector).append(versionInfo);
+  }
+
 //Quote: https://stackoverflow.com/a/61511955
 // Wait for element to exist
 function waitForElm(selector) {
@@ -76,7 +88,7 @@ function demo() {
     return "";
 }
 
-export {appendButton, waitForElm, setValueToInputElm, Toast, listen_ctrl_key_event,
+export {appendButton, waitForElm, setValueToInputElm, Toast, listen_ctrl_key_event, addVersionInfo
  };
 
 

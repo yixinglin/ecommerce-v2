@@ -1,4 +1,4 @@
-import { appendButton, setValueToInputElm,  waitForElm} from '../utils/utilsui.js';
+import { appendButton, setValueToInputElm,  waitForElm, addVersionInfo} from '../utils/utilsui.js';
 import { GermanLike, AmazonApi } from './components/amazon_order.js';
 import { getCatalogAttributes } from '../rest/amazon.js'
 // import { Carriers } from '../rest/gls.js';
@@ -24,7 +24,10 @@ class AmazonOrderDetails {
             this.orderLines = this.extractor.getOrderLines();
             this.createButton(1);                 
             this.fetchCatalogAttributes();
-        }).catch(err => {
+        }).then(( ()=> {
+            addVersionInfo('div[data-test-id="order-details-header-action-buttons"]', 'version-info');
+        }))
+        .catch(err => {
             console.error(err);
         });
 
