@@ -154,6 +154,31 @@ class VipOrderDetails {
 
             });  // 设置 margin-top
     
+        // 添加鼠标悬浮样式
+        button.hover(
+            function () {
+                $(this).css("background-color", "#5C3A52"); // 鼠标悬浮时颜色变化
+            },
+            function () {
+                $(this).css("background-color", "#714B67"); // 鼠标移开时还原
+            }
+        );
+
+        // 添加点击效果
+        button.on("mousedown", function () {
+            $(this).css({
+                "transform": "scale(0.95)", // 按下时缩小
+                "box-shadow": "0 2px 4px rgba(0, 0, 0, 0.2)", // 改变阴影
+            });
+        });
+
+        button.on("mouseup mouseleave", function () {
+            $(this).css({
+                "transform": "scale(1)", // 恢复大小
+                "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)", // 恢复阴影
+            });
+        });
+
         // 将按钮插入到指定的容器中
         $(selector).append(button);
     
