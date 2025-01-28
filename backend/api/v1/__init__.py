@@ -6,6 +6,7 @@ from .routes.carriers import gls
 from .routes.pickpack import pp_amazon, pp_common
 from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact
 from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans
+from .routes.barcode import barcode
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -31,6 +32,10 @@ lx.include_router(listing_router)
 lx.include_router(basic_router)
 lx.include_router(fba_schipment_plans)
 
+bcs = APIRouter(prefix="/scanner", tags=["Barcode Scanner"])
+bcs.include_router(barcode)
+
+
 v1 = APIRouter(prefix='/v1')
 v1.include_router(user)
 v1.include_router(amz)
@@ -39,3 +44,4 @@ v1.include_router(carriers)
 v1.include_router(pickpack)
 v1.include_router(odoo)
 v1.include_router(lx)
+v1.include_router(bcs)
