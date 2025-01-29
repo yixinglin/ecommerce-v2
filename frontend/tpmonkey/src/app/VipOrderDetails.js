@@ -48,6 +48,10 @@ class VipOrderDetails {
         const order = JSON.parse(resp.response).data;
         const odoo_order = this.#toOdooOrder(order, orderLines);
         console.log("Odoo Order Formatted: ", odoo_order);
+        
+        // debugger;
+        // const orderline_tr = document.querySelectorAll('tr.el-table__row');
+
         create_order_from_vip(odoo_order).then(res => {
             const state_code = res.status;
             const data = JSON.parse(res.responseText).data;
