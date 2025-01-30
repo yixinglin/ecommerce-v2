@@ -1,14 +1,12 @@
 import re
-from typing import List
 
 from core.config import settings
 from core.log import logger
-from models import StandardOrder, Address
+from models import Address
 from models.orders import StandardProduct
 from schemas.vip import VipOrder
-from .base import save_record, OdooOrderServiceBase
 from .base import (OdooProductServiceBase, OdooContactServiceBase)
-
+from .base import save_record, OdooOrderServiceBase
 
 
 class OdooProductService(OdooProductServiceBase):
@@ -65,22 +63,6 @@ class OdooProductService(OdooProductServiceBase):
             return None
         product = data[0]
         return self.to_standard_product(product)
-
-    def query_products_by_keyword(self, keyword) -> List[StandardProduct]:
-        # TODO: Implement this method query_product_by_keywords
-        filter_ = {"alias": self.api.get_alias(),
-                   "$or": [
-                       {"data.default_code":  {"$regex": keyword, "$options": "i"}},
-                       {"data.name":  {"$regex": keyword, "$options": "i"}},
-                       {"data.description":  {"$regex": keyword, "$options": "i"}},
-                   ]
-                }
-        data = self.mdb_product.query_products(filter=filter_)
-        products = []
-        for product in data:
-            p = self.to_standard_product(product)
-            products.append(p)
-        return products
 
     def query_all_products(self, offset, limit):
         # Query all products from DB

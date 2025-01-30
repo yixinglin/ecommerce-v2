@@ -1,4 +1,5 @@
 import base64
+import hashlib
 from collections import OrderedDict, Counter
 import jsonpath as jp_
 import barcode
@@ -17,6 +18,11 @@ def jsonpath(obj: dict, expr: str, default=None):
         return data[0]
     else:
         return data
+
+def text_to_md5(text: str) -> str:
+    md5_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+    return md5_hash
+
 
 def remove_duplicates(lst: list):
     """

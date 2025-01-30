@@ -17,6 +17,7 @@ services:
             - ./assets:/code/assets
             - ./logs:/code/logs
             - ./database:/code/database
+            - ./static:/code/static
         logging:
             driver: "json-file"
             options:

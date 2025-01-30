@@ -1,3 +1,5 @@
+import base64
+import os
 import time
 from core.log import logger
 from crud.odoo import (OdooQuantMongoDB,
@@ -12,6 +14,8 @@ from models import Address
 from models.orders import StandardProduct
 from models.warehouse import Quant
 import re
+
+from utils import stringutils
 
 
 def need_to_fetch(query_mothed, id, current_write_date: str):
@@ -255,6 +259,17 @@ class OdooProductServiceBase:
             'alias': self.api.get_alias()
         }
         return self.mdb_product.save_product(product_id, document)
+
+    def save_product_image(self, b64_image: str):
+        mid = int(len(b64_image)/2)
+        md5 = stringutils.text_to_md5(b64_image[:256] + b64_image[mid-256:mid+256] + b64_image[-256:])
+        filename = f"static/images/{md5}.jpg"
+        if os.path.exists(filename):
+            return "/" + filename
+
+        with open(filename, "wb") as f:
+            f.write(base64.b64decode(b64_image))
+        return "/" + filename
 
     def to_standard_product(self, product_data) -> StandardProduct:
         alias = product_data['alias']

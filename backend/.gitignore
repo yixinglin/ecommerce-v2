@@ -17,5 +17,6 @@ test*.py
 asserts/pic/*
 asserts/media/*
 
+static
 
 /test/amazon_packslips.py
