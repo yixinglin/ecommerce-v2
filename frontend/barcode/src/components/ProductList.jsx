@@ -5,9 +5,9 @@ import ProductCard from "./ProductCard";
 const ProductList = ({ products }) => {
   return (
     <div style={{ padding: "20px" }}>
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16, 16]} justify="center">
         {products.map((product) => (
-          <Col xs={12} sm={12} md={8} lg={6} xl={4} key={product.id}>
+          <Col xs={24} sm={24} md={20} lg={16} xl={12} key={product.id}>
             <ProductCard product={product} />
           </Col>
         ))}

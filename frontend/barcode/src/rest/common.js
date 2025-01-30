@@ -1,13 +1,13 @@
 import axios from 'axios';
 
 export function calc_token() {
-    const username = import.meta.env.VITE_API_USERNAME;
-    const password = import.meta.env.VITE_API_PASSWORD;    
+    const username = import.meta.env.VITE_ECM_API_USERNAME;
+    const password = import.meta.env.VITE_ECM_API_PASSWORD;    
     const token = btoa(`${username}:${password}`);
     return token;
 }
 
-export function get_method(url, args) {       
+export function get_method(url, args) {      
     var headers_ = {};
     if (args !== undefined && args.headers !== undefined) {        
         headers_ = args.headers;        
