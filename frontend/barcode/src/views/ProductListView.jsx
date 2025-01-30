@@ -4,11 +4,12 @@ import { fetch_all_products_brief } from "../rest/odoo.js";
 import ProductList from "../components/ProductList.jsx";
 
 function ProductListView() {
-  const [productList, setProductList] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [productList, setProductList] = useState([]); // 产品列表
+  const [searchTerm, setSearchTerm] = useState(""); // 搜索关键字
+  const [loading, setLoading] = useState(false); // 加载状态
+  const [barcodeBuffer, setBarcodeBuffer] = useState(""); // 记录扫码枪输入
   const listRef = useRef(null);
-  const inputRef = useRef(null); // 用于控制输入框的引用
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const savedSearchTerm = sessionStorage.getItem("searchTerm");
@@ -29,37 +30,51 @@ function ProductListView() {
     }, 100);
   }, []);
 
-  const handleScroll = () => {
-    if (listRef.current) {
-      sessionStorage.setItem("scrollPosition", listRef.current.scrollTop);
-    }
-  };
+  // 监听全局按键输入（扫码枪输入）
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      // 如果是数字或字母，加入到 `barcodeBuffer`
+      if (/^[a-zA-Z0-9]$/.test(event.key)) {
+        setBarcodeBuffer((prev) => prev + event.key);
+      }
 
-  const searchProducts = () => {
-    if (searchTerm.length < 3) {
+      // 如果按下 "Enter"，执行搜索
+      if (event.key === "Enter") {
+        if (barcodeBuffer.length > 3) { // 确保条形码有效
+          searchProducts(barcodeBuffer);
+          setBarcodeBuffer(""); // 清空缓存
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [barcodeBuffer]); // 监听 `barcodeBuffer`
+
+  // 执行搜索
+  const searchProducts = (searchValue) => {
+    if (searchValue.length < 3) {
       setProductList([]);
       sessionStorage.removeItem("productList");
       sessionStorage.removeItem("searchTerm");
       sessionStorage.removeItem("scrollPosition");
       return;
     }
+
+    setSearchTerm(searchValue);
     setLoading(true);
 
-    fetch_all_products_brief(searchTerm).then((response) => {
+    fetch_all_products_brief(searchValue).then((response) => {
       let products = response.data;
       products = products.filter((product) => product.active);
 
       setProductList(products);
       setLoading(false);
 
-      sessionStorage.setItem("searchTerm", searchTerm);
+      // 存储搜索状态
+      sessionStorage.setItem("searchTerm", searchValue);
       sessionStorage.setItem("productList", JSON.stringify(products));
       sessionStorage.setItem("scrollPosition", "0");
-
-      // **收起键盘**
-      if (inputRef.current) {
-        inputRef.current.blur();
-      }
     });
   };
 
@@ -69,8 +84,8 @@ function ProductListView() {
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
-      searchProducts();
-      e.target.blur(); // 失去焦点，收起键盘
+      searchProducts(searchTerm);
+      e.target.blur();
     }
   };
 
@@ -100,14 +115,14 @@ function ProductListView() {
       >
         <Input
           ref={inputRef}
-          placeholder="Search for products..."
+          placeholder="Scan barcode or type manually..."
           value={searchTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           allowClear
           style={{ flex: 1 }}
         />
-        <Button onClick={searchProducts} type="primary">
+        <Button onClick={() => searchProducts(searchTerm)} type="primary">
           Search
         </Button>
         <Button onClick={clearSearch} type="default">
@@ -118,7 +133,6 @@ function ProductListView() {
       {/* 产品列表部分，监听滚动事件 */}
       <div
         ref={listRef}
-        onScroll={handleScroll}
         style={{
           flex: 1,
           overflowY: "auto",

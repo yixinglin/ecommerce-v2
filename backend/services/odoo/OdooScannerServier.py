@@ -1,6 +1,7 @@
 from typing import List
 
-from schemas.barcode import ProductFullInfo
+import external.odoo.product as ext_product
+from schemas.barcode import ProductFullInfo, ProductUpdate
 from services.odoo.base import OdooProductServiceBase
 
 
@@ -62,3 +63,17 @@ class OdooScannerService(OdooProductServiceBase):
         else:
             product.image_url = ""
         return product
+
+    def update_product_by_id(self, id, data: ProductUpdate):
+        values_to_update = ext_product.ProductUpdate(
+            id=id,
+            barcode=data.barcode,
+            weight=data.weight,
+            image_1920=data.b64_image,
+        )
+        # update product in odoo
+        self.api.update_product_by_id(id, values_to_update)
+        # save product in database
+        self.save_product(id)
+        # query product from database
+        return self.query_product_by_id(id)

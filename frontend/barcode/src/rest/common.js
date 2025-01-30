@@ -42,3 +42,10 @@ export function put_method(url, body) {
     headers['Content-Type'] = 'application/json';
     return axios.put(url, body, { headers: headers });
 }
+
+export function put_method_form(url, body) {
+    const headers = {};
+    headers['Authorization'] = `Basic ${calc_token()}`;    
+    headers['Content-Type'] = 'multipart/form-data';
+    return axios.put(url, body, { headers: headers });
+}

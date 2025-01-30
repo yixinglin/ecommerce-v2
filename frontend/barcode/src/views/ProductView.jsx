@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { fetch_product_by_id, update_product_image, update_product_barcode, update_product_weight } from "../rest/odoo";
+import { fetch_product_by_id, update_product_image, 
+  update_product_barcode, update_product_weight } from "../rest/odoo";
 import { Card, Spin, Upload, message, Input } from "antd";
 import { CameraOutlined, BarcodeOutlined, EditOutlined } from "@ant-design/icons";
 
@@ -19,8 +20,7 @@ function ProductView() {
   // Handle image upload
   const handleImageUpload = async ({ file }) => {
     const formData = new FormData();
-    formData.append("image", file);
-    
+    formData.append("image", file);        
     try {
       const response = await update_product_image(id, formData);
       message.success("Image uploaded successfully!");

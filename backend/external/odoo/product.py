@@ -1,6 +1,15 @@
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
 from core.log import logger
 from .base import OdooAPIKey, OdooAPIBase
 
+class ProductUpdate(BaseModel):
+    id: int
+    weight: Optional[float] = Field(default=None, gt=0)
+    barcode: Optional[str] = Field(default=None, min_length=1)
+    image_1920: Optional[str] = Field(default=None, min_length=1)
 
 class OdooProductAPI(OdooAPIBase):
 
@@ -43,3 +52,18 @@ class OdooProductAPI(OdooAPIBase):
 
     def fetch_product_write_date(self, ids):
         return self.fetch_write_date("product.product", ids)
+
+    def update_product_by_id(self, id: int, data: ProductUpdate):
+        values_to_update = {}
+        if data.weight:
+            values_to_update['weight'] = data.weight
+        if data.barcode:
+            values_to_update['barcode'] = data.barcode
+        if data.image_1920:
+            values_to_update['image_1920'] = data.image_1920
+        result = self.client.write('product.product', [[id], values_to_update])
+        if result:
+            logger.info(f"Updated product {id} with data {data}")
+        else:
+            logger.error(f"Failed to update product {id} with data {data}")
+        return result

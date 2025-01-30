@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ProductBasicInfo(BaseModel):
@@ -21,9 +21,9 @@ class ProductFullInfo(ProductBasicInfo):
 
 
 class ProductUpdate(BaseModel):
-    barcode: str
-    image_url: str
-    weight: float
+    barcode: str= Field(None, description="Barcode of the product")
+    b64_image: str= Field(None, description="Base64 encoded image of the product")
+    weight: float= Field(None, description="Weight of the product")
 
 class Inventory(BaseModel):
     id: int
