@@ -14,7 +14,7 @@ odoo_contact = APIRouter(prefix="/contact", )
 @odoo_contact.get('/addresses')
 def get_odoo_contact_list():
     # TODO: Implement Odoo Contact List API
-    with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+    with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
         data = svc.query_all_contact_shipping_addresses(offset=0, limit=10000)
     return ResponseSuccess(data=data)
 
@@ -35,7 +35,7 @@ def create_odoo_order(order: VipOrder=
 @odoo_inventory.get('/products')
 def get_odoo_product_list():
     # TODO: Implement Odoo Product List API
-    with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+    with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
         # data = svc.query_all_product_templates(offset=0, limit=10000)
         data = svc.query_all_products(offset=0, limit=10000)
     return ResponseSuccess(data=data)
@@ -43,14 +43,14 @@ def get_odoo_product_list():
 @odoo_inventory.get('/quants')
 def get_odoo_quant_list():
     # TODO: Implement Odoo Quant List API
-    with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+    with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
         data = svc.query_all_quants(offset=0, limit=10000)
     return ResponseSuccess(data=data)
 
 @odoo_inventory.get('/locations')
 def get_odoo_location_list():
     # TODO: Implement Odoo Location List API
-    with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+    with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
         data = svc.query_all_locations(offset=0, limit=10000)
     return ResponseSuccess(data=data)
 

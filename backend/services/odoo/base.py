@@ -82,7 +82,6 @@ def get_field_value(data, field_name):
 class OdooInventoryServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.key_index = key_index
         self.mdb_location = OdooStorageLocationMongoDB()
         self.mdb_quant = OdooQuantMongoDB()
@@ -90,7 +89,7 @@ class OdooInventoryServiceBase:
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
             logger.info(f"Using Odoo API Key: {api_key.alias}")
-            self.api = OdooInventoryAPI(api_key)
+            self.api = OdooInventoryAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
@@ -181,18 +180,28 @@ class OdooInventoryServiceBase:
         else:
             location_name = data['location_id'][1]
 
+        last_count_date = data['last_count_date']
+        if last_count_date == False:
+            last_count_date = ""
+        else:
+            last_count_date = last_count_date + " 00:00:00"
+            last_count_date = convert_datetime_to_utc_format(last_count_date)
 
         q = Quant(
             id=str(data['id']),
+            productId=str(data['product_id'][0]),
             productName=product_name,
+            productUom=data['product_uom_id'][1],
+            sku=reference_code,
             quantity=int(data['quantity']),
             reservedQuantity=int(data['reserved_quantity']),
             availableQuantity=int(data['available_quantity']),
-            sku=reference_code,
-            unit=data['product_uom_id'][1],
             locationName=location_name,
+            locationId=str(data['location_id'][0]),
+            locationCode="",
+            warehouseId=str(data['warehouse_id'][0]),
             warehouseName=data['warehouse_id'][1],
-
+            lastCountDate= last_count_date,
         )
         return q
 
@@ -208,7 +217,7 @@ class OdooProductServiceBase:
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
             logger.info(f"Using Odoo API Key: {api_key.alias}")
-            self.api = OdooProductAPI(api_key)
+            self.api = OdooProductAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
@@ -302,17 +311,15 @@ class OdooProductServiceBase:
 class OdooContactServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.key_index = key_index
         self.mdb_contact = OdooContactMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
             logger.info(f"Using Odoo API Key: {api_key.alias}")
-            self.api = OdooContactAPI(api_key)
+            self.api = OdooContactAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
-
 
     def __enter__(self):
         self.mdb_contact.connect()
@@ -350,6 +357,9 @@ class OdooContactServiceBase:
             name1 = c['name']
             name2 = c['parent_name'] if c['parent_name'] else ""
 
+        if name1 == False:
+            name1 = ""
+
         addr = Address(
             name1=name1,
             name2=name2,
@@ -377,17 +387,14 @@ class OdooOrderServiceBase:
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
             logger.info(f"Using Odoo API Key: {api_key.alias}")
-            self.api = OdooOrderAPI(api_key)
+            self.api = OdooOrderAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
 
     def __enter__(self):
-        # self.mdb_order = OdooOrderMongoDB()
-        # self.mdb_order.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # self.mdb_order.close()
         pass
 

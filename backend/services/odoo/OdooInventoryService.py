@@ -50,6 +50,39 @@ class OdooInventoryService(OdooInventoryServiceBase):
         )
         return ans
 
+    def query_quants_by_quant_ids(self, quant_ids, offset, limit):
+        # Query quants by location ids from DB
+        filter_ = {"alias": self.api.get_alias(),
+                   "data.id": {"$in": quant_ids}}
+        data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
+        quants: Quant = []
+        for quant in data:
+            q = self.to_standard_quant(quant)
+            quants.append(q)
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(quants),
+            quants=quants,
+        )
+        return ans
+
+    # def query_quants_by_product_id(self, product_id, offset, limit):
+    #     # Query quants by product id from DB
+    #     filter_ = {"alias": self.api.get_alias(),
+    #                "data.product_id": product_id}
+    #     data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
+    #     quants: Quant = []
+    #     for quant in data:
+    #         q = self.to_standard_quant(quant)
+    #         quants.append(q)
+    #     ans = dict(
+    #         alias=self.api.get_alias(),
+    #         size=len(quants),
+    #         quants=quants,
+    #     )
+    #     return ans
+
+
     def query_all_locations(self, offset, limit):
         # Query all locations from DB
         filter_ = {"alias": self.api.get_alias(), "data.active": True}
@@ -87,3 +120,4 @@ class OdooInventoryService(OdooInventoryServiceBase):
     def move_quants_by_putaway_rules(self, putaway_rule_id):
         # TODO: Move quant by putaway rule
         raise NotImplementedError()
+

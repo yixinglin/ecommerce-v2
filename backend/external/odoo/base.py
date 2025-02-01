@@ -84,6 +84,9 @@ class OdooAPIBase(object):
         if login:
             self.client.login()
 
+    def set_client(self, client: OdooClient):
+        self.client = client
+
     def get_username(self):
         return self.api_key.username
 

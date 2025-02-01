@@ -126,7 +126,7 @@ class OdooContactService(OdooContactServiceBase):
                 addresses.append(addr)
             except Exception as e:
                 logger.error(f"Failed to convert contact to address: {e}")
-                logger.error(f"Contact: {contact['data']['name']}")
+                logger.error(f"Contact: {contact['data']['name']}, {contact['data']['id']}")
         ans = dict(
             alias=self.api.get_alias(),
             size=len(addresses),
@@ -149,9 +149,8 @@ class OdooOrderService(OdooOrderServiceBase):
 
     def __init__(self, key_index, *args, **kwargs):
         super().__init__(key_index, *args, **kwargs)
-        self.svc_product = OdooProductService(key_index)
-        self.svc_contact = OdooContactService(key_index)
-
+        self.svc_product = OdooProductService(key_index, login=False)
+        self.svc_contact = OdooContactService(key_index, login=False)
 
     def __enter__(self):
         super().__enter__()

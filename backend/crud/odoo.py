@@ -109,14 +109,12 @@ class OdooProductMongoDB(OdooProductTemplateMongoDB):
 
     def query_product_by_ids(self, ids: List[int]):
         # TODO: 实现查询产品的功能
-        # return super().query_product_template_by_ids(ids)
         filter_ = {"_id": {"$in": ids}}
         products = list(self.query_products(filter=filter_, limit=len(ids)))
         return products
 
     def query_product_by_id(self, id: int):
         # TODO: 实现查询产品的功能
-        # return super().query_product_template_by_id(id)
         result = self.query_product_by_ids(ids=[id])
         return result[0] if result else None
 
@@ -232,7 +230,6 @@ class OdooQuantMongoDB(MongoDBDataManager):
             results = results.limit(limit)
         if offset > 0:
             results = results.skip(offset)
-
         return list(results)
 
     def query_quant_by_ids(self, ids: List[int]):

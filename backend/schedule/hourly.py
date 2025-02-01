@@ -101,7 +101,7 @@ def save_amazon_catalog_job(key_index, marketplace):
 def save_odoo_data_jobs():
     try:
         logger.info("Scheduled job to save product data to Odoo")
-        with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+        with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
             svc.save_all_product_templates()
             svc.save_all_products()
 
@@ -113,7 +113,7 @@ def save_odoo_data_jobs():
 
     try:
         logger.info("Scheduled job to save contact data to Odoo")
-        with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+        with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
             svc.save_all_contacts()
     except Exception as e:
         logger.error(f"Error in scheduled job to save contact data to Odoo: {e}")
@@ -123,7 +123,7 @@ def save_odoo_data_jobs():
 
     try:
         logger.info("Scheduled job to save inventory data to Odoo")
-        with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
+        with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
             svc.save_all_quants()
             svc.save_all_putaway_rules()
             svc.save_all_internal_locations()
