@@ -1,0 +1,111 @@
+/* 页面整体布局 */
+.product-view-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: top;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 16px;
+  }
+  
+  /* 主要卡片样式 */
+  .product-card {
+    width: 100%;
+    max-width: 390px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    padding: 0px;
+    overflow: hidden;
+  }
+  
+  /* 图片上传区域 */
+  .product-image-container {
+    width: 100%;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #fff;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  /* 产品图片 */
+  .product-image {
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+    display: block;
+  }
+  
+  /* 相机图标 */
+  .camera-icon {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 24px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    border-radius: 50%;
+  }
+  
+  /* 产品信息样式 */
+  .product-info {
+    padding: 16px;
+    text-align: left;
+  }
+  
+  /* 产品标题 */
+  .product-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+    word-break: break-word;
+    hyphens: auto;
+    line-height: 1.3;
+  }
+  
+  /* 可点击的字段样式 */
+  .product-field {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  
+  /* 图标颜色 */
+  .icon {
+    margin-right: 6px;
+    color: #1890ff;
+  }
+  
+  /* 库存字段 */
+  .product-stock {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  
+  /* 绿色库存 */
+  .stock-available {
+    color: #28a745;
+  }
+  
+  /* 红色库存（缺货） */
+  .stock-out {
+    color: #dc3545;
+  }
+  
+  /* 描述 */
+  .product-description {
+    font-size: 14px;
+    color: #666;
+    margin-top: 10px;
+    text-align: justify;
+    line-height: 1.4;
+  }
+  

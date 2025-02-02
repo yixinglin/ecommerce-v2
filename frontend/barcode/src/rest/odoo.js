@@ -51,4 +51,24 @@ export function update_product_image(id, image) {
         })
 }
 
+export function fetch_stock_by_product_id(id) {
+    return get_method(apiScannerUrl + `/product/pid/${id}/quants`);
+}
+
+export function update_inventory_quantity(quant_id, inv_quantity) {    
+    return put_method(apiScannerUrl + `/product/qid/${quant_id}/qty/${inv_quantity}`, {});
+}
+
+export function quant_relocation_by_id(quant_id, location_barcode) {    
+    return put_method(apiScannerUrl + `/product/qid/${quant_id}/relocation/to_location/${location_barcode}`, {});
+}
+
+export function fetch_packaging_by_product_id(id) {    
+    return get_method(apiScannerUrl + `/product/pid/${id}/packaging`);
+}
+
+export function update_packaging_barcode(pack_id, barcode) {    
+    return put_method(apiScannerUrl + `/product/pkid/${pack_id}/barcode/${barcode}`, {});
+}
+
 export { baseUrl, apiScannerUrl };

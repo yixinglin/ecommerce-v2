@@ -1,0 +1,97 @@
+/* 页面容器，适配 iPhone 12 Pro */
+.stock-list-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    overflow: hidden;
+}
+
+/* 卡片样式 */
+.stock-list-card {
+    width: 100%;
+    max-width: 380px; /* 适配 iPhone 12 Pro 宽度 */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    padding: 2px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 标题样式 */
+.stock-list-card h3 {
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* 加载状态 */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+/* 表格容器 */
+.table-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* 表格样式 */
+.ant-table {
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+/* 表头样式 */
+.ant-table-thead > tr > th {
+    font-size: 12px;
+    text-align: left;
+    white-space: nowrap; /* 防止表头换行 */
+    padding: 2px;
+}
+
+/* 表格单元格 */
+.ant-table-tbody > tr > td {
+    font-size: 11px;
+    text-align: left;
+    word-break: break-word; /* 允许单词换行 */
+    white-space: normal;
+    padding: 2px;
+}
+
+/* 库存数量颜色 */
+.stock-available {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.stock-out {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* 盘点差异颜色 */
+.stock-diff-positive {
+    color: #2c17ec;  
+    font-weight: bold;
+}
+
+.stock-diff-negative {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+/* 返回按钮 */
+.back-button {
+    width: 100%;
+    margin-top: 10px;
+    height: 44px;
+    font-size: 14px;
+    border-radius: 8px;
+}

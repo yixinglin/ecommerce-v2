@@ -1,0 +1,45 @@
+/* 页面容器 */
+.packaging-list-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: env(safe-area-inset-top) 12px env(safe-area-inset-bottom);
+    overflow: hidden;    
+}
+
+/* 卡片样式 */
+.packaging-list-card {
+    width: 100%;
+    max-width: 380px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    padding: 5px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;        
+}
+
+/* 加载状态 */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+/* 表格容器 */
+.table-container {
+    flex-grow: 1;
+    overflow-y: auto;    
+}
+
+/* 返回按钮 */
+.back-button {
+    width: 100%;
+    margin-top: 10px;
+    height: 44px;
+    font-size: 14px;
+    border-radius: 8px;
+}

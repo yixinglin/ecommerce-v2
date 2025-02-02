@@ -15,3 +15,13 @@ Currently, two official plugins are available:
 3. Run `npm install` to install dependencies
 4. Run `npm run dev` to start the development server
 5. Open `http://localhost:5173` in your browser to view the application
+
+### Running Tests
+``` bash
+npm run dev
+```
+
+### Building for Production
+``` bash
+npm run build:prod
+```

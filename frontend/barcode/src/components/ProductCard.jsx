@@ -42,7 +42,7 @@ const ProductCard = ({ product }) => {
         }}
       >
         <img
-          alt={product.name}
+          alt=""
           src={product.image_url}
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />

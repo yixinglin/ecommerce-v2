@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate  } from "react-router-dom";
 import { fetch_product_by_id, update_product_image, 
-  update_product_barcode, update_product_weight } from "../rest/odoo";
-import { Card, Spin, Upload, message, Input } from "antd";
-import { CameraOutlined, BarcodeOutlined, EditOutlined } from "@ant-design/icons";
+      update_product_barcode, update_product_weight } from "../rest/odoo";
+import { Card, Spin, Upload, message, Button } from "antd";
+import { CameraOutlined, BarcodeOutlined, EditOutlined, NodeIndexOutlined } from "@ant-design/icons";
+import "./ProductView.css"; // 引入 CSS 文件
 
 function ProductView() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch_product_by_id(id).then((response) => {
@@ -17,10 +19,11 @@ function ProductView() {
     });
   }, [id]);
 
+
   // Handle image upload
   const handleImageUpload = async ({ file }) => {
     const formData = new FormData();
-    formData.append("image", file);        
+    formData.append("image", file);
     try {
       const response = await update_product_image(id, formData);
       message.success("Image uploaded successfully!");
@@ -53,7 +56,7 @@ function ProductView() {
         message.success("Weight updated successfully!");
         setProduct((prev) => ({ ...prev, weight: response.data.weight }));
       } catch (error) {
-        message.error("Failed to update weight. Please try again. " + error);
+        message.error("Failed to update weight. Please try again.");
       }
     }
   };
@@ -63,128 +66,53 @@ function ProductView() {
   }
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "top",
-        alignItems: "center",
-        backgroundColor: "#f9f9f9",
-        padding: "16px",
-      }}
-    >
-      <Card
-        style={{
-          width: "100%",
-          maxWidth: "390px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-          background: "#fff",
-          padding: "0px",
-          overflow: "hidden",
-        }}
-        bodyStyle={{ padding: "0px" }}
-      >
+    <div className="product-view-container">
+      <Card className="product-card">
         {/* Image Upload */}
-        <Upload
-          customRequest={handleImageUpload}
-          showUploadList={false}
-        >
-          <div
-            style={{
-              width: "100%",
-              height: "auto",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#fff",
-              cursor: "pointer",
-              position: "relative",
-            }}
-          >
-            <img
-              alt={product.name}
-              src={product.image_url}
-              style={{      
-                width: "300px",
-                height: "300px",
-                objectFit: "contain", 
-                display: "block" }}
-            />
-            <CameraOutlined
-              style={{
-                position: "absolute",
-                bottom: "10px",
-                right: "10px",
-                fontSize: "24px",
-                color: "#fff",
-                background: "rgba(0, 0, 0, 0.5)",
-                padding: "5px",
-                borderRadius: "50%",
-              }}
-            />
+        <Upload customRequest={handleImageUpload} showUploadList={false}>
+          <div className="product-image-container">
+            <img alt={product.name} src={product.image_url} className="product-image" />
+            <CameraOutlined className="camera-icon" />
           </div>
         </Upload>
 
         {/* Product Information */}
-        <div style={{ padding: "16px", textAlign: "left" }}>
-          <h2
-            style={{
-              fontSize: "18px",
-              fontWeight: "bold",
-              color: "#333",
-              marginBottom: "8px",
-              wordBreak: "break-word",
-              hyphens: "auto",
-              lineHeight: "1.3",
-            }}
-          >
-            {product.name}
-          </h2>
+        <div className="product-info">
+          <h2 className="product-title">{product.name}</h2>
+          <p className="product-field">
+            <NodeIndexOutlined className="icon" />
+            <strong>SKU:</strong> {product.sku || "N/A"}
+          </p>
 
-          <p
-            style={{ fontSize: "14px", color: "#666", marginBottom: "4px", cursor: "pointer" }}
-            onClick={handleBarcodeUpdate}
-          >
-            <BarcodeOutlined style={{ marginRight: "6px", color: "#1890ff" }} />
+          <p className="product-field" onClick={handleBarcodeUpdate}>
+            <BarcodeOutlined className="icon" />
             <strong>Barcode:</strong> {product.barcode || "N/A"}
           </p>
 
-          <p
-            style={{ fontSize: "14px", color: "#666", marginBottom: "4px", cursor: "pointer" }}
-            onClick={handleWeightUpdate}
-          >
-            <EditOutlined style={{ marginRight: "6px", color: "#1890ff" }} />
+          <p className="product-field" onClick={handleWeightUpdate}>
+            <EditOutlined className="icon" />
             <strong>Weight:</strong> {product.weight} kg
           </p>
 
-          <p
-            style={{
-              fontSize: "14px",
-              fontWeight: "bold",
-              color: product.qty_available > 0 ? "#28a745" : "#dc3545",
-              marginBottom: "10px",
-            }}
-          >
+          <p className={`product-stock ${product.qty_available > 0 ? "stock-available" : "stock-out"}`}>
             <strong>Stock:</strong> {product.qty_available} {product.uom}
           </p>
 
           {product.description && (
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#666",
-                marginTop: "10px",
-                textAlign: "justify",
-                lineHeight: "1.4",
-              }}
-            >
+            <p className="product-description">
               <strong>Description:</strong> {product.description}
             </p>
           )}
         </div>
       </Card>
+
+        <Button type="primary" onClick={() => navigate(`/stock/${product.id}`)} className="stock-button">
+          View Stock List
+        </Button>
+        <br />
+        <Button type="primary" onClick={() => navigate(`/product/${product.id}/packaging`)}>
+          View Packaging
+        </Button>
     </div>
   );
 }
