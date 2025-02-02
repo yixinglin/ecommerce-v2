@@ -7,9 +7,11 @@ class Quant(BaseModel):
     productName: str
     productUom: str
     sku: str
-    quantity: int
+    quantity: int   # quantity on hand
     reservedQuantity: int
-    availableQuantity: int
+    availableQuantity: int # available quantity
+    inventoryQuantity: int # counted quantity
+    inventoryDiffQuantity: int # counted quantity - quantity on hand
     locationName: str
     locationId: str
     locationCode: str

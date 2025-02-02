@@ -21,6 +21,20 @@ class ProductUpdate(BaseModel):
     b64_image: str= Field(None, description="Base64 encoded image of the product")
     weight: float= Field(None, description="Weight of the product")
 
+class ProductPackaging(BaseModel):
+    id: int
+    product_id: int
+    product_name: str
+    name: str
+    qty: int
+    uom: str
+    barcode: str
+
+class ProductPackagingUpdate(BaseModel):
+    qty: int= Field(None, description="Quantity of the packaging")
+    barcode: str= Field(None, description="Barcode of the packaging")
+    name: str= Field(None, description="Name of the packaging")
+
 class Quant(BaseModel):
     id: int
     product_id: int
@@ -28,11 +42,13 @@ class Quant(BaseModel):
     product_uom: str
     sku: str
     location_code: str
-    quantity: float
+    quantity: float             # quantity on hand
     reserved_quantity: float
-    available_quantity: float
+    available_quantity: float   # available quantity
+    inventory_quantity: float   # counted quantity
+    inventory_diff_quantity: float  # difference between counted and available quantity
     warehouse_id: int
     warehouse_name: str
     location_id: int
     location_name: str
-    last_count_date: str
+    last_count_days: int

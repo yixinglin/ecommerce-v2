@@ -5,7 +5,7 @@ from core.log import logger
 from models import Address
 from models.orders import StandardProduct
 from schemas.vip import VipOrder
-from .base import (OdooProductServiceBase, OdooContactServiceBase)
+from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase)
 from .base import save_record, OdooOrderServiceBase
 
 
@@ -80,6 +80,45 @@ class OdooProductService(OdooProductServiceBase):
         )
         return ans
 
+class OdooProductPackagingService(OdooProductPackagingServiceBase):
+
+    def __init__(self, key_index, *args, **kwargs):
+        super().__init__(key_index, *args, **kwargs)
+
+    def save_all_product_packaging(self):
+        fetch_object_ids = self.api.fetch_packaging_ids
+        fetch_write_date = self.api.fetch_packaging_write_date
+        query_object_by_id = self.mdb_product_packaging.query_packaging_by_id
+        save_object = self.save_product_packaging
+        object_name = 'product.packaging'
+        save_record(fetch_object_ids, fetch_write_date,
+                    query_object_by_id, object_name, save_object)
+
+    def query_all_product_packaging(self, offset, limit):
+        # Query all product packaging from DB
+        filter_ = {"alias": self.api.get_alias()}
+        data = self.mdb_product_packaging.query_packaging(offset=offset, limit=limit, filter=filter_)
+        packagings = []
+        for packaging in data:
+            # To standard product packaging object
+            # p = self.to_standard_product_packaging(packaging)
+            p = packaging
+            packagings.append(p)
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(packagings),
+            packagings=packagings,
+        )
+        return ans
+
+    def query_packaging_by_id(self, id):
+        filter_ = {"alias": self.api.get_alias(), "data.id": id}
+        data = self.mdb_product_packaging.query_packagings(filter=filter_)
+        if len(data) == 0:
+            return None
+        packaging = data[0]
+        return packaging.get('data', "")
+
 
 class OdooContactService(OdooContactServiceBase):
 
@@ -94,7 +133,6 @@ class OdooContactService(OdooContactServiceBase):
         object_name = 'res.partner'
         save_record(fetch_object_ids, fetch_write_date,
                     query_object_by_id, object_name, save_object)
-
 
     def query_all_contacts(self, offset, limit):
         # Query all contacts from DB

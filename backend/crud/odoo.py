@@ -132,6 +132,44 @@ class OdooProductMongoDB(OdooProductTemplateMongoDB):
         #TODO: To Standard Product Object
         raise NotImplementedError
 
+class OdooPackagingMongoDB(MongoDBDataManager):
+
+    def __init__(self):
+        super().__init__()
+        self.db_name = "odoo_data"
+        self.db_collection_name = "product.packaging"
+
+    def get_db_collection(self):
+        return self.db_client[self.db_name][self.db_collection_name]
+
+    def query_packagings(self, offset: int = 0, limit=None, *args, **kwargs):
+        collection = self.get_db_collection()
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+        return list(results)
+
+    def query_packaging_by_ids(self, ids: List[int]):
+        filter_ = {"_id": {"$in": ids}}
+        packagings = list(self.query_packagings(filter=filter_, limit=len(ids)))
+        return packagings
+
+    def query_packaging_by_id(self, id: int):
+        result = self.query_packaging_by_ids(ids=[id])
+        return result[0] if result else None
+
+    def save_packaging(self, packaging_id, document):
+        collection = self.get_db_collection()
+        result = collection.update_one(
+            {"_id": packaging_id},
+            {"$set": document},
+            upsert=True
+        )
+        return result
+
+
 class OdooStorageLocationMongoDB(MongoDBDataManager):
 
     def __init__(self):

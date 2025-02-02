@@ -70,4 +70,12 @@ class OdooInventoryAPI(OdooAPIBase):
     def fetch_quant_write_date(self, ids,):
         return self.fetch_write_date('stock.quant', ids)
 
+    def request_quant_by_id(self, quant_id, inv_quantity) -> bool:
+        logger.info(f"Requesting quant_inventory by id {quant_id} with quantity {inv_quantity}")
+        return self.client.write('stock.quant', [[quant_id],
+                {'inventory_quantity': inv_quantity}])
 
+    def quant_relocation_by_id(self, quant_id, location_id) -> bool:
+        logger.info(f"Relocating quant_inventory by id {quant_id} to location {location_id}")
+        return self.client.write('stock.quant', [[quant_id],
+                {'location_id': location_id}])

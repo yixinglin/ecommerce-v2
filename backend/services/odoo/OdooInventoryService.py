@@ -43,6 +43,7 @@ class OdooInventoryService(OdooInventoryServiceBase):
         for quant in data:
             q = self.to_standard_quant(quant)
             quants.append(q)
+
         ans = dict(
             alias=self.api.get_alias(),
             size=len(quants),
@@ -57,8 +58,16 @@ class OdooInventoryService(OdooInventoryServiceBase):
         data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
         quants: Quant = []
         for quant in data:
+            if quant['data']['warehouse_id'] == False:
+                continue
             q = self.to_standard_quant(quant)
             quants.append(q)
+        location_ids = [int(q.locationId) for q in quants]
+        location_data = self.mdb_location.query_storage_location_by_ids(location_ids)
+        barcode_map = {loc['_id']: loc['data']['barcode'] for loc in location_data }
+        for quant in quants:
+            quant.locationCode = barcode_map.get(int(quant.locationId), "")
+
         ans = dict(
             alias=self.api.get_alias(),
             size=len(quants),
@@ -66,22 +75,13 @@ class OdooInventoryService(OdooInventoryServiceBase):
         )
         return ans
 
-    # def query_quants_by_product_id(self, product_id, offset, limit):
-    #     # Query quants by product id from DB
-    #     filter_ = {"alias": self.api.get_alias(),
-    #                "data.product_id": product_id}
-    #     data = self.mdb_quant.query_quants(offset=offset, limit=limit, filter=filter_)
-    #     quants: Quant = []
-    #     for quant in data:
-    #         q = self.to_standard_quant(quant)
-    #         quants.append(q)
-    #     ans = dict(
-    #         alias=self.api.get_alias(),
-    #         size=len(quants),
-    #         quants=quants,
-    #     )
-    #     return ans
-
+    def request_quant_by_id(self, quant_id, inv_quantity):
+        ans = self.api.request_quant_by_id(quant_id, inv_quantity)
+        if ans:
+            logger.info(f"Request quant {quant_id} success")
+        else:
+            logger.error(f"Request quant {quant_id} failed")
+        return ans
 
     def query_all_locations(self, offset, limit):
         # Query all locations from DB

@@ -1,6 +1,7 @@
 import unittest
 from core.log import logger
 from services.odoo import OdooInventoryService, OdooContactService, OdooProductService
+from services.odoo.OdooOrderService import OdooProductPackagingService
 
 
 class TestOdooUnits(unittest.TestCase):
@@ -21,6 +22,9 @@ class TestOdooUnits(unittest.TestCase):
 
         with OdooContactService(key_index=0) as svc:
             svc.save_all_contacts()
+
+        with OdooProductPackagingService(key_index=0) as svc:
+            svc.save_all_product_packaging()
 
 
 

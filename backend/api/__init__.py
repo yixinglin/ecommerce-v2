@@ -22,8 +22,7 @@ app = FastAPI(title=settings.PROJECT_NAME,
               docs_url=f"{settings.API_PREFIX}/docs",
               )
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-# http://127.0.0.1:8000/static/images/logo.png
+
 
 app.include_router(v1, prefix=os.environ['API_PREFIX'])
 
@@ -35,6 +34,9 @@ app.add_middleware(
     allow_headers=["*"],   # Allows all headers
 )
 
+# http://127.0.0.1:8000/static/images/logo.png
+os.makedirs("./static2/images", exist_ok=True)
+app.mount("/static2", StaticFiles(directory="static2"), name="static2")
 
 os.makedirs("./assets/media", exist_ok=True)
 app.mount("/media", StaticFiles(directory="./assets/media"), name="media")

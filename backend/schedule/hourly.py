@@ -13,6 +13,7 @@ from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
+from services.odoo.OdooOrderService import OdooProductPackagingService
 
 hourly_scheduler = BackgroundScheduler()
 
@@ -104,7 +105,6 @@ def save_odoo_data_jobs():
         with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
             svc.save_all_product_templates()
             svc.save_all_products()
-
     except Exception as e:
         logger.error(f"Error in scheduled job to save product data to Odoo: {e}")
     finally:
@@ -132,6 +132,18 @@ def save_odoo_data_jobs():
     finally:
         # wait for 15 seconds before running the next job, to avoid rate limiting
         time.sleep(15)
+
+
+    try:
+        logger.info("Scheduled job to save packaging data to Odoo")
+        with OdooProductPackagingService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+            svc.save_all_product_packaging()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save packaging data to Odoo: {e}")
+    finally:
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
+
     logger.info("Successfully scheduled Odoo data scheduler job...")
 
 @hourly_scheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)

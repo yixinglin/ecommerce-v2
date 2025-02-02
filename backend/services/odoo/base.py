@@ -5,11 +5,12 @@ from core.log import logger
 from crud.odoo import (OdooQuantMongoDB,
                        OdooStorageLocationMongoDB,
                        OdooPutawayRuleMongoDB,
-                       OdooProductTemplateMongoDB, OdooContactMongoDB, OdooProductMongoDB)
+                       OdooProductTemplateMongoDB, OdooContactMongoDB, OdooProductMongoDB, OdooPackagingMongoDB)
 from external.odoo import OdooAPIKey, OdooInventoryAPI, OdooProductAPI, OdooContactAPI
 from external.odoo import DATETIME_PATTERN as ODOO_DATETIME_PATTERN
 import utils.time as time_utils
 from external.odoo.order import OdooOrderAPI
+from external.odoo.product import OdooProductPackagingAPI
 from models import Address
 from models.orders import StandardProduct
 from models.warehouse import Quant
@@ -196,6 +197,8 @@ class OdooInventoryServiceBase:
             quantity=int(data['quantity']),
             reservedQuantity=int(data['reserved_quantity']),
             availableQuantity=int(data['available_quantity']),
+            inventoryQuantity=int(data['inventory_quantity']),
+            inventoryDiffQuantity=int(data['inventory_diff_quantity']),
             locationName=location_name,
             locationId=str(data['location_id'][0]),
             locationCode="",
@@ -204,9 +207,6 @@ class OdooInventoryServiceBase:
             lastCountDate= last_count_date,
         )
         return q
-
-
-
 
 class OdooProductServiceBase:
 
@@ -272,7 +272,7 @@ class OdooProductServiceBase:
     def save_product_image(self, b64_image: str):
         mid = int(len(b64_image)/2)
         md5 = stringutils.text_to_md5(b64_image[:256] + b64_image[mid-256:mid+256] + b64_image[-256:])
-        filename = f"static/images/{md5}.jpg"
+        filename = f"static2/images/{md5}.jpg"
         if os.path.exists(filename):
             return "/" + filename
 
@@ -307,6 +307,47 @@ class OdooProductServiceBase:
             additionalFields=additionalFields
         )
         return product
+
+class OdooProductPackagingServiceBase:
+
+    def __init__(self, key_index, *args, **kwargs):
+        self.key_index = key_index
+        self.mdb_product_packaging = OdooPackagingMongoDB()
+        if key_index is not None:
+            api_key = OdooAPIKey.from_json(key_index)
+            logger.info(f"Using Odoo API Key: {api_key.alias}")
+            self.api = OdooProductPackagingAPI(api_key, **kwargs)
+            self.alias = self.api.get_alias()
+            self.username = self.api.get_username()
+            logger.info(f"Odoo username: {self.username} ({self.alias})")
+
+    def __enter__(self):
+        self.mdb_product_packaging.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.mdb_product_packaging.close()
+
+    def save_product_packaging(self, product_packaging_id):
+        results = self.api.fetch_packaging_by_ids([product_packaging_id])
+        if results is None or len(results) == 0:
+            logger.error(f"Failed to fetch product packaging with id = {product_packaging_id}")
+            return None
+        item_data = results[0]
+        fetchedAt = time_utils.now()
+        create_date = convert_datetime_to_utc_format(item_data['create_date'])
+        time.sleep(0.2)
+        document = {
+            '_id': product_packaging_id,
+            'fetchedAt': fetchedAt,
+            'createdAt': create_date,
+            'data': item_data,
+            'alias': self.api.get_alias()
+        }
+        return self.mdb_product_packaging.save_packaging(product_packaging_id, document)
+
+    def to_standard_packaging(self, product_packaging_data) -> dict:
+        pass
 
 class OdooContactServiceBase:
 

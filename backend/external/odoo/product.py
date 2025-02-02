@@ -67,3 +67,42 @@ class OdooProductAPI(OdooAPIBase):
         else:
             logger.error(f"Failed to update product {id} with data {data}")
         return result
+
+class PackagingUpdate(BaseModel):
+    id: int
+    name: Optional[str] = Field(default=None, min_length=1)
+    barcode: Optional[str] = Field(default=None, min_length=1)
+    qty: Optional[float] = Field(default=None, gt=0)
+
+
+class OdooProductPackagingAPI(OdooAPIBase):
+
+    def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
+        super().__init__(api_key, *args, **kwargs)
+
+    def fetch_packaging_ids(self, domain=[]):
+        logger.info("Fetching packaging ids")
+        packaging_ids = self.client.search('product.packaging', [domain])
+        return packaging_ids
+
+    def fetch_packaging_by_ids(self, ids):
+        logger.info("Fetching packaging by ids")
+        return self.client.read('product.packaging', [ids], {})
+
+    def fetch_packaging_write_date(self, ids):
+        return self.fetch_write_date("product.packaging", ids)
+
+    def update_packaging_by_id(self, id: int, data: PackagingUpdate):
+        values_to_update = {}
+        if data.name:
+            values_to_update['name'] = data.name
+        if data.barcode:
+            values_to_update['barcode'] = data.barcode
+        if data.qty:
+            values_to_update['qty'] = data.qty
+        result = self.client.write('product.packaging', [[id], values_to_update])
+        if result:
+            logger.info(f"Updated packaging {id} with data {data}")
+        else:
+            logger.error(f"Failed to update packaging {id} with data {data}")
+        return result
