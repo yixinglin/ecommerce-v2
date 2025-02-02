@@ -41,6 +41,9 @@ class GlsShipmentApi:
             = adjust_name_fields(address.name1, address.name2, address.name3, MAX_NAME_LENGTH)
         if not self.__check_name_length((address.name1, address.name2, address.name3)):
             raise RuntimeError(f"Name length exceeds maximum limit of {MAX_NAME_LENGTH} characters {address}")
+
+        for parcel in shipment.parcels:
+            parcel.weight = max(parcel.weight, 0.1)  # GLS API requires minimum weight of 0.1 kg
         return shipment
 
     def validate_shipments(self, shipments: List[StandardShipment]):
