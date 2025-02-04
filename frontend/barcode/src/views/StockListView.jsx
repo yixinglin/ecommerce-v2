@@ -52,7 +52,7 @@ function StockListView() {
             ? {
                 ...item,
                 inventory_quantity: parsedQuantity,
-                inventory_diff_quantity: parsedQuantity - item.quantity, // 计算盈亏
+                inventory_quantity_set: true, 
               }
             : item
         )
@@ -135,14 +135,14 @@ function StockListView() {
       width: 60,
       render: (_, record) => (
         <span
-          className={record.inventory_diff_quantity >= 0 ? "stock-diff-positive" : "stock-diff-negative"}
+          className={record.inventory_quantity - record.quantity >= 0 || !record.inventory_quantity_set ? "stock-diff-positive" : "stock-diff-negative"}
           style={{ cursor: "pointer" }}
           onClick={() => handleInventoryUpdate(record)}
         >
-          {record.inventory_diff_quantity !== 0 ? (
+          {record.inventory_quantity_set ? (
             <>
-              {record.quantity + record.inventory_diff_quantity}
-              <span> {record.inventory_diff_quantity > 0 ? "(盈)" : "(亏)"} </span>
+              {record.inventory_quantity}
+              <span> {record.inventory_quantity - record.quantity > 0 ? "(盈)" : "(亏)"} </span>
             </>
           ) : (
             "-"

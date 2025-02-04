@@ -129,7 +129,7 @@ class OdooScannerService:
                 "reserved_quantity": mq.reservedQuantity,
                 "available_quantity": mq.availableQuantity,
                 "inventory_quantity": mq.inventoryQuantity,
-                "inventory_diff_quantity": mq.inventoryDiffQuantity,
+                "inventory_quantity_set": mq.inventoryQuantitySet,
                 "location_name": mq.locationName,
                 "location_id": mq.locationId,
                 "location_code": mq.locationCode,
@@ -144,27 +144,31 @@ class OdooScannerService:
 
     def request_quant_by_id(self, quant_id, inv_quantity):
         """ 发起库存调整请求  """
-        api = self.svc_inventory.api.login()
+        quant_data = self.mdb_quant.query_quant_by_id(quant_id)
+        if not quant_data:
+            return False
+        product_id = quant_data['data']['product_id'][0]
+
         if True:
+            api = self.svc_inventory.api.login()
             success = api.request_quant_by_id(quant_id, inv_quantity)
         else:
             logger.info(f"DEBUG MODE: request_quant_by_id({quant_id}, {inv_quantity})")
             success = True
         if success:
-            self.svc_inventory.save_quant(quant_id)
+            self.save_product_and_quants(product_id)
         return success
 
     def quant_relocation_by_id(self, quant_id, location_id):
-        api = self.svc_inventory.api.login()
-        # quant_data = self.mdb_quant.query_quant_by_id(quant_id)
-        # product_id = quant_data['data']['product_id'][0]
-        quant_data = api.fetch_quant_by_ids([quant_id])
+        message = 'Relocation via Barcode Scanner [API]'
+        quant_data = self.mdb_quant.query_quant_by_id(quant_id)
         if not quant_data:
             return False
-        product_id = quant_data[0]['product_id'][0]
-
+        product_id = quant_data['data']['product_id'][0]
         if True:
-            success = api.quant_relocation_by_id(quant_id, location_id)
+            api = self.svc_inventory.api.login()
+            success = api.quant_relocation_by_id(quant_id, location_id, message)
+            success = isinstance(success, dict)
         else:
             logger.info(f"DEBUG MODE: request_quant_relocation({quant_id}, {location_id})")
             success = True
@@ -179,7 +183,6 @@ class OdooScannerService:
         quant_ids = product_['data']['stock_quant_ids']
         for qid in quant_ids:
             self.svc_inventory.save_quant(qid)
-
 
     def query_location_by_barcode(self, barcode):
         filter_ = {"alias": self.api.get_alias(),
@@ -219,6 +222,7 @@ class OdooScannerService:
             packaging = pd['data']
             packaging = self.__to_product_packaging(packaging)
             packagings.append(packaging)
+        packagings.sort(key=lambda x: x.name)
         return packagings
 
     def update_packaging_by_id(self, packaging_id, data: ProductPackagingUpdate) -> ProductPackaging:
@@ -239,3 +243,4 @@ class OdooScannerService:
         # query packaging from database
         data = self.svc_packaging.query_packaging_by_id(packaging_id)
         return self.__to_product_packaging(data)
+

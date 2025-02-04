@@ -46,7 +46,7 @@ class Quant(BaseModel):
     reserved_quantity: float
     available_quantity: float   # available quantity
     inventory_quantity: float   # counted quantity
-    inventory_diff_quantity: float  # difference between counted and available quantity
+    inventory_quantity_set: bool # whether inventory quantity is set manually or not
     warehouse_id: int
     warehouse_name: str
     location_id: int

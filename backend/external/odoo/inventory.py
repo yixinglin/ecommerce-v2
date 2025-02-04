@@ -75,7 +75,17 @@ class OdooInventoryAPI(OdooAPIBase):
         return self.client.write('stock.quant', [[quant_id],
                 {'inventory_quantity': inv_quantity}])
 
-    def quant_relocation_by_id(self, quant_id, location_id) -> bool:
+    def quant_relocation_by_id(self, quant_id, location_id, message) -> bool:
         logger.info(f"Relocating quant_inventory by id {quant_id} to location {location_id}")
-        return self.client.write('stock.quant', [[quant_id],
-                {'location_id': location_id}])
+        # 创建移库
+        quant_ids = [quant_id]
+        relocate_id = self.client.create('stock.quant.relocate', [{
+            'quant_ids': [(6, 0, quant_ids)],  # 选中要移动的库存
+            'dest_location_id': location_id,  # 目标位置
+            'message': message,  # 备注
+        }])
+
+        if relocate_id:
+            return self.client.execute_kw('stock.quant.relocate', 'action_relocate_quants', [[relocate_id]])
+        else:
+            return False

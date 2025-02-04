@@ -198,7 +198,7 @@ class OdooInventoryServiceBase:
             reservedQuantity=int(data['reserved_quantity']),
             availableQuantity=int(data['available_quantity']),
             inventoryQuantity=int(data['inventory_quantity']),
-            inventoryDiffQuantity=int(data['inventory_diff_quantity']),
+            inventoryQuantitySet=int(data['inventory_quantity_set']),
             locationName=location_name,
             locationId=str(data['location_id'][0]),
             locationCode="",

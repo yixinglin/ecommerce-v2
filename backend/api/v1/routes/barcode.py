@@ -76,7 +76,7 @@ def get_quants_by_product_id(product_id: int):
 
 @barcode.put("/qid/{quant_id}/qty/{quantity}", response_model=bool)
 def request_quant_by_id(quant_id: int, quantity: int):
-    with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
+    with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
         success = svc.request_quant_by_id(quant_id, quantity)
     return success
 @barcode.put("/qid/{quant_id}/relocation/to_location/{barcode}", response_model=bool)
@@ -127,3 +127,9 @@ def update_packaging_quantity_by_id(packaging_id: int, quantity: int):
             logger.error(f"Packaging with id {packaging_id} not found")
             raise HTTPException(status_code=404, detail=f"Packaging with id {packaging_id} not found")
     return packaging
+
+
+@barcode.put("/pid/{product_id}/putaway/to_location/{dest_location_id}", response_model=bool)
+def upsert_putaway_location(product_id: str, dest_location_id: int):
+    # src_location_id =   # WH/Stock
+    pass

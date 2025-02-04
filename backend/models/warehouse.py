@@ -11,7 +11,7 @@ class Quant(BaseModel):
     reservedQuantity: int
     availableQuantity: int # available quantity
     inventoryQuantity: int # counted quantity
-    inventoryDiffQuantity: int # counted quantity - quantity on hand
+    inventoryQuantitySet: bool # whether inventory quantity is set or not
     locationName: str
     locationId: str
     locationCode: str

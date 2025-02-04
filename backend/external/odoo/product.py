@@ -56,6 +56,8 @@ class OdooProductAPI(OdooAPIBase):
     def update_product_by_id(self, id: int, data: ProductUpdate):
         values_to_update = {}
         if data.weight:
+            if data.weight <= 0 or data.weight > 1000:
+                raise ValueError("Weight should be between 0 and 1000")
             values_to_update['weight'] = data.weight
         if data.barcode:
             values_to_update['barcode'] = data.barcode
