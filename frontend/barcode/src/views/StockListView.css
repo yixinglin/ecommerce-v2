@@ -95,3 +95,16 @@
     font-size: 14px;
     border-radius: 8px;
 }
+
+/* 上架库位 */
+.putaway-location-container {
+    margin-top: 10px;
+    font-size: 14px;
+  }
+  
+  .putaway-location {
+    cursor: pointer;
+    color: blue;
+    text-decoration: underline;
+  }
+  

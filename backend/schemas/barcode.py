@@ -52,3 +52,20 @@ class Quant(BaseModel):
     location_id: int
     location_name: str
     last_count_days: int
+
+class PutawayRule(BaseModel):
+    id: int
+    product_id: int
+    product_name: str
+    location_in_id: int
+    location_in_name: str
+    location_in_code: str
+    location_out_id: int
+    location_out_name: str
+    location_out_code: str
+    active: bool
+
+class PutawayRuleUpdate(BaseModel):
+    location_in_id: int
+    location_out_id: int
+

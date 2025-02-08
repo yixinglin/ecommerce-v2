@@ -13,7 +13,7 @@ from external.odoo.order import OdooOrderAPI
 from external.odoo.product import OdooProductPackagingAPI
 from models import Address
 from models.orders import StandardProduct
-from models.warehouse import Quant
+from models.warehouse import Quant, PutawayRule
 import re
 
 from utils import stringutils
@@ -67,7 +67,7 @@ def save_record(fetch_object_ids, fetch_write_date,
             save_object(id)
 
 
-def convert_datetime_to_utc_format(odoo_datetime:str):
+def convert_datetime_to_utc_format(odoo_datetime: str):
     datetime_obj = time_utils.str_to_datatime(odoo_datetime, ODOO_DATETIME_PATTERN)
     return time_utils.datetime_to_str(datetime_obj, time_utils.DATETIME_PATTERN)
 
@@ -143,7 +143,7 @@ class OdooInventoryServiceBase:
         }
         return self.mdb_quant.save_quant(quant_id, document)
 
-    def save_putaway_rule(self, putaway_rule_id):
+    def save_putaway_rule(self, putaway_rule_id: int):
         results = self.api.fetch_putaway_rule_by_ids([putaway_rule_id])
         if results is None or len(results) == 0:
             logger.error(f"Failed to fetch putaway rule with id = {putaway_rule_id}")
@@ -161,7 +161,6 @@ class OdooInventoryServiceBase:
             'alias': self.api.get_alias()
         }
         return self.mdb_putaway_rule.save_putaway_rule(putaway_rule_id, document)
-
 
     def to_standard_quant(self, quant) -> Quant:
         data = quant['data']
@@ -204,9 +203,41 @@ class OdooInventoryServiceBase:
             locationCode="",
             warehouseId=str(data['warehouse_id'][0]),
             warehouseName=data['warehouse_id'][1],
-            lastCountDate= last_count_date,
+            lastCountDate=last_count_date,
         )
         return q
+
+    def to_standard_putaway_rule(self, rule) -> PutawayRule:
+        data = rule['data']
+
+        split_location_in_name = data['location_in_id'][1].split('/')
+        if len(split_location_in_name) > 2:
+            location_in_name = split_location_in_name[-1]
+        else:
+            location_in_name = data['location_in_id'][1]
+
+        split_location_out_name = data['location_out_id'][1].split('/')
+        if len(split_location_out_name) > 2:
+            location_out_name = split_location_out_name[-1]
+        else:
+            location_out_name = data['location_out_id'][1]
+
+        r = PutawayRule(
+            id=str(data['id']),
+            productId=str(data['product_id'][0]),
+            productName=data['product_id'][1],
+            locationInId=str(data['location_in_id'][0]),
+            locationInName=location_in_name,
+            locationInCode="",
+            locationOutId=str(data['location_out_id'][0]),
+            locationOutName=location_out_name,
+            locationOutCode="",
+            active=data['active'],
+            priority=data['sequence'],
+            company=data['company_id'][1],
+        )
+        return r
+
 
 class OdooProductServiceBase:
 
@@ -270,8 +301,8 @@ class OdooProductServiceBase:
         return self.mdb_product.save_product(product_id, document)
 
     def save_product_image(self, b64_image: str):
-        mid = int(len(b64_image)/2)
-        md5 = stringutils.text_to_md5(b64_image[:256] + b64_image[mid-256:mid+256] + b64_image[-256:])
+        mid = int(len(b64_image) / 2)
+        md5 = stringutils.text_to_md5(b64_image[:256] + b64_image[mid - 256:mid + 256] + b64_image[-256:])
         filename = f"static2/images/{md5}.jpg"
         if os.path.exists(filename):
             return "/" + filename
@@ -284,7 +315,7 @@ class OdooProductServiceBase:
         alias = product_data['alias']
         data = product_data['data']
         id = str(data['id'])
-        fetchedAt= product_data['fetchedAt']
+        fetchedAt = product_data['fetchedAt']
         additionalFields = {
             'alias': alias,
             'fetchedAt': fetchedAt
@@ -307,6 +338,7 @@ class OdooProductServiceBase:
             additionalFields=additionalFields
         )
         return product
+
 
 class OdooProductPackagingServiceBase:
 
@@ -348,6 +380,7 @@ class OdooProductPackagingServiceBase:
 
     def to_standard_packaging(self, product_packaging_data) -> dict:
         pass
+
 
 class OdooContactServiceBase:
 
@@ -418,7 +451,6 @@ class OdooContactServiceBase:
         return addr
 
 
-
 class OdooOrderServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
@@ -438,4 +470,3 @@ class OdooOrderServiceBase:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
-

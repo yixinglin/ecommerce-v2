@@ -1,5 +1,7 @@
+from typing import List
+
 from core.log import logger
-from models.warehouse import Quant
+from models.warehouse import Quant, PutawayRule
 from .base import OdooInventoryServiceBase, save_record
 
 class OdooInventoryService(OdooInventoryServiceBase):
@@ -117,7 +119,60 @@ class OdooInventoryService(OdooInventoryServiceBase):
         )
         return ans
 
+    def query_putaway_rules_by_putaway_rule_ids(self, putaway_rule_ids, offset, limit):
+        # Query putaway rules by location ids from DB
+        filter_ = {"alias": self.api.get_alias(),
+                   "data.id": {"$in": putaway_rule_ids}}
+        data = self.mdb_putaway_rule.query_putaway_rules(offset=offset, limit=limit,
+                                                         filter=filter_)
+
+        # Convert to standard putaway rule
+        putaway_rules: List[PutawayRule] = []
+        for putaway_rule in data:
+            rule = self.to_standard_putaway_rule(putaway_rule)
+            putaway_rules.append(rule)
+
+        location_in_ids = [int(rule.locationInId) for rule in putaway_rules]
+        location_out_ids = [int(rule.locationOutId) for rule in putaway_rules]
+        location_ids = list(set(location_in_ids + location_out_ids))
+        location_data = self.mdb_location.query_storage_location_by_ids(location_ids)
+        barcode_map = {loc['_id']: loc['data']['barcode'] for loc in location_data }
+        for rule in putaway_rules:
+            rule.locationInCode = barcode_map.get(int(rule.locationInId), "")
+            rule.locationOutCode = barcode_map.get(int(rule.locationOutId), "")
+
+        ans = dict(
+            alias=self.api.get_alias(),
+            size=len(putaway_rules),
+            putaway_rules=putaway_rules,
+        )
+        return ans
+
     def move_quants_by_putaway_rules(self, putaway_rule_id):
         # TODO: Move quant by putaway rule
         raise NotImplementedError()
+
+    def create_putaway_rule(self, product_id:int, location_out_id:int, location_in_id:int=8):
+        # Create putaway rule in Odoo
+        rule_id = self.api.create_putaway_rule(product_id=product_id,
+                                     location_out_id=location_out_id,
+                                     location_in_id=location_in_id)
+        if rule_id:
+            logger.info(f"Create putaway rule {rule_id} success")
+            self.save_putaway_rule(rule_id)
+        else:
+            logger.error(f"Create putaway rule {rule_id} failed")
+        return rule_id
+
+    def update_putaway_rule(self, rule_id:int, location_out_id:int, location_in_id:int=8):
+        # Update putaway rule in Odoo
+        success = self.api.update_putaway_rule(rule_id=rule_id,
+                                     location_out_id=location_out_id,
+                                     location_in_id=location_in_id)
+        if success:
+            logger.info(f"Update putaway rule {rule_id} success")
+            self.save_putaway_rule(rule_id)
+        else:
+            logger.error(f"Update putaway rule {rule_id} failed")
+        return success
 

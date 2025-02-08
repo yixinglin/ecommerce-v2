@@ -89,3 +89,22 @@ class OdooInventoryAPI(OdooAPIBase):
             return self.client.execute_kw('stock.quant.relocate', 'action_relocate_quants', [[relocate_id]])
         else:
             return False
+
+    def create_putaway_rule(self, product_id, location_out_id, location_in_id=8) -> int:
+        logger.info(f"Creating putaway rule for product {product_id} "
+                    f"from location {location_in_id} to location {location_out_id}")
+        putaway_rule_data = {
+            'location_in_id': location_in_id,
+            'location_out_id': location_out_id,
+            'product_id': product_id,
+        }
+        return self.client.create('stock.putaway.rule', [putaway_rule_data])
+
+    def update_putaway_rule(self, rule_id, location_out_id, location_in_id=8) -> bool:
+        logger.info(f"Updating putaway rule {rule_id} with location_out_id {location_out_id} and location_in_id {location_in_id}")
+        return self.client.write('stock.putaway.rule', [[rule_id],
+                     {'location_in_id': location_in_id,
+                      'location_out_id': location_out_id}])
+
+
+

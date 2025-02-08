@@ -5,7 +5,8 @@ import models.warehouse as mwh
 from core.config import settings
 import time
 from core.log import logger
-from schemas.barcode import ProductFullInfo, ProductUpdate, Quant, ProductPackaging, ProductPackagingUpdate
+from schemas.barcode import ProductFullInfo, ProductUpdate, Quant, ProductPackaging, ProductPackagingUpdate, \
+    PutawayRule, PutawayRuleUpdate
 from services.odoo import OdooProductService, OdooInventoryService
 from services.odoo.OdooOrderService import OdooProductPackagingService
 
@@ -52,7 +53,7 @@ class OdooScannerService:
         }
         return ProductFullInfo(**p)
 
-    def query_products_by_keyword(self, keyword) -> List[ProductFullInfo]:
+    def query_products_by_keyword(self, keyword, offset=0, limit=50) -> List[ProductFullInfo]:
         filter_ = {"alias": self.api.get_alias(),
                    "$or": [
                        {"data.default_code":  {"$regex": keyword, "$options": "i"}},
@@ -61,7 +62,13 @@ class OdooScannerService:
                        {"data.description":  {"$regex": keyword, "$options": "i"}},
                    ]
                 }
-        products_data = self.mdb_product.query_products(filter=filter_)
+        products_data = self.mdb_product.query_products(filter=filter_, offset=offset, limit=limit)
+
+        # Query product by packaging barcode
+        packagings = self.query_packaging_by_barcode(keyword)
+        product_ids = [p.product_id for p in packagings]
+        products_data += self.mdb_product.query_product_by_ids(product_ids)
+
         products = []
         for pdata in products_data:
             product = pdata.get('data', "")
@@ -76,7 +83,12 @@ class OdooScannerService:
         products = products[:50]
         return products
 
-    def query_product_by_id(self, id) -> ProductFullInfo:
+    def query_product_by_id(self, id, update_db=False) -> ProductFullInfo:
+        if update_db:
+            self.svc_product.api.login()
+            self.svc_inventory.api.login()
+            self.save_product_and_quants(id)
+
         data = self.mdb_product.query_product_by_id(id)
         if not data:
             return None
@@ -183,6 +195,8 @@ class OdooScannerService:
         quant_ids = product_['data']['stock_quant_ids']
         for qid in quant_ids:
             self.svc_inventory.save_quant(qid)
+        for prid in product_['data']['putaway_rule_ids']:
+            self.svc_inventory.save_putaway_rule(prid)
 
     def query_location_by_barcode(self, barcode):
         filter_ = {"alias": self.api.get_alias(),
@@ -219,9 +233,19 @@ class OdooScannerService:
             return []
         packagings = []
         for pd in packaging_data:
-            packaging = pd['data']
-            packaging = self.__to_product_packaging(packaging)
-            packagings.append(packaging)
+            packagings.append(self.__to_product_packaging(pd['data']))
+        packagings.sort(key=lambda x: x.name)
+        return packagings
+
+    def query_packaging_by_barcode(self, barcode: str) -> List[ProductPackaging]:
+        filter_ = {"alias": self.api.get_alias(),
+                   "data.barcode": barcode}
+        packaging_data = self.mdb_packaging.query_packagings(filter=filter_, offset=0, limit=100)
+        if not packaging_data:
+            return []
+        packagings = []
+        for pd in packaging_data:
+            packagings.append(self.__to_product_packaging(pd['data']))
         packagings.sort(key=lambda x: x.name)
         return packagings
 
@@ -243,4 +267,56 @@ class OdooScannerService:
         # query packaging from database
         data = self.svc_packaging.query_packaging_by_id(packaging_id)
         return self.__to_product_packaging(data)
+
+    def query_putaway_rules_by_product_id(self, product_id: int) -> List[PutawayRule]:
+        product_data = self.mdb_product.query_product_by_id(product_id)
+        putaway_rule_ids = product_data['data']['putaway_rule_ids']
+        data = self.svc_inventory.query_putaway_rules_by_putaway_rule_ids(putaway_rule_ids, offset=0, limit=10)
+        model_putaway_rules: List[mwh.PutawayRule] = data['putaway_rules']
+
+        putaway_rules = []
+        for mpr in model_putaway_rules:
+            putaway_rules.append(self.__to_putaway_rule(mpr))
+        putaway_rules.sort(key=lambda x: x.location_out_name)
+        return putaway_rules
+
+    def __to_putaway_rule(self, putaway_rule: mwh.PutawayRule) -> PutawayRule:
+        rule_ = dict(
+            id=int(putaway_rule.id),
+            product_id=int(putaway_rule.productId),
+            product_name=putaway_rule.productName,
+            location_in_id=int(putaway_rule.locationInId),
+            location_in_name=putaway_rule.locationInName,
+            location_in_code=putaway_rule.locationInCode,
+            location_out_id=int(putaway_rule.locationOutId),
+            location_out_name=putaway_rule.locationOutName,
+            location_out_code=putaway_rule.locationOutCode,
+            active=putaway_rule.active,
+        )
+        return PutawayRule(**rule_)
+
+    def upsert_putaway_rule_by_product_id(self, product_id: int, rule: PutawayRuleUpdate) -> PutawayRule:
+        product_data = self.mdb_product.query_product_by_id(product_id)
+        putaway_rule_ids = product_data['data']['putaway_rule_ids']
+        rules_data = self.svc_inventory.query_putaway_rules_by_putaway_rule_ids(putaway_rule_ids, offset=0, limit=10)
+        model_putaway_rules: List[mwh.PutawayRule] = rules_data['putaway_rules']
+        # update existing putaway rule
+        self.svc_inventory.api.login()
+        for mpr in model_putaway_rules:
+            if int(mpr.locationInId) == rule.location_in_id:
+                self.svc_inventory.update_putaway_rule(int(mpr.id), rule.location_out_id, location_in_id=rule.location_in_id)
+                # self.svc_inventory.save_putaway_rule(int(mpr.id))
+                self.save_product_and_quants(product_id)
+                rule = self.svc_inventory.query_putaway_rules_by_putaway_rule_ids([int(mpr.id)], offset=0, limit=10)['putaway_rules'][0]
+                return self.__to_putaway_rule(rule)
+
+        # create new putaway rule
+        assert len(model_putaway_rules) == 0, "putaway rule not found"
+        prid = self.svc_inventory.create_putaway_rule(product_id, rule.location_out_id,
+                                           location_in_id=rule.location_in_id)
+        # self.svc_inventory.save_putaway_rule(prid)
+        self.save_product_and_quants(product_id)
+        rule = self.svc_inventory.query_putaway_rules_by_putaway_rule_ids([prid], offset=0, limit=10)['putaway_rules'][0]
+        return self.__to_putaway_rule(rule)
+
 

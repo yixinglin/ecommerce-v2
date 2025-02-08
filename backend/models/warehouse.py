@@ -19,3 +19,16 @@ class Quant(BaseModel):
     warehouseName: str
     lastCountDate: str
 
+class PutawayRule(BaseModel):
+    id: str
+    productId: str
+    productName: str
+    locationInId: str
+    locationInName: str
+    locationInCode: str
+    locationOutId: str
+    locationOutName: str
+    locationOutCode: str
+    active: bool
+    priority: int
+    company: str

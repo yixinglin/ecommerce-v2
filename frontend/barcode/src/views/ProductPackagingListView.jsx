@@ -63,7 +63,7 @@ function ProductPackagingListView() {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      width: 15,
+      width: 50,
     },
     {
       title: "Name",
@@ -122,9 +122,9 @@ function ProductPackagingListView() {
           </div>
         )}
 
-        <Button onClick={goBack} type="default" className="back-button">
+        {/* <Button onClick={goBack} type="default" className="back-button">
           Back to Product
-        </Button>
+        </Button> */}
       </Card>
     </div>
   );

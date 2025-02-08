@@ -10,14 +10,18 @@ function ProductView() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [upToDate, setUpToDate] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch_product_by_id(id).then((response) => {
+    fetch_product_by_id({product_id:id, up_to_date:upToDate}).then((response) => {
       setProduct(response.data);
       setLoading(false);
+      if (upToDate) {
+        message.success("Product information updated successfully!");
+      }
     });
-  }, [id]);
+  }, [id, upToDate]);
 
 
   // Handle image upload
@@ -46,6 +50,11 @@ function ProductView() {
       }
     }
   };
+
+  // Update Product Information
+  const handleUpdateButton = () => {
+    setUpToDate(true);
+  }
 
   // Handle weight update
   const handleWeightUpdate = async () => {
@@ -113,6 +122,8 @@ function ProductView() {
         <Button type="primary" onClick={() => navigate(`/product/${product.id}/packaging`)}>
           View Packaging
         </Button>
+        <br />
+        <Button onClick={() => handleUpdateButton()}>Update</Button>
     </div>
   );
 }

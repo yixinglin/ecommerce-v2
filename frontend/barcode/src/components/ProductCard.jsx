@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "antd";
 import { useNavigate } from "react-router-dom";
 
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, index }) => {
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -20,6 +20,7 @@ const ProductCard = ({ product }) => {
         borderRadius: "10px",
         boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
         background: "#fff",
+        position: "relative", // 使 index 绝对定位
       }}
       bodyStyle={{
         display: "flex", // 确保内容水平排列
@@ -27,6 +28,23 @@ const ProductCard = ({ product }) => {
         padding: "16px",
       }}
     >
+      {/* Index - 左上角 */}
+      <div
+        style={{
+          position: "absolute",
+          top: "8px",
+          left: "8px",
+          background: "#1890ff",
+          color: "#fff",
+          fontSize: "12px",
+          fontWeight: "bold",
+          padding: "4px 8px",
+          borderRadius: "6px",
+        }}
+      >
+        {index}
+      </div>
+
       {/* 图片部分 */}
       <div
         style={{
@@ -65,6 +83,9 @@ const ProductCard = ({ product }) => {
         </p>
         <p style={{ fontSize: "9px", color: "#666", margin: "2px 0" }}>
           <strong>Barcode:</strong> {product.barcode || "N/A"}
+        </p>
+        <p style={{ fontSize: "9px", color: "#666", margin: "2px 0" }}>
+          <strong>Weight:</strong> {product.weight} kg
         </p>
         <p
           style={{

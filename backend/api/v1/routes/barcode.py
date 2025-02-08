@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from core.config import settings
 from core.log import logger
 from schemas.barcode import ProductFullInfo, ProductBasicInfo, ProductUpdate, Quant, ProductPackaging, \
-    ProductPackagingUpdate
+    ProductPackagingUpdate, PutawayRule, PutawayRuleUpdate
 from services.odoo import OdooProductService
 from services.odoo.OdooScannerServier import OdooScannerService
 
@@ -15,15 +15,16 @@ barcode = APIRouter(prefix="/product", )
 
 
 @barcode.get("/kw/{keyword}", response_model=list[ProductBasicInfo])
-def get_product_by_keyword(keyword: str):
+def get_product_by_keyword(keyword: str, offset: int = 0, limit: int = 50):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
-        products = svc.query_products_by_keyword(keyword)
+        products = svc.query_products_by_keyword(keyword, offset=offset, limit=limit)
     return products
 
+
 @barcode.get("/pid/{id}", response_model=ProductFullInfo)
-def get_product_by_id(id: int):
+def get_product_by_id(id: int, up_to_date: bool = False):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
-        product = svc.query_product_by_id(id)
+        product = svc.query_product_by_id(id, update_db=up_to_date)
     if not product:
         logger.error(f"Product with id {id} not found")
         raise HTTPException(status_code=404, detail=f"Product with id {id} not found")
@@ -42,6 +43,7 @@ def update_product_barcode(product_id: int, barcode: str):
             raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
     return product
 
+
 @barcode.put("/pid/{product_id}/weight/{weight}")
 def update_product_weight(product_id: int, weight: float):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
@@ -53,6 +55,7 @@ def update_product_weight(product_id: int, weight: float):
             logger.error(f"Product with id {product_id} not found")
             raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
     return product
+
 
 @barcode.put("/pid/{product_id}/image")
 def update_product_image(product_id: int, image: UploadFile = File(...)):
@@ -74,11 +77,14 @@ def get_quants_by_product_id(product_id: int):
         quants = svc.query_quants_by_product_id(product_id)
     return quants
 
+
 @barcode.put("/qid/{quant_id}/qty/{quantity}", response_model=bool)
 def request_quant_by_id(quant_id: int, quantity: int):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
         success = svc.request_quant_by_id(quant_id, quantity)
     return success
+
+
 @barcode.put("/qid/{quant_id}/relocation/to_location/{barcode}", response_model=bool)
 def quant_relocation_by_id(quant_id: int, barcode: str):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
@@ -94,6 +100,7 @@ def quant_relocation_by_id(quant_id: int, barcode: str):
 def update_inventory_by_id(inventory_id, data):
     pass
 
+
 def delete_inventory_by_id(inventory_id):
     pass
 
@@ -103,6 +110,7 @@ def get_packaging_by_product_id(product_id: int):
     with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
         packaging = svc.query_packaging_by_product_ids(product_id)
     return packaging
+
 
 @barcode.put("/pkid/{packaging_id}/barcode/{barcode}", response_model=ProductPackaging)
 def update_packaging_barcode_by_id(packaging_id: int, barcode: str):
@@ -115,6 +123,7 @@ def update_packaging_barcode_by_id(packaging_id: int, barcode: str):
             logger.error(f"Packaging with id {packaging_id} not found")
             raise HTTPException(status_code=404, detail=f"Packaging with id {packaging_id} not found")
     return packaging
+
 
 @barcode.put("/pkid/{packaging_id}/quantity/{quantity}", response_model=ProductPackaging)
 def update_packaging_quantity_by_id(packaging_id: int, quantity: int):
@@ -129,7 +138,25 @@ def update_packaging_quantity_by_id(packaging_id: int, quantity: int):
     return packaging
 
 
-@barcode.put("/pid/{product_id}/putaway/to_location/{dest_location_id}", response_model=bool)
-def upsert_putaway_location(product_id: str, dest_location_id: int):
-    # src_location_id =   # WH/Stock
-    pass
+@barcode.get("/pid/{product_id}/putaway_rules", response_model=list[PutawayRule])
+def query_putaway_rules_by_product_id(product_id: int):
+    with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
+        rules = svc.query_putaway_rules_by_product_id(product_id)
+    return rules
+
+
+@barcode.put("/pid/{product_id}/putaway/to_location/{dest_barcode}", response_model=PutawayRule)
+def upsert_putaway_rule(product_id: int, dest_barcode: str):
+    src_location_id = 8
+    with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+        loca_data = svc.query_location_by_barcode(dest_barcode)
+        if not loca_data:
+            logger.error(f"Location with barcode {dest_barcode} not found")
+            raise HTTPException(status_code=404, detail=f"Location with barcode {dest_barcode} not found")
+        dest_location_id = loca_data['data']['id']
+        rule_to_update = PutawayRuleUpdate(
+            location_in_id=src_location_id,
+            location_out_id=dest_location_id
+        )
+        rule_ = svc.upsert_putaway_rule_by_product_id(product_id, rule_to_update)
+    return rule_

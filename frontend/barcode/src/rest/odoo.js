@@ -7,8 +7,13 @@ const baseUrl = `http://${domain}:${port}`;
 const apiUrl = `http://${domain}:${port}/api/v1`;
 const apiScannerUrl = `http://${domain}:${port}/api/v1/scanner`;
 
-export function fetch_all_products_brief(kw) {
-    return get_method(apiScannerUrl + '/product/kw/' + kw)
+export function fetch_all_products_brief({'kw': kw, 
+    'page': page, 
+    'page_size': page_size,     
+}) {
+    const limit = page_size;
+    const offset = (page - 0) * limit;
+    return get_method(apiScannerUrl + `/product/kw/${kw}?offset=${offset}&limit=${limit}`)
        .then(response => {            
             if (response.status === 200 ) {
                 response.data.forEach(product => {
@@ -19,8 +24,8 @@ export function fetch_all_products_brief(kw) {
        })
 }
 
-export function fetch_product_by_id(id) {
-    return get_method(apiScannerUrl + '/product/pid/' + id)
+export function fetch_product_by_id({product_id, up_to_date}) {
+    return get_method(apiScannerUrl + '/product/pid/' + product_id + '?up_to_date=' + up_to_date)
        .then(response => {
             if (response.status === 200 ) {
                 response.data.image_url = `${baseUrl}${response.data.image_url}`;
@@ -69,6 +74,14 @@ export function fetch_packaging_by_product_id(id) {
 
 export function update_packaging_barcode(pack_id, barcode) {    
     return put_method(apiScannerUrl + `/product/pkid/${pack_id}/barcode/${barcode}`, {});
+}
+
+export function fetch_putaway_rules(product_id) {
+    return get_method(apiScannerUrl + `/product/pid/${product_id}/putaway_rules`);
+}
+
+export function update_putaway_rule(product_id, dest_barcode) {
+    return put_method(apiScannerUrl + `/product/pid/${product_id}/putaway/to_location/${dest_barcode}`, {});
 }
 
 export { baseUrl, apiScannerUrl };
