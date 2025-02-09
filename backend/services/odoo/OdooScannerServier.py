@@ -8,8 +8,8 @@ from core.log import logger
 from schemas.barcode import ProductFullInfo, ProductUpdate, Quant, ProductPackaging, ProductPackagingUpdate, \
     PutawayRule, PutawayRuleUpdate
 from services.odoo import OdooProductService, OdooInventoryService
-from services.odoo.OdooOrderService import OdooProductPackagingService
-
+from services.odoo.OdooOrderService import OdooProductPackagingService, OdooOrderService
+import random
 
 class OdooScannerService:
 
@@ -22,18 +22,21 @@ class OdooScannerService:
         self.mdb_location = self.svc_inventory.mdb_location
         self.svc_packaging = OdooProductPackagingService(key_index, login=False)
         self.mdb_packaging = self.svc_packaging.mdb_product_packaging
+        self.svc_order = OdooOrderService(key_index, login=False)
         self.api = self.svc_product.api
 
     def __enter__(self):
         self.svc_product.__enter__()
         self.svc_inventory.__enter__()
         self.svc_packaging.__enter__()
+        self.svc_order.__enter__()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.svc_product.__exit__(exc_type, exc_val, exc_tb)
         self.svc_inventory.__exit__(exc_type, exc_val, exc_tb)
         self.svc_packaging.__exit__(exc_type, exc_val, exc_tb)
+        self.svc_order.__exit__(exc_type, exc_val, exc_tb)
 
 
     def __to_barcode_product_full_info(self, product_odoo) -> ProductFullInfo:
@@ -69,6 +72,11 @@ class OdooScannerService:
         product_ids = [p.product_id for p in packagings]
         products_data += self.mdb_product.query_product_by_ids(product_ids)
 
+        # Query ordered products
+        if keyword == "%orderline%":
+            ordered_products = self.fetch_ordered_products(limit=limit)
+            products_data = ordered_products
+
         products = []
         for pdata in products_data:
             product = pdata.get('data', "")
@@ -79,9 +87,20 @@ class OdooScannerService:
             else:
                 product.image_url = ""
             products.append(product)
+        products = [p for p in products if p.active == True]
         products.sort(key=lambda x: x.sku)
-        products = products[:50]
         return products
+
+    def fetch_ordered_products(self, limit=50):
+        api = self.svc_order.api.login()
+        pids = api.fetch_ordered_product_ids()
+        if not pids:
+            return []
+        product_data = self.mdb_product.query_product_by_ids(pids)
+        product_data = [p for p in product_data if p['data']['active'] == True]
+        product_data = random.sample(product_data, limit)
+        return product_data
+
 
     def query_product_by_id(self, id, update_db=False) -> ProductFullInfo:
         if update_db:

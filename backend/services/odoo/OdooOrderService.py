@@ -187,8 +187,8 @@ class OdooOrderService(OdooOrderServiceBase):
 
     def __init__(self, key_index, *args, **kwargs):
         super().__init__(key_index, *args, **kwargs)
-        self.svc_product = OdooProductService(key_index, login=False)
-        self.svc_contact = OdooContactService(key_index, login=False)
+        self.svc_product = OdooProductService(key_index, *args, **kwargs)
+        self.svc_contact = OdooContactService(key_index, *args, **kwargs)
 
     def __enter__(self):
         super().__enter__()

@@ -454,7 +454,6 @@ class OdooContactServiceBase:
 class OdooOrderServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.key_index = key_index
         self.mdb_order = None
         if key_index is not None:

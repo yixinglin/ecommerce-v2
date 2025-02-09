@@ -1,6 +1,7 @@
 from core.log import logger
 from .base import OdooAPIKey, OdooAPIBase
 
+
 class OdooOrderAPI(OdooAPIBase):
 
     def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
@@ -9,6 +10,8 @@ class OdooOrderAPI(OdooAPIBase):
     def fetch_order_ids(self):
         pass
 
+    def fetch_orderline_ids(self):
+        pass
 
     # def make_quot_data():
     #     quotation_data = {
@@ -30,6 +33,17 @@ class OdooOrderAPI(OdooAPIBase):
     #     ]
     #     quotation_data['order_line'] = order_line_data
     #     return quotation_data
+
+    def fetch_ordered_product_ids(self):
+        logger.info("Fetching ordered product ids")
+        domain = [('state', '=', 'sale'), ('product_type', '=', 'product')]
+        fields = {
+            "fields": ['product_id']
+        }
+        res = self.client.search_read('sale.order.line', [domain], fields)
+        product_ids = [item['product_id'][0] for item in res]
+        product_ids = list(set(product_ids))
+        return product_ids
 
     def create_order(self, quot_data):
         logger.info(f"Creating order with data: {quot_data}")

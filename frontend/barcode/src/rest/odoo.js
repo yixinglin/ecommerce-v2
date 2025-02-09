@@ -11,9 +11,10 @@ export function fetch_all_products_brief({'kw': kw,
     'page': page, 
     'page_size': page_size,     
 }) {
+    const keyword = encodeURIComponent(kw);
     const limit = page_size;
     const offset = (page - 0) * limit;
-    return get_method(apiScannerUrl + `/product/kw/${kw}?offset=${offset}&limit=${limit}`)
+    return get_method(apiScannerUrl + `/product/kw/${keyword}?offset=${offset}&limit=${limit}`)
        .then(response => {            
             if (response.status === 200 ) {
                 response.data.forEach(product => {
