@@ -15,32 +15,64 @@ from models import Address
 from models.orders import StandardProduct
 from models.warehouse import Quant, PutawayRule
 import re
+import random
 
 from utils import stringutils
 
 
-def need_to_fetch(query_mothed, id, current_write_date: str):
+# def need_to_fetch(query_mothed, id, current_write_date: str):
+#     """
+#     Check if the record in DB needs to be fetched again.
+#     The record needs to be fetched if it is not found in DB or
+#     if the last write date is different from the current write date.
+#     :param query_mothed: A callback function of a query method of the DB
+#     :param id: The id of the record in Odoo
+#     :param current_write_date: The current write date of the record in Odoo
+#     :return:  True if the record needs to be fetched, False otherwise
+#     """
+#     is_readom_fetch = random.random() < 0.01
+#     # 0.01 is the probability of fetching the record from Odoo API
+#
+#     item = query_mothed(id)
+#     if item is None or is_readom_fetch:
+#         # Do not find the record in DB, need to fetch it
+#         if is_readom_fetch:
+#             logger.info(f"Fetching randomly with id = {id}...")
+#         else:
+#             logger.info(f"Fetching new data with id = {id}...")
+#         return True
+#     else:
+#         last_write_date = item['data']['write_date']
+#         if last_write_date != current_write_date:
+#             # The record in DB is outdated, need to fetch it
+#             return True
+#         else:
+#             # The record in DB is up-to-date, no need to fetch it
+#             return False
+
+
+def need_to_fetch(query_method, record_id, current_write_date: str):
     """
-    Check if the record in DB needs to be fetched again.
-    The record needs to be fetched if it is not found in DB or
-    if the last write date is different from the current write date.
-    :param query_mothed: A callback function of a query method of the DB
-    :param id: The id of the record in Odoo
-    :param current_write_date: The current write date of the record in Odoo
-    :return:  True if the record needs to be fetched, False otherwise
+    判断是否需要从 Odoo 再次获取数据：
+      1. 在数据库中没有查到该记录时；
+      2. 随机抽取到一定概率时（此处为 1%）；
+      3. 数据库中的 write_date 与当前 Odoo 的 write_date 不一致时。
+
+    :param query_method: 数据库查询回调函数
+    :param record_id:    Odoo 记录的 ID
+    :param current_write_date: Odoo 中当前记录的 write_date
+    :return: 需要抓取则返回 True，否则返回 False
     """
-    item = query_mothed(id)
-    if item is None:
-        # Do not find the record in DB, need to fetch it
+    is_random_fetch = (random.random() < 0.01)
+    item = query_method(record_id)
+
+    # 随机概率或数据库中不存在该记录：直接需要再次抓取
+    if is_random_fetch or not item:
+        logger.info(f"Fetching {'randomly' if is_random_fetch else 'new data'} with id = {record_id}...")
         return True
-    else:
-        last_write_date = item['data']['write_date']
-        if last_write_date != current_write_date:
-            # The record in DB is outdated, need to fetch it
-            return True
-        else:
-            # The record in DB is up-to-date, no need to fetch it
-            return False
+
+    # 数据库中已经有记录，但 write_date 不一致，需要更新
+    return item['data']['write_date'] != current_write_date
 
 
 def save_record(fetch_object_ids, fetch_write_date,
@@ -89,7 +121,6 @@ class OdooInventoryServiceBase:
         self.mdb_putaway_rule = OdooPutawayRuleMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
-            logger.info(f"Using Odoo API Key: {api_key.alias}")
             self.api = OdooInventoryAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
@@ -247,7 +278,6 @@ class OdooProductServiceBase:
         self.mdb_product = OdooProductMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
-            logger.info(f"Using Odoo API Key: {api_key.alias}")
             self.api = OdooProductAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
@@ -347,7 +377,6 @@ class OdooProductPackagingServiceBase:
         self.mdb_product_packaging = OdooPackagingMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
-            logger.info(f"Using Odoo API Key: {api_key.alias}")
             self.api = OdooProductPackagingAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
@@ -389,7 +418,6 @@ class OdooContactServiceBase:
         self.mdb_contact = OdooContactMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
-            logger.info(f"Using Odoo API Key: {api_key.alias}")
             self.api = OdooContactAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()
@@ -458,7 +486,6 @@ class OdooOrderServiceBase:
         self.mdb_order = None
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
-            logger.info(f"Using Odoo API Key: {api_key.alias}")
             self.api = OdooOrderAPI(api_key, **kwargs)
             self.alias = self.api.get_alias()
             self.username = self.api.get_username()

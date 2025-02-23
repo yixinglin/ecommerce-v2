@@ -1,5 +1,5 @@
 import base64
-from typing import Union
+from typing import Union, List, Dict
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -160,3 +160,10 @@ def upsert_putaway_rule(product_id: int, dest_barcode: str):
         )
         rule_ = svc.upsert_putaway_rule_by_product_id(product_id, rule_to_update)
     return rule_
+
+
+@barcode.get("/delivery_order/{order_number}", response_model=List[Dict])
+def query_delivery_order_by_order_number(order_number: str):
+    with OdooScannerService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=False) as svc:
+        order = svc.query_delivery_order_by_order_number(order_number)
+    return order

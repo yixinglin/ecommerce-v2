@@ -26,7 +26,7 @@ def create_odoo_order(order: VipOrder=
     logger.info(f"Creating Order: {order.dict()}")
     try:
         with OdooOrderService(key_index=settings.ODOO_ACCESS_KEY_INDEX) as svc:
-            ans = svc.create_order(order)
+            ans = svc.create_sales_order(order)
     except RuntimeError as e:
         logger.error(f"Order Creation Failed: {e}")
         raise RuntimeError(e)

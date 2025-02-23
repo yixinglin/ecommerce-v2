@@ -45,6 +45,17 @@ class OdooOrderAPI(OdooAPIBase):
         product_ids = list(set(product_ids))
         return product_ids
 
-    def create_order(self, quot_data):
+    def create_sales_order(self, quot_data):
         logger.info(f"Creating order with data: {quot_data}")
         self.client.create('sale.order', [quot_data])
+
+    def fetch_delivery_order(self, order_number):
+        domain = [('picking_type_id', '=', 2),
+                  ('state', '!=', ['cancel']),
+                  ('name', 'ilike', order_number),
+                  ('is_return_picking', '=', False)]
+        fields = {
+            "fields": ['name', 'origin', 'partner_id', 'create_date', ]
+        }
+        orders = self.client.search_read('stock.picking', [domain], fields)
+        return orders

@@ -213,7 +213,7 @@ class OdooOrderService(OdooOrderServiceBase):
             n_pack = 1
         return base, n_pack
 
-    def create_order(self, order: VipOrder):
+    def create_sales_order(self, order: VipOrder):
         order_line_data = []
         for line in order.orderLines:
             code = line.sellerSKU
@@ -253,7 +253,7 @@ class OdooOrderService(OdooOrderServiceBase):
 
         logger.info(f"Creating order: {quot_data}")
         if not settings.DEBUG or settings.ODOO_ACCESS_KEY_INDEX == 0:
-            self.api.create_order(quot_data)
+            self.api.create_sales_order(quot_data)
             logger.info(f"Order created")
         else:
             logger.info(f"Debug mode, not creating order")
@@ -265,6 +265,10 @@ class OdooOrderService(OdooOrderServiceBase):
 
         return ans
 
-
+    def query_delivery_order_by_order_number(self, order_number):
+        order = self.api.fetch_delivery_order(order_number)
+        if not order:
+            return None
+        return order
 
 

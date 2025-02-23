@@ -14,6 +14,7 @@ import random
 class OdooScannerService:
 
     def __init__(self, key_index, login=True, *args, **kwargs):
+        self.key_index = key_index
         self.svc_product = OdooProductService(key_index, login=login)
         self.mdb_product = self.svc_product.mdb_product
         self.svc_inventory = OdooInventoryService(key_index, login=False)
@@ -339,3 +340,7 @@ class OdooScannerService:
         return self.__to_putaway_rule(rule)
 
 
+    def query_delivery_order_by_order_number(self, order_number: str): # -> List[DeliveryOrder]
+        with OdooOrderService(self.key_index, login=True) as svc:
+            order_data = svc.api.fetch_delivery_order(order_number)
+        return order_data

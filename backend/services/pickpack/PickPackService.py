@@ -294,8 +294,6 @@ class PickPackService:
         TIME_TO_LIVE_SEC = 60 * 60 * 24 * 14  # 14 day
         man.set_json(event.batchId, event.dict(), time_to_live_sec=TIME_TO_LIVE_SEC)
 
-
-
 class AmazonPickPackService(PickPackService):
 
     def __init__(self, key_index: int = 0, marketplace: Marketplaces = Marketplaces.DE):

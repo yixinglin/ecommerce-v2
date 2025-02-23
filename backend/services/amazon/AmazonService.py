@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from random import random
 from typing import List, Dict, Set
 from sp_api.base import Marketplaces, SellingApiRequestThrottledException
-from core.db import OrderQueryParams
+from core.db import OrderQueryParams, RedisDataManager
 from core.exceptions import DimensionNotFoundException
 from core.log import logger
 from crud.amazon import AmazonOrderMongoDB, AmazonCatalogMongoDB
@@ -23,8 +23,6 @@ AmazonService
     - AmazonCatalogService
 
 """
-
-
 
 # https://developer-docs.amazon.com/sp-api/docs/orders-api-v0-reference#updateshipmentstatus
 
@@ -58,7 +56,6 @@ class AmazonOrderService:
         self.fulfillment_channels = ["MFN"]
         if key_index is not None:
             api_key = AmazonSpAPIKey.from_json(key_index)
-            logger.info(f"Using API key {api_key.account_id} for Amazon marketplace {marketplace.name}")
             self.api = AmazonOrderAPI(api_key=api_key, marketplace=marketplace)
             self.account_id = api_key.account_id
             self.salesChannel = self.api.salesChannel
@@ -487,6 +484,7 @@ class AmazonCatalogService:
         asin_set = set([item['_id'] for item in items])
         return list(asin_set)
 
+
 class AmazonService:
 
     def __init__(self, key_index: int,
@@ -610,7 +608,7 @@ class AmazonService:
             orders = orders_ if format_ == "json" or format_ == "csv" else AmazonBulkPackSlipDE(
                 pack_slip_page).extract_all(
                 format=format_)
-            proc.make_page_map()     # Cache packing slip data to Redis for 12 hours.
+            proc.make_page_map()  # Cache packing slip data to Redis for 12 hours.
             for order_ in orders_:
                 self.order_service.add_shipping_address_to_order(order_.orderId, order_.shipAddress)
         else:
@@ -666,7 +664,6 @@ class AmazonService:
             raise RuntimeError(f"Catalog item [{asin}] not found in Database.")
         attribute_set = item['catalogItem']['AttributeSets'][0]
 
-
         if 'PackageDimensions' not in attribute_set and 'ItemDimensions' not in attribute_set:
             raise DimensionNotFoundException(f"Asin [{asin}] has no PackageDimensions or ItemDimensions")
 
@@ -683,14 +680,14 @@ class AmazonService:
         weight = pdim['Weight'] if "Weight" in pdim else zero_pound
 
         dim = dict()
-        if length["Units"] == "inches": # Inches to millimeters
+        if length["Units"] == "inches":  # Inches to millimeters
             dim["length"] = round(length["value"] * 25.4)
             dim["width"] = round(width["value"] * 25.4)
             dim["height"] = round(height["value"] * 25.4)
         else:
             raise ValueError(f"Unsupported unit [{length['Units']}]")
 
-        if weight["Units"] == "pounds": # pounds to grams
+        if weight["Units"] == "pounds":  # pounds to grams
             dim["weight"] = round(weight["value"] * 453.592)
         else:
             raise ValueError(f"Unsupported unit [{weight['Units']}]")
@@ -706,3 +703,77 @@ class AmazonService:
         attribute_set = CatalogAttributes(**attr)
         return attribute_set
 
+
+class FbaService:
+
+    def __init__(self):
+        self.redis_manager = RedisDataManager()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+    def fba_packing_rule(self, shipment_qty, sku, ctn_capacity) -> Dict:
+        """
+        计算FBA装箱规则
+        :param shipment_qty: 发货数量
+        :param sku: SKU名称
+        :param ctn_capacity: 大箱容量
+        :return: 装箱描述，空间利用率数组
+        """
+        full_ctns = shipment_qty // ctn_capacity  # 计算完整大箱数量
+        remainder = shipment_qty % ctn_capacity  # 计算余数
+
+        packing_description = []
+        utilization_rates = []
+
+        # 记录完整大箱的装箱情况
+        if full_ctns > 0:
+            packing_description.append(f"{full_ctns * ctn_capacity}x ({sku}) = {full_ctns} Ctn")
+            utilization_rates.extend([100] * full_ctns)
+
+        # 处理余数部分
+        if remainder > 0:
+            if remainder >= 0.5 * ctn_capacity:  # 超过50%时，仍然使用大箱
+                packing_description.append(f"{remainder}x ({sku}) = 1 Ctn")
+                utilization_rates.append(round((remainder / ctn_capacity) * 100, 2))
+            else:  # 低于50%时，使用小箱
+                packing_description.append(f"{remainder}x ({sku}) = 1 Ctn-S")
+                utilization_rates.append(round((remainder / (0.5 * ctn_capacity)) * 100, 1))
+        return {
+            "desc": packing_description,
+            "utiliz_rates": utilization_rates
+        }
+
+    def cache_fba_max_ctn_capacity(self, sku, ctn_capacity):
+        """
+        缓存FBA装箱规则
+        :param sku: SKU名称
+        :param ctn_capacity: 大箱容量
+        :return: 装箱描述，空间利用率数组
+        """
+        mapping = {
+            "sku": sku,
+            "ctn_capacity": ctn_capacity
+        }
+        three_months = 3 * 30 * 24 * 60 * 60
+        self.redis_manager.set_json(f"FBA_MAX_CTN:{sku}", mapping, three_months)
+
+    def get_fba_max_ctn_capacity(self, sku) -> dict:
+        """
+        获取FBA最大箱容量
+        :param sku: SKU名称
+        :return: 最大箱容量
+        """
+        return self.redis_manager.get_json(f"FBA_MAX_CTN:{sku}")
+
+
+    def delete_fba_max_ctn_capacity(self, sku):
+        """
+        删除FBA最大箱容量缓存
+        :param sku: SKU名称
+        :return: None
+        """
+        self.redis_manager.delete(f"FBA_MAX_CTN:{sku}")

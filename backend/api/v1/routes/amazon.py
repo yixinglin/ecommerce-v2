@@ -12,7 +12,7 @@ from external.amazon.base import AmazonSpAPIKey
 from schemas import ResponseSuccess
 from schemas.amazon import DailySalesCountVO, PackSlipRequestBody
 from schemas.basic import BasicResponse, ResponseNotFound
-from services.amazon.AmazonService import AmazonService
+from services.amazon.AmazonService import AmazonService, FbaService
 
 amz_order = APIRouter(tags=['AMAZON Services'])
 
@@ -167,3 +167,19 @@ def download_amazon_pack_slip_redis(
     return content
 
 
+@amz_order.get("/orders/fba/pack-rule",
+               summary="Get FBA packing rule",
+               response_model=BasicResponse[dict])
+def calc_fba_packing_rule(qty: int, sku: str, max_capacity: int):
+    with FbaService() as fba_svc:
+        rule = fba_svc.fba_packing_rule(qty, sku, max_capacity)
+        fba_svc.cache_fba_max_ctn_capacity(sku, max_capacity)
+    return ResponseSuccess(data=rule)
+
+@amz_order.get("/orders/fba/max-ctn-capacity/{sku}",
+               summary="Get FBA max container capacity",
+               response_model=BasicResponse[dict])
+def get_fba_max_ctn_capacity(sku: str):
+    with FbaService() as fba_svc:
+        max_capacity = fba_svc.get_fba_max_ctn_capacity(sku)
+    return ResponseSuccess(data=max_capacity)

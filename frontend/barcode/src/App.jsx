@@ -15,7 +15,7 @@ function App() {
     <>
     <Router>
       <Routes>
-        <Route path="/" element={<ProductListView />} />
+        <Route path="/products" element={<ProductListView />} />
         <Route path="/product/:id" element={<ProductView />} /> {/* 动态路由 */}
         <Route path="/stock/:product_id" element={<StockListView />} />
         <Route path="/product/:product_id/packaging" element={<ProductPackagingListView />} />
