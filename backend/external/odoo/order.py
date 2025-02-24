@@ -52,10 +52,10 @@ class OdooOrderAPI(OdooAPIBase):
     def fetch_delivery_order(self, order_number):
         domain = [('picking_type_id', '=', 2),
                   ('state', '!=', ['cancel']),
-                  ('name', 'ilike', order_number),
+                  ('name', '=', order_number),
                   ('is_return_picking', '=', False)]
-        fields = {
-            "fields": ['name', 'origin', 'partner_id', 'create_date', ]
-        }
-        orders = self.client.search_read('stock.picking', [domain], fields)
+        # fields = {
+        #     "fields": ['name', 'complete_name', 'origin', 'partner_id', 'create_date', ]
+        # }
+        orders = self.client.search_read('stock.picking', [domain])
         return orders

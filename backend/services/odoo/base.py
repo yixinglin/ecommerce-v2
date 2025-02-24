@@ -76,7 +76,7 @@ def need_to_fetch(query_method, record_id, current_write_date: str):
 
 
 def save_record(fetch_object_ids, fetch_write_date,
-                query_object_by_id, object_name, save_object):
+                query_object_by_id, object_name, save_object, include_inactive=False):
     """
     Save records from Odoo API to MongoDB if the record has changed since last fetch.
 
@@ -86,7 +86,11 @@ def save_record(fetch_object_ids, fetch_write_date,
     :param object_name: The name of the object to be saved
     :param save_object: A callback function of a save method of the MongoDB
     """
-    object_ids = fetch_object_ids()  # Fetch object ids from Odoo API
+    if include_inactive:
+        domain = [("active", "in", [True, False])]
+    else:
+        domain = []
+    object_ids = fetch_object_ids(domain)  # Fetch object ids from Odoo API
     write_dates = fetch_write_date(object_ids)  # Fetch write dates from Odoo API
     dic_write_dates = {item['id']: item['write_date']
                        for item in write_dates}

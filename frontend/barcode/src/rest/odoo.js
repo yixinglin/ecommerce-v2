@@ -1,11 +1,8 @@
 import { get_method, put_method, put_method_form } from './common';
+import { baseUrl, apiOdooUrl, apiScannerUrl } from './common';
 
-const domain = import.meta.env.VITE_ECM_API_URL;
-const port = import.meta.env.VITE_ECM_API_PORT;
 
-const baseUrl = `http://${domain}:${port}`;
-const apiUrl = `http://${domain}:${port}/api/v1`;
-const apiScannerUrl = `http://${domain}:${port}/api/v1/scanner`;
+// Scanner api
 
 export function fetch_all_products_brief({'kw': kw, 
     'page': page, 
@@ -83,6 +80,12 @@ export function fetch_putaway_rules(product_id) {
 
 export function update_putaway_rule(product_id, dest_barcode) {
     return put_method(apiScannerUrl + `/product/pid/${product_id}/putaway/to_location/${dest_barcode}`, {});
+}
+
+
+// Odoo API
+export function fetch_delivery_order_by_order_number(order_number) {
+    return get_method(apiOdooUrl + `/inventory/delivery_order/${order_number}`);
 }
 
 export { baseUrl, apiScannerUrl };

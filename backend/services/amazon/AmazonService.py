@@ -769,7 +769,6 @@ class FbaService:
         """
         return self.redis_manager.get_json(f"FBA_MAX_CTN:{sku}")
 
-
     def delete_fba_max_ctn_capacity(self, sku):
         """
         删除FBA最大箱容量缓存

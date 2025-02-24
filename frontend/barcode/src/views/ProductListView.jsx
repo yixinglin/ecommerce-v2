@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Input, Spin, Button } from "antd";
 import { fetch_all_products_brief } from "../rest/odoo.js";
+import { SearchOutlined, ClearOutlined } from "@ant-design/icons";
 import ProductList from "../components/ProductList.jsx";
 import "./ProductListView.css";
 
@@ -102,7 +103,9 @@ function ProductListView() {
   };
 
   return (
-    <div className="product-list-container">
+    <>      
+      <div className="product-list-container">
+
       {/* 固定顶部的搜索框 */}
       <div className="product-list-header">
         <Input
@@ -115,10 +118,10 @@ function ProductListView() {
           className="product-list-search"
         />
         <Button onClick={() => searchProducts(searchTerm)} type="primary">
-          Search
+          <SearchOutlined />
         </Button>
         <Button onClick={clearSearch} type="default">
-          Clear
+          <ClearOutlined />
         </Button>
       </div>
 
@@ -132,6 +135,8 @@ function ProductListView() {
       </div>
       <p style={{textAlign: "left", fontSize: "8px", color: "gray"}}>%orderline%</p>
     </div>    
+    </>
+
   );
 }
 

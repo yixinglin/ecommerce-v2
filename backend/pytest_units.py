@@ -16,5 +16,5 @@ def test_odoo_units():
     unittest.TextTestRunner(verbosity=2).run(suite)
 
 if __name__ == '__main__':
-    test_amazon_units()
-    # test_odoo_units()
+    # test_amazon_units()
+    test_odoo_units()

@@ -1,12 +1,14 @@
 /* 页面整体布局 */
 .product-view-container {
     height: 100vh;
+    max-width: 600px;
     display: flex;
     flex-direction: column;
-    justify-content: top;
+    /* justify-content: top; */
     align-items: center;
+    margin: auto; /* 居中 */
     background-color: #f9f9f9;
-    padding: 16px;
+    padding: 10px;
   }
   
   /* 主要卡片样式 */
@@ -34,8 +36,8 @@
   
   /* 产品图片 */
   .product-image {
-    width: 300px;
-    height: 300px;
+    width: 280px;
+    height: 280px;
     object-fit: contain;
     display: block;
   }

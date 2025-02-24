@@ -7,7 +7,7 @@ from models.orders import StandardProduct
 from schemas.vip import VipOrder
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase)
 from .base import save_record, OdooOrderServiceBase
-
+import utils.address as addr_utils
 
 class OdooProductService(OdooProductServiceBase):
 
@@ -21,7 +21,8 @@ class OdooProductService(OdooProductServiceBase):
         save_object = self.save_product_template
         object_name = 'product.template'
         save_record(fetch_object_ids, fetch_write_date,
-                    query_object_by_id, object_name, save_object)
+                    query_object_by_id, object_name, save_object,
+                    include_inactive=True)
 
     def save_all_products(self):
         fetch_object_ids = self.api.fetch_product_ids
@@ -30,7 +31,8 @@ class OdooProductService(OdooProductServiceBase):
         save_object = self.save_product
         object_name = 'product.product'
         save_record(fetch_object_ids, fetch_write_date,
-                    query_object_by_id, object_name, save_object)
+                    query_object_by_id, object_name, save_object,
+                    include_inactive=True)
 
     def query_all_product_templates(self, offset, limit):
         # Query all products from DB
@@ -97,7 +99,7 @@ class OdooProductPackagingService(OdooProductPackagingServiceBase):
     def query_all_product_packaging(self, offset, limit):
         # Query all product packaging from DB
         filter_ = {"alias": self.api.get_alias()}
-        data = self.mdb_product_packaging.query_packaging(offset=offset, limit=limit, filter=filter_)
+        data = self.mdb_product_packaging.query_packagings(offset=offset, limit=limit, filter=filter_)
         packagings = []
         for packaging in data:
             # To standard product packaging object
@@ -132,7 +134,8 @@ class OdooContactService(OdooContactServiceBase):
         save_object = self.save_contact
         object_name = 'res.partner'
         save_record(fetch_object_ids, fetch_write_date,
-                    query_object_by_id, object_name, save_object)
+                    query_object_by_id, object_name, save_object,
+                    include_inactive=True)
 
     def query_all_contacts(self, offset, limit):
         # Query all contacts from DB
@@ -174,7 +177,15 @@ class OdooContactService(OdooContactServiceBase):
 
     def query_contact_by_company_name(self, company_name):
         regex = re.compile(f"{company_name.strip()}", re.IGNORECASE)
-        filter_ = {"alias": self.api.get_alias(), "data.name": regex}
+        filter_ = {"alias": self.api.get_alias(), "data.name": regex, "data.active": True}
+        data = self.mdb_contact.query_contacts(filter=filter_)
+        if len(data) == 0:
+            return None
+        contact = data[0]
+        return contact.get('data', "")
+
+    def query_contact_by_id(self, id):
+        filter_ = {"alias": self.api.get_alias(), "data.id": id}
         data = self.mdb_contact.query_contacts(filter=filter_)
         if len(data) == 0:
             return None
@@ -266,9 +277,88 @@ class OdooOrderService(OdooOrderServiceBase):
         return ans
 
     def query_delivery_order_by_order_number(self, order_number):
-        order = self.api.fetch_delivery_order(order_number)
-        if not order:
-            return None
-        return order
+        self.api.login()
+        orders = self.api.fetch_delivery_order(order_number)
+        if not orders:
+            logger.error(f"Delivery order {order_number} not found")
+            raise RuntimeError(f"Delivery order {order_number} not found")
+        order = orders[0]
+        partner_id = order['partner_id'][0]
+        partner_name = order['partner_id'][1]
+        contact = self.svc_contact.query_contact_by_id(partner_id)
+        if contact is not None:
+            logger.info(f"Found contact: {contact['complete_name']}")
+            # name1 = contact['name']
+            address = self.convert_odoo_address_to_standard(contact)
+            address = address.dict()
+
+        origin = order['origin']
+        result = {}
+        result['references'] = [order_number]
+        # if origin:
+        #     result['references'].append(origin)
+        result['create_date'] = order['create_date']
+        result['consignee'] = address
+        result['parcels'] = [{"weight": 1}]
+        return result
+
+    def convert_odoo_address_to_standard(self, odoo_address) -> Address:
+        false_to_str = lambda x: x if x else ""
+        name = false_to_str(odoo_address.get('complete_name', ""))  # complete_name
+        street = false_to_str(odoo_address.get('street', ""))  # street
+        street2 = false_to_str(odoo_address.get('street2', ""))  # street2
+        zip_ = odoo_address.get('zip', "")  # zip
+        city = odoo_address.get('city', "")  # city
+        state = ""  # state
+        country_code = odoo_address.get('country_code', "")
+        email = false_to_str(odoo_address.get('email', ""))  # email
+        phone = false_to_str(odoo_address.get('phone', ""))  # phone
+        mobile = false_to_str(odoo_address.get('mobile', ""))  # mobile
+        is_company = odoo_address.get('is_company', False)  # is_company
+        lang = false_to_str(odoo_address.get('lang', ""))  # lang
+
+        if country_code.lower() == "de":
+            zip_ = zip_.upper().replace("DE-", "")
+
+        country_code_white_list = ["DE"]
+        if not country_code or country_code.upper() not in country_code_white_list:
+            logger.error(f"Failed to identify German street: {street}, {street2}. Customer: {name}")
+            raise RuntimeError(f"Do not support address from this country: {country_code}. Customer: {name}")
+
+        if street == "" and street2 == "":
+            logger.error(f"Address is empty. Customer: {name}")
+            raise RuntimeError(f"Address is empty. Customer: {name}")
+
+        split_1 = addr_utils.identify_german_street(street)
+        split_2 = addr_utils.identify_german_street(street2)
+        if split_1 is not None:
+            pass
+        elif split_2 is not None:
+            street, street2 = street2, street
+        else:
+            logger.error(f"Failed to identify German street: {street}, {street2}. Customer: {name}")
+            raise RuntimeError(f"Failed to identify German street: {street}, {street2}. Customer: {name}")
+
+        # Note: name(company), street(street), street2(c/o)
+        addr = {
+            "name1": name,
+            "name2": street2,
+            "name3": "",
+            "street1": street,
+            "zipCode": zip_,
+            "city": city,
+            "province": "",
+            "country": country_code.upper(),
+            "email": email,
+            "telephone": phone,
+            "mobile": mobile,
+        }
+
+        return Address(**addr)
+
+
+
+
+
 
 

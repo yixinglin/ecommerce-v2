@@ -75,6 +75,7 @@ def identify_german_street(address):
     address = re.sub(pattern, r'\1_\2', address)
     pattern = r"([\d]+)\s([A-Za-z])"  # e.g. "2 A"  to "2A"
     address = re.sub(pattern, r'\1\2', address)
+    address = address.strip()
 
     pattern = r'^([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß\s\._]*)\s*((?:\d{1,3}[a-zA-Z]?(?:[-/\s]\d{1,3}[a-zA-Z]?)+|\d{1,3}[a-zA-Z]?))$'
     # 匹配地址

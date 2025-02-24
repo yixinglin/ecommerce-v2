@@ -11,7 +11,7 @@ from core.db import RedisDataManager
 from external.amazon.base import AmazonSpAPIKey
 from schemas import ResponseSuccess
 from schemas.amazon import DailySalesCountVO, PackSlipRequestBody
-from schemas.basic import BasicResponse, ResponseNotFound
+from schemas.basic import BasicResponse, ResponseNotFound, CodeEnum, ResponseFailure
 from services.amazon.AmazonService import AmazonService, FbaService
 
 amz_order = APIRouter(tags=['AMAZON Services'])
@@ -182,4 +182,6 @@ def calc_fba_packing_rule(qty: int, sku: str, max_capacity: int):
 def get_fba_max_ctn_capacity(sku: str):
     with FbaService() as fba_svc:
         max_capacity = fba_svc.get_fba_max_ctn_capacity(sku)
+        if max_capacity is None:
+            return ResponseNotFound(message=f"FBA max container capacity for sku {sku} not found in cache.", data={})
     return ResponseSuccess(data=max_capacity)

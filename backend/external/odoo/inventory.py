@@ -23,8 +23,9 @@ class OdooInventoryAPI(OdooAPIBase):
         logger.info("Fetching internal locations by ids")
         return self.client.read('stock.location', [ids])
 
-    def fetch_internal_location_ids(self):
-        return self.fetch_location_ids(domain=[('usage', '=', 'internal')])
+    def fetch_internal_location_ids(self, domain=[]):
+        domain.extend([('usage', '=', 'internal')]),
+        return self.fetch_location_ids(domain=domain)
 
     def fetch_location_by_complete_name(self, name):
         return self.fetch_location_ids(domain=[('complete_name', '=', name)])

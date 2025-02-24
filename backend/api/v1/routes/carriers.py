@@ -3,7 +3,7 @@ import time
 from io import BytesIO
 from starlette.responses import StreamingResponse
 from typing import List
-from fastapi import APIRouter, Query, Body, Path
+from fastapi import APIRouter, Query, Body, Path, HTTPException
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 import utils.time as utils_time
@@ -109,7 +109,7 @@ def display_gls_shipments_html(request: Request,
     if response.code == CodeEnum.Success:
         data = response.data
     else:
-        return "Internal Server Error"
+        raise HTTPException(status_code=404, detail=response.message)
     templates = Jinja2Templates(directory=os.path.join("assets", "templates", "web"))
     return templates.TemplateResponse(name="ShipmentView.html",
                                       request=request,

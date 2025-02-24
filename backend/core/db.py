@@ -54,13 +54,33 @@ class RedisDataManager:
     def delete(self, key: str):
         self.client.delete(key)
 
+    def scan(self, pattern: str) -> List[str]:
+        cursor = '0'
+        keys = []
+        while cursor != 0:
+            cursor, partial_keys = self.client.scan(cursor, match=pattern)
+            keys.extend(partial_keys)
+        data = {key: self.client.get(key) for key in keys}
+        return data
+
+    def get_ttl(self, key: str) -> int:
+        return self.client.ttl(key)
+
     def set_json(self, key: str, value: dict, time_to_live_sec: int = None):
         self.client.set(key, json.dumps(value))
         if time_to_live_sec:
             self.client.expire(key, time_to_live_sec)
 
     def get_json(self, key: str) -> dict:
-        return json.loads(self.client.get(key))
+        # return json.loads(self.client.get(key))
+        value = self.client.get(key)
+        ttl = self.client.ttl(key)
+        if value:
+            data = json.loads(value)
+            data['ttl'] = ttl
+            return data
+        else:
+            return None
 
 
 class MongoDBDataManager:

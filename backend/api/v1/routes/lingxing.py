@@ -27,6 +27,7 @@ proxy_index = settings.HTTP_PROXY_INDEX
 async def get_all_listings(offset: int = 0, limit: int = 100):
     async with ListingService(key_index, proxy_index) as service:
         listings = await service.find_all_listings(offset=offset, limit=limit)
+
     data = {
         "listings": listings,
         "length": len(listings)
@@ -43,10 +44,11 @@ async def get_listing_by_id(listing_id: str):
     data = listing.dict()
     return ResponseSuccess(data=data)
 
+
 @listing_router.get("/fnsku",
                     summary="Get a listing by fnsku",
                     response_model=BasicResponse[dict], )
-async def get_listing_by_fnsku(sid:int, fnsku: str):
+async def get_listing_by_fnsku(sid: int, fnsku: str):
     async with ListingService(key_index, proxy_index) as service:
         listings = await service.find_listings_by_fnsku(fnsku)
         if not listings:
@@ -66,18 +68,20 @@ async def get_listing_by_fnsku(sid:int, fnsku: str):
                     summary="Get all printshop listings",
                     response_model=BasicResponse[dict], )
 async def get_printshop_listing_view(offset: int = 0, limit: int = 100,
-                                      has_fnsku: bool = True, include_off_sale: bool = False):
+                                     has_fnsku: bool = True, include_off_sale: bool = False,
+                                     is_unique_fnsku: bool = False):
     wid = 11222
     async with GeneralService(key_index, proxy_index) as service:
         list_vo = await service.get_printshop_listing_view(
             has_fnsku=has_fnsku, include_off_sale=include_off_sale,
-            wids=[wid],
+            wids=[wid], is_unique_fnsku=is_unique_fnsku,
             offset=offset, limit=limit)
     data = {
         "list_vo": list_vo,
         "length": len(list_vo)
     }
     return ResponseSuccess(data=data)
+
 
 @listing_router.get("/download/fnsku-label/{listing_id}")
 async def get_fnsku_label_by_listing_id(listing_id: str):
@@ -99,6 +103,7 @@ async def get_fnsku_label_by_listing_id(listing_id: str):
     }
     return StreamingResponse(pdf_stream, media_type="application/pdf", headers=headers)
 
+
 @basic_router.get("/sellers",
                   summary="Get all sellers",
                   response_model=BasicResponse[dict], )
@@ -110,6 +115,7 @@ async def get_all_sellers():
         "length": len(sellers)
     }
     return ResponseSuccess(data=data)
+
 
 @warehouse_router.get("/inventory",
                       summary="Get all inventories",
@@ -128,8 +134,8 @@ async def get_all_inventories(offset: int = 0, limit: int = 100):
 
 
 @fba_schipment_plans.get("/plans", summary="Get all FBA shipment plans",
-                            response_model=BasicResponse[dict], )
-async def get_fba_shipment_plans(reduced:bool=False, offset: int = 0, limit: int = 100):
+                         response_model=BasicResponse[dict], )
+async def get_fba_shipment_plans(reduced: bool = False, offset: int = 0, limit: int = 100):
     async with GeneralService(key_index, proxy_index) as service:
         if reduced:
             statuses = [FbaShipmentPlanStatus.Placed]

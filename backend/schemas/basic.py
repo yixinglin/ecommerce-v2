@@ -1,5 +1,5 @@
 from enum  import Enum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, Optional
 from pydantic import BaseModel, Field
 
 T = TypeVar('T')
@@ -33,6 +33,7 @@ class ResponseUnauthorized(BasicResponse):
 class ResponseNotFound(BasicResponse):
     code: CodeEnum = Field(default=CodeEnum.NotFound, description="Response code")
     message: str = Field(default="Not found", description="Response message")
+    data: Any = Field(default=None, description="Response data")
 
 class ExternalService(str, Enum):
     Amazon = "amazon",

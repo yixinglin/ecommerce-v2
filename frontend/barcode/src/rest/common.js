@@ -49,3 +49,22 @@ export function put_method_form(url, body) {
     headers['Content-Type'] = 'multipart/form-data';
     return axios.put(url, body, { headers: headers });
 }
+
+// Api Configuration
+
+const domain = import.meta.env.VITE_ECM_API_URL;
+const port = import.meta.env.VITE_ECM_API_PORT;
+
+const baseUrl = `http://${domain}:${port}`;
+const apiUrl = `${baseUrl}/api/v1`;
+const apiScannerUrl = `${apiUrl}/scanner`;
+const apiCarriersUrl = `${apiUrl}/carriers`;
+const apiOdooUrl = `${apiUrl}/odoo`;
+
+export {
+    baseUrl,
+    apiUrl,
+    apiScannerUrl,
+    apiCarriersUrl,
+    apiOdooUrl,
+};

@@ -55,7 +55,20 @@ class BasicDataService:
     async def find_all_sellers(self, *args, **kwargs) -> List[Seller]:
         sellers = await self.mdb_basic_data.query_all_sellers(*args, **kwargs)
         if sellers:
-            sellers = [self.to_seller(s['data']) for s in sellers]
+            sellers: List[Seller] = [self.to_seller(s['data']) for s in sellers]
+        ch_to_eng = {
+                    # Account name
+                    "成都亚马逊": "🌶️CTU",
+                     "亚马逊NORD": "❄️NORD",
+                     "HansaGT": "🌈HansaGT",
+                     # Shopname
+                     "15640097175成都亚马逊-DE": "CTU-DE",
+                     "亚马逊NORD-DE": "NORD-DE"}
+        for s in sellers:
+            if s.account_name in ch_to_eng:
+                s.account_name = ch_to_eng[s.account_name]
+            if s.name in ch_to_eng:
+                s.name = ch_to_eng[s.name]
         return sellers
 
     async def find_seller_by_sid(self, sid: str) -> Seller:
@@ -86,6 +99,7 @@ class BasicDataService:
                            code=marketplace_data['code'],
                            country=marketplace_data['country'],
                            marketplace_id=marketplace_data['marketplace_id'],)
+
 
 class ListingService:
     def __init__(self, key_index, proxy_index=None):
@@ -301,6 +315,11 @@ class WarehouseService:
 
         inv_dicts = df_left.to_dict(orient='records')
         inventories = [Inventory(**inv_dict) for inv_dict in inv_dicts]
+        ch_to_eng = {'可用暂存': 'Stock'}
+        for invt in inventories:
+            if invt.storage_location in ch_to_eng.keys():
+                invt.storage_location = ch_to_eng[invt.storage_location]
+
         return inventories
 
 class FbaShipmentPlanService:
@@ -427,7 +446,7 @@ class GeneralService:
             raise ValueError(f"Listing {listing_id} not found.")
 
         # async with WarehouseService(key_index, proxy_index) as svc_warehouse:
-        inventories = await self.warehouse_service.find_all_inventory_with_bin()
+        inventories = await self.warehouse_service.find_all_inventory_with_bin(limit=99999)
         inventories = [inv for inv in inventories if inv.sku == sku]
         inv_str = ""
         if inventories:
@@ -443,7 +462,7 @@ class GeneralService:
         listing.label = b64
         return listing.label
 
-    async def get_printshop_listing_view(self, offset=0, limit=100, has_fnsku=True,
+    async def get_printshop_listing_view(self, offset=0, limit=100, has_fnsku=True, is_unique_fnsku=False,
                                          include_off_sale = False, wids = None,
                                          *args, **kwargs) -> List[PrintShopListingVO]:
         filter_ = {}
@@ -453,6 +472,16 @@ class GeneralService:
             filter_['data.fnsku'] = {"$ne": ""}
 
         listings = await self.listing_service.find_all_listings(offset=offset, limit=limit, filter_=filter_, *args, **kwargs)
+
+        if is_unique_fnsku:
+            unique_listings = []
+            seen_fnsku = set()
+            for listing in listings:
+                if listing.fnsku not in seen_fnsku:
+                    unique_listings.append(listing)
+                    seen_fnsku.add(listing.fnsku)
+            listings = unique_listings
+
         sellers = await self.basic_service.find_all_sellers()
         marketplaces = await self.basic_service.find_all_marketplaces()
         inventories = await self.warehouse_service.find_all_inventory_with_bin(wids=wids, limit=99999)
@@ -497,7 +526,7 @@ class GeneralService:
         view_plans = []
         sellers = await self.basic_service.find_all_sellers()
         marketplaces = await self.basic_service.find_all_marketplaces()
-        inventories = await self.warehouse_service.find_all_inventory_with_bin()
+        inventories = await self.warehouse_service.find_all_inventory_with_bin(limit=99999)
         sellers_map = {s.sid: s for s in sellers}
         inv_map = {inv.sku: inv for inv in inventories}
         marketplaces_map = {m.country: m for m in marketplaces}

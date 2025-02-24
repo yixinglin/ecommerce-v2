@@ -1,40 +1,43 @@
-/* 页面布局 */
-.product-list-container {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  /* 固定顶部搜索框 */
+/* 搜索框容器 - 让搜索框、按钮水平排列 */
+.product-list-header {
+  display: flex;
+  align-items: center;  
+  justify-content: space-between;
+  gap: 10px; /* 控制间距 */
+  padding: 10px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  width: 90%;    
+}
+
+/* 让搜索框占据最大可用空间 */
+.product-list-search {
+  flex: 1;
+  min-width: 0; /* 避免输入框过度扩展 */
+}
+
+/* 按钮样式 - 适配按钮宽度 */
+.product-list-header .ant-btn {
+  white-space: nowrap; /* 让按钮文本不换行 */
+  padding: 8px 12px;
+}
+
+/* 适配小屏幕，搜索框 & 按钮换行 */
+@media (max-width: 300px) {
   .product-list-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background-color: #fff;
-    padding: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
   }
-  
-  /* 搜索框样式 */
+
   .product-list-search {
-    flex: 1;
+    width: 100%;
   }
-  
-  /* 产品列表区域 */
-  .product-list-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background-color: #f9f9f9;
+
+  .product-list-header .ant-btn {
+    width: 100%;
   }
-  
-  /* 加载动画样式 */
-  .loading-spinner {
-    display: block;
-    text-align: center;
-    margin-top: 20px;
-  }
-  
+}

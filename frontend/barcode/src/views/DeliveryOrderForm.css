@@ -1,0 +1,32 @@
+/* 确保表单整体居中 */
+.delivery-form-container {
+    max-width: 600px; /* 最大宽度 600px */
+    width: 100%; /* 默认占满整个容器 */
+    margin: auto; /* 居中 */
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  
+  /* 适配移动端，表单宽度自适应 */
+  @media (max-width: 600px) {
+    .delivery-form-container {
+      width: 100%; /* 让表单宽度占满整个屏幕 */
+      padding: 10px;
+    }
+  
+    .delivery-form-card {
+      width: 100% !important; /* 适配小屏幕，卡片宽度占满 */
+    }
+  }
+  
+  /* 让输入框 & 按钮占满宽度 */
+  .delivery-form-card .ant-input,
+  .delivery-form-card .ant-btn {
+    width: 100% !important;
+  }
+  
+  /* 让添加包裹的按钮宽度适配 */
+  .delivery-form-card .ant-btn-dashed {
+    width: auto !important;
+  }
+  
