@@ -28,6 +28,15 @@ class Settings(BaseSettings):
 
     # Sqlite Database
     DB_SQLITE_URI: str
+
+    # Mysql Database
+    DB_MYSQL_DATABASE: str
+    DB_MYSQL_USER: str
+    DB_MYSQL_PASSWD: str
+    DB_MYSQL_HOST: str
+    DB_MYSQL_PORT: int
+
+
     # MongoDB Database
     DB_MONGO_URI: str
     DB_MONGO_PORT: int = os.getenv('DB_MONGO_PORT', 27017)

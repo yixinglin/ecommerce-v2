@@ -17,10 +17,10 @@ services:
             - ./assets:/code/assets
             - ./logs:/code/logs
             - ./database:/code/database
-            - ./static:/code/static
+            - ./static2:/code/static2
         logging:
             driver: "json-file"
             options:
                 max-size: "500m"
                 max-file: "5"
-
+e

@@ -18,6 +18,5 @@ class User(models.Model):
     countryCode = fields.CharField(max_length=5, null=True, unique=False, description="Country Code")
     avatar = fields.CharField(max_length=200, null=True, unique=False, description="Avatar")
 
-
     async def save(self, *args, **kwargs):
         pass

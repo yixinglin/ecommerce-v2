@@ -2,4 +2,5 @@ venv
 __pycache__
 database
 logs
+static2
 *.tar.gz

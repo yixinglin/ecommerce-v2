@@ -1,10 +1,5 @@
 from typing import List
-
 from pydantic import BaseModel, Field
-
-from models.orders import StandardOrder
-from models.shipment import StandardShipment
-
 
 class BatchOrderConfirmEvent(BaseModel):
     createdAt: str

@@ -3,7 +3,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from core.config import settings
-from core.db import init_db_sqlite
+from core.db import init_db_mysql
 from core.log import logger
 from fastapi.responses import JSONResponse
 from schemas.basic import CodeEnum
@@ -22,8 +22,6 @@ app = FastAPI(title=settings.PROJECT_NAME,
               docs_url=f"{settings.API_PREFIX}/docs",
               )
 
-
-
 app.include_router(v1, prefix=os.environ['API_PREFIX'])
 
 app.add_middleware(
@@ -36,6 +34,7 @@ app.add_middleware(
 
 # http://127.0.0.1:8000/static/images/logo.png
 os.makedirs("./static2/images", exist_ok=True)
+os.makedirs("./static2/uploads", exist_ok=True)
 app.mount("/static2", StaticFiles(directory="static2"), name="static2")
 
 os.makedirs("./assets/media", exist_ok=True)
@@ -48,7 +47,8 @@ app.mount("/pic", StaticFiles(directory="./assets/pic"), name="pic")
 
 
 
-init_db_sqlite(app)
+# init_db_sqlite(app)
+init_db_mysql(app)
 
 from schedule import hourly_scheduler, daily_scheduler, async_hourly_scheduler
 

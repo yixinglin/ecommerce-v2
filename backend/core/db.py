@@ -24,6 +24,17 @@ def init_db_sqlite(app: FastAPI):
         add_exception_handlers=True,
     )
 
+
+def init_db_mysql(app: FastAPI):
+    db_url = f"mysql://{settings.DB_MYSQL_USER}:{settings.DB_MYSQL_PASSWD}@{settings.DB_MYSQL_HOST}:{settings.DB_MYSQL_PORT}/{settings.DB_MYSQL_DATABASE}"
+    register_tortoise(
+        app,
+        db_url=db_url,
+        modules={"models": ["models"]},
+        generate_schemas=True,
+        add_exception_handlers=True,
+    )
+
 redis_pool = None
 
 class RedisDataManager:
