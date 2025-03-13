@@ -9,7 +9,7 @@ from starlette.responses import StreamingResponse
 import utils.time as time_utils
 import utils.utilpdf as utilpdf
 import utils.stringutils as stringutils
-from core.config import settings
+from core.config2 import settings
 from core.db import RedisDataManager, OrderQueryParams
 from core.log import logger
 from models.convert import convert_to_standard_shipment
@@ -26,7 +26,7 @@ from services.gls.GlsShipmentService import GlsShipmentService
 class PickPackService:
     def __init__(self):
         super().__init__()
-        self.gls_service = GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX)
+        self.gls_service = GlsShipmentService(key_index=settings.api_keys.gls_access_key_index,)
         self.redis_manager = RedisDataManager()
 
     def __enter__(self):

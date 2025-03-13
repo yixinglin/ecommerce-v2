@@ -2,7 +2,7 @@ import datetime
 import os
 import xmlrpc.client
 from pydantic import BaseModel, Field
-from core.config import settings
+from core.config2 import settings
 import json
 
 DATETIME_PATTERN = '%Y-%m-%d %H:%M:%S'
@@ -27,7 +27,7 @@ class OdooAPIKey(BaseModel):
     @classmethod
     def from_json(cls, index):
         file_path = os.path.join('conf', 'apikeys',
-                                 settings.ODOO_ACCESS_KEY)
+                                 settings.api_keys.odoo_access_key)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
         k = cls(**data['keys'][index])

@@ -3,7 +3,7 @@ import os
 from typing import List
 from pydantic import BaseModel, Field
 import utils.stringutils as stringutils
-from core.config import settings
+from core.config2 import settings
 from models.shipment import StandardShipment
 
 """
@@ -24,7 +24,7 @@ class GlsApiKey(BaseModel):
         :return:
         """
         file_path = os.path.join('conf', 'apikeys',
-                                 settings.GLS_ACCESS_KEY)
+                                 settings.api_keys.gls_access_key)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
         k = cls(**data["keys"][index])

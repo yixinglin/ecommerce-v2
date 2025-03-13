@@ -3,7 +3,8 @@ from typing import List
 import pymongo
 from tortoise.contrib.fastapi import register_tortoise
 from fastapi import FastAPI
-from core.config import settings
+# from core.config import settings
+from core.config2 import settings
 from core.log import logger
 from pymongo.errors import ServerSelectionTimeoutError
 from models.orders import StandardOrder
@@ -26,7 +27,7 @@ def init_db_sqlite(app: FastAPI):
 
 
 def init_db_mysql(app: FastAPI):
-    db_url = f"mysql://{settings.DB_MYSQL_USER}:{settings.DB_MYSQL_PASSWD}@{settings.DB_MYSQL_HOST}:{settings.DB_MYSQL_PORT}/{settings.DB_MYSQL_DATABASE}"
+    db_url = f"mysql://{settings.mysql.user}:{settings.mysql.password}@{settings.mysql.host}:{settings.mysql.port}/{settings.mysql.database}"
     register_tortoise(
         app,
         db_url=db_url,
@@ -39,11 +40,11 @@ redis_pool = None
 
 class RedisDataManager:
     def __init__(self, *args, **kwargs):
-        self.redis_host = settings.REDIS_HOST
-        self.redis_port = settings.REDIS_PORT
+        self.redis_host = settings.redis.host
+        self.redis_port = settings.redis.port
         # self.redis_client = settings.REDIS_USERNAME
         # self.redis_password = settings.REDIS_PASSWORD
-        self.redis_db = settings.REDIS_DB
+        self.redis_db = settings.redis.db
         self.encoding = 'utf-8'
 
         if not redis_pool:
@@ -97,8 +98,8 @@ class RedisDataManager:
 class MongoDBDataManager:
 
     def __init__(self):
-        self.db_host = settings.DB_MONGO_URI
-        self.db_port = settings.DB_MONGO_PORT
+        self.db_host = settings.mongodb.host
+        self.db_port = settings.mongodb.port
         self.db_client = None
 
     def connect(self):
@@ -205,8 +206,8 @@ import motor.motor_asyncio
 
 class AsyncMongoDBDataManager:
     def __init__(self):
-        self.db_host = settings.DB_MONGO_URI
-        self.db_port = settings.DB_MONGO_PORT
+        self.db_host = settings.mongodb.host
+        self.db_port = settings.mongodb.port
         self.db_client = None
 
     def get_client(self):

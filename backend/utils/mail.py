@@ -2,7 +2,8 @@ import json
 import os
 from fastapi import BackgroundTasks
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from core.config import settings
+# from core.config import settings
+from core.config2 import settings
 from pydantic import BaseModel
 
 TEMPLATE_FOLDER: str = os.path.join("assets", "templates", 'email')

@@ -8,7 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
 from core.log import logger
 from services.amazon.AmazonService import AmazonOrderService, AmazonCatalogService, AmazonService
-from core.config import settings
+from core.config2 import settings
 from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
@@ -16,6 +16,9 @@ from services.odoo import OdooProductService, OdooInventoryService, OdooContactS
 from services.odoo.OdooOrderService import OdooProductPackagingService
 
 hourly_scheduler = BackgroundScheduler()
+
+odoo_access_key_index = settings.api_keys.odoo_access_key_index
+interval_seconds = settings.scheduler.interval_seconds
 
 # @hourlyScheduler.scheduled_job('interval', seconds=10)
 def hourly_job():
@@ -29,7 +32,7 @@ def save_amazon_orders_job(key_index, marketplace):
     This job fetches data from external API every 2 hours
     :return:
     """
-    if not settings.SCHEDULER_AMAZON_ORDERS_FETCH_ENABLED:
+    if not settings.scheduler.amazon_orders_fetch_enabled:
         logger.info("Scheduled job to save orders to MongoDB is disabled in config")
         return
 
@@ -50,7 +53,7 @@ def save_tracking_info_job(key_index):
     :param key_index:
     :return:
     """
-    if settings.SCHEDULER_GLS_TRACKING_FETCH_ENABLED:
+    if settings.scheduler.gls_tracking_fetch_enabled:
         with GlsShipmentService(key_index=key_index) as man:
             shipments = man.get_incomplete_shipments(days_ago=7)
             ids = [';'.join(s.references) for s in shipments]
@@ -63,7 +66,7 @@ def save_kaufland_orders_job(key_index, storefront):
     This job fetches data from external API every 2 hours
     :return:
     """
-    if not settings.SCHEDULER_KAUFLAND_ORDERS_FETCH_ENABLED:
+    if not settings.scheduler.kaufland_orders_fetch_enabled:
         logger.info("Scheduled job to save orders to MongoDB is disabled in config")
         return
     try:
@@ -82,7 +85,7 @@ def save_amazon_catalog_job(key_index, marketplace):
     This job fetches data from external API every 2 hours
     :return:
     """
-    if not settings.SCHEDULER_AMAZON_PRODUCTS_FETCH_ENABLED:
+    if not settings.scheduler.amazon_products_fetch_enabled:
         logger.info("Scheduled job to save catalog to MongoDB is disabled in config")
         return
     try:
@@ -102,7 +105,7 @@ def save_amazon_catalog_job(key_index, marketplace):
 def save_odoo_data_jobs():
     try:
         logger.info("Scheduled job to save product data to Odoo")
-        with OdooProductService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+        with OdooProductService(key_index=odoo_access_key_index, login=True) as svc:
             svc.save_all_product_templates()
             svc.save_all_products()
     except Exception as e:
@@ -113,7 +116,7 @@ def save_odoo_data_jobs():
 
     try:
         logger.info("Scheduled job to save contact data to Odoo")
-        with OdooContactService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+        with OdooContactService(key_index=odoo_access_key_index, login=True) as svc:
             svc.save_all_contacts()
     except Exception as e:
         logger.error(f"Error in scheduled job to save contact data to Odoo: {e}")
@@ -123,7 +126,7 @@ def save_odoo_data_jobs():
 
     try:
         logger.info("Scheduled job to save inventory data to Odoo")
-        with OdooInventoryService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+        with OdooInventoryService(key_index=odoo_access_key_index, login=True) as svc:
             svc.save_all_quants()
             svc.save_all_putaway_rules()
             svc.save_all_internal_locations()
@@ -136,7 +139,7 @@ def save_odoo_data_jobs():
 
     try:
         logger.info("Scheduled job to save packaging data to Odoo")
-        with OdooProductPackagingService(key_index=settings.ODOO_ACCESS_KEY_INDEX, login=True) as svc:
+        with OdooProductPackagingService(key_index=odoo_access_key_index, login=True) as svc:
             svc.save_all_product_packaging()
     except Exception as e:
         logger.error(f"Error in scheduled job to save packaging data to Odoo: {e}")
@@ -146,7 +149,7 @@ def save_odoo_data_jobs():
 
     logger.info("Successfully scheduled Odoo data scheduler job...")
 
-@hourly_scheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
+@hourly_scheduler.scheduled_job('interval', seconds=interval_seconds)
 def common_scheduler_2hrs():
     """
     To schedule jobs every 2 hours
@@ -190,15 +193,15 @@ from services.lingxing import (ListingService, BasicDataService,
 
 async_hourly_scheduler = AsyncIOScheduler()
 
-@async_hourly_scheduler.scheduled_job('interval', seconds=settings.SCHEDULER_INTERVAL_SECONDS)
+@async_hourly_scheduler.scheduled_job('interval', seconds=interval_seconds)
 async def save_lingxing_job():
-    enabled = settings.SCHEDULER_LINGXING_FETCH_ENABLED
+    enabled = settings.scheduler.lingxing_fetch_enabled
     if not enabled:
         logger.info("Scheduled job to save LingXing data is disabled in config")
         return
 
-    key_index = settings.LINGXING_ACCESS_KEY_INDEX
-    proxy_index = settings.HTTP_PROXY_INDEX
+    key_index = settings.api_keys.lingxing_access_key_index
+    proxy_index = settings.http_proxy.index
 
     try:
         async with BasicDataService(key_index, proxy_index) as svc_basic:

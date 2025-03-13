@@ -1,6 +1,6 @@
 from api import app
 from uvicorn import run
-from core.config import settings
+from core.config2 import settings
 
 # sed -i 's/\r$//' conf/dev.env
 # export $(grep -v '^#' conf/dev.env | xargs) && printenv  && uvicorn main:app --reload
@@ -8,7 +8,7 @@ from core.config import settings
 
 if __name__ == '__main__':
     run("main:app",
-        host=settings.API_HOST,
-        port=settings.API_PORT,
+        host=settings.app.host,
+        port=settings.app.port,
         reload=False,
-        log_level=settings.LOG_LEVEL)
+        log_level=settings.app.log_level,)

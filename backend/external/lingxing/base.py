@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Optional, List
 from aiohttp import BasicAuth
 from external.lingxing.sdk.openapi import OpenApiBase
-from core.config import settings
+from core.config2 import settings
 from external.lingxing.sdk.resp_schema import AccessTokenDto
 from core.log import logger
 
@@ -59,14 +59,14 @@ class LingxingClient:
         """
         # Load the API keys from the JSON file
         file_path = os.path.join('conf', 'apikeys',
-                                 settings.LINGXING_ACCESS_KEY)
+                                 settings.api_keys.lingxing_access_key)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
             params = data["keys"][key_index]
 
         if proxy_index is not None:
             file_path = os.path.join('conf', 'apikeys',
-                                     settings.HTTP_PROXY)
+                                     settings.http_proxy.config_file)
             with open(file_path, 'r') as fp:
                 proxy_data = json.load(fp)
             proxy = proxy_data["proxies"][proxy_index]["url"]

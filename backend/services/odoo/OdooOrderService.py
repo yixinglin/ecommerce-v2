@@ -1,6 +1,6 @@
 import re
 
-from core.config import settings
+from core.config2 import settings
 from core.log import logger
 from models import Address
 from models.orders import StandardProduct
@@ -8,6 +8,8 @@ from schemas.vip import VipOrder
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase)
 from .base import save_record, OdooOrderServiceBase
 import utils.address as addr_utils
+
+odoo_access_key_index = settings.api_keys.odoo_access_key_index
 
 class OdooProductService(OdooProductServiceBase):
 
@@ -263,7 +265,7 @@ class OdooOrderService(OdooOrderServiceBase):
         }
 
         logger.info(f"Creating order: {quot_data}")
-        if not settings.DEBUG or settings.ODOO_ACCESS_KEY_INDEX == 0:
+        if not settings.app.debug or odoo_access_key_index == 0:
             self.api.create_sales_order(quot_data)
             logger.info(f"Order created")
         else:

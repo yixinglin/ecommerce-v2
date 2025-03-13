@@ -2,7 +2,8 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from core.config import settings
+# from core.config import settings
+from core.config2 import settings
 from core.db import init_db_mysql
 from core.log import logger
 from fastapi.responses import JSONResponse
@@ -10,19 +11,19 @@ from schemas.basic import CodeEnum
 from .v1 import v1
 import os
 
-app = FastAPI(title=settings.PROJECT_NAME,
-              version=settings.API_VERSION,
-              openapi_url=f"{settings.API_PREFIX}/openapi.json",
+app = FastAPI(title=settings.app.project_name,
+              version=settings.app.version,
+              openapi_url=f"{settings.app.prefix}/openapi.json",
               summary="Microservice API simplifying e-commerce processes",
               contact={
                   "name": "YX. Lin",
                   "email": "184059914@qq.com",
                   "url": "https://github.com/yixinglin"
               },
-              docs_url=f"{settings.API_PREFIX}/docs",
+              docs_url=f"{settings.app.prefix}/docs",
               )
 
-app.include_router(v1, prefix=os.environ['API_PREFIX'])
+app.include_router(v1, prefix=settings.app.prefix)
 
 app.add_middleware(
     CORSMiddleware,

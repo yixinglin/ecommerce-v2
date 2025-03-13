@@ -5,7 +5,7 @@ from urllib.parse import quote
 from fastapi import APIRouter
 from starlette.responses import StreamingResponse
 
-from core.config import settings
+from core.config2 import settings
 from external.lingxing.base import FbaShipmentPlanStatus
 from schemas import ResponseSuccess, BasicResponse
 from services.lingxing import (ListingService, BasicDataService,
@@ -17,8 +17,8 @@ listing_router = APIRouter(prefix="/listing")
 basic_router = APIRouter(prefix="/basic")
 fba_schipment_plans = APIRouter(prefix="/fba-shipment-plans")
 
-key_index = settings.LINGXING_ACCESS_KEY_INDEX
-proxy_index = settings.HTTP_PROXY_INDEX
+key_index = settings.api_keys.lingxing_access_key_index
+proxy_index = settings.http_proxy.index
 
 
 @listing_router.get("/listings",

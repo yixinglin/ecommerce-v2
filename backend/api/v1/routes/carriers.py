@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query, Body, Path, HTTPException
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 import utils.time as utils_time
-from core.config import settings
+from core.config2 import settings
 from core.exceptions import ShipmentExistsException
 from core.log import logger
 from models.shipment import StandardShipment
@@ -27,7 +27,7 @@ def find_gls_shipments(refs: str = Query(None, description="GLS Shipment referen
     Find GLS Shipments by references from database
     """
     refs = refs.split(";")
-    with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
+    with GlsShipmentService(key_index=settings.api_keys.gls_access_key_index) as man:
         shipments = man.find_shipments_by_ids(refs)
     if not labels:
         for shipment in shipments:
@@ -50,7 +50,7 @@ def get_gls_shipment_by_reference(ref: str = Query(None, description="GLS Shipme
 
     :return:
     """
-    with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
+    with GlsShipmentService(key_index=settings.api_keys.gls_access_key_index) as man:
         shipment = man.find_shipment_by_id(ref)
         if shipment is None:
             return ResponseFailure(code=CodeEnum.NotFound, message="Shipment not found")
@@ -131,7 +131,7 @@ def create_gls_shipment(shipment: StandardShipment =
     Returns:
         BasicResponse[CreatedShipmentVO]: CreatedShipmentVO object
     """
-    with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
+    with GlsShipmentService(key_index=settings.api_keys.gls_access_key_index) as man:
         try:
             id = man.save_shipment(shipment)
             time.sleep(0.2)
@@ -174,7 +174,7 @@ def download_gls_labels(request: Request,
     if len(references) != len(set(references)):
         raise RuntimeError("Duplicate references found. Please check and remove them first.")
 
-    with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
+    with GlsShipmentService(key_index=settings.api_keys.gls_access_key_index) as man:
         pdfs = man.find_bulk_shipments_labels(references)
     if len(references) == 1:
         filename = f"GLS_{utils_time.now(pattern='%Y%m%d%H%M%S')}_{references[0]}.pdf"
@@ -189,7 +189,7 @@ def download_gls_labels(request: Request,
             summary="Delete a GLS Shipment by ID from database",
             response_model=BasicResponse[dict])
 def delete_gls_shipment(id: str = Path(description="GLS Shipment ID to delete")):
-    with GlsShipmentService(key_index=settings.GLS_ACCESS_KEY_INDEX) as man:
+    with GlsShipmentService(key_index=settings.api_keys.gls_access_key_index) as man:
         count = man.delete_shipment(id)
     data = dict(deletedCount=count)
     return ResponseSuccess(data=data)

@@ -5,7 +5,7 @@ from typing import Union
 
 from sp_api.base import Marketplaces
 from sp_api.api import Sellers
-from core.config import settings
+from core.config2 import settings
 from pydantic import BaseModel, Field
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
@@ -54,7 +54,7 @@ class AmazonSpAPIKey(BaseModel):
         """
         # Load the API keys from the JSON file
         file_path = os.path.join('conf', 'apikeys',
-                                 settings.AMAZON_ACCESS_KEY)
+                                 settings.api_keys.amazon_access_key)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
         k = cls(**data["auth"][index])

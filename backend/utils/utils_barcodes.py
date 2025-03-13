@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 from textwrap import wrap
 from io import BytesIO
 import base64
-from core.config import FONT
+from core.config2 import FONT
 
 def generate_barcode_fnsku(fnsku, sku, title, note):
     # Generate the barcode as SVG in memory

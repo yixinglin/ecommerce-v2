@@ -8,7 +8,7 @@ import time
 from datetime import datetime
 from enum import Enum
 import requests
-from core.config import settings
+from core.config2 import settings
 from core.log import logger
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
@@ -56,7 +56,7 @@ class Client:
     @classmethod
     def from_json(cls, index):
         file_path = os.path.join('conf', 'apikeys',
-                                 settings.KAUFLAND_ACCESS_KEY)
+                                 settings.api_keys.kaufland_api_keys)
         with open(file_path, 'r') as fp:
             data = json.load(fp)
         k = cls(**data['auth'][index])

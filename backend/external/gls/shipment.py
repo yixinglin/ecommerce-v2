@@ -10,7 +10,7 @@ import json
 from copy import deepcopy
 from typing import List
 import requests
-from core.config import settings
+from core.config2 import settings
 from core.log import logger
 from models.shipment import StandardShipment
 from utils.address import adjust_name_fields
@@ -65,7 +65,7 @@ class GlsShipmentApi:
         shipment = self.__preprocess(shipment)
         # Get a request body for the label generation
         body = GLSRequestBody.instance(shipment=shipment)
-        if settings.DEBUG:
+        if settings.app.debug:
             body.clearServices() # Avoid sending unnecessary services to GLS API in debug mode
         body.shipperId = self.api_key.shipperId
         shipment_url = f"{self.api_key.url}/shipments"

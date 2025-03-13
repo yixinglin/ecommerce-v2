@@ -2,7 +2,7 @@ from typing import List
 import utils.time as utils_time
 import external.odoo.product as ext_product
 import models.warehouse as mwh
-from core.config import settings
+from core.config2 import settings
 import time
 from core.log import logger
 from schemas.barcode import ProductFullInfo, ProductUpdate, Quant, ProductPackaging, ProductPackagingUpdate, \
