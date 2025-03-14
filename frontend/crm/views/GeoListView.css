@@ -1,0 +1,46 @@
+.geo-list-view {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;    
+  }
+
+  /* .geo-list-view button {
+    margin-bottom: 20px;
+  } */
+   .controls {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      margin-bottom: 20px;
+   }
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  
+  @media screen and (max-width: 1024px) {
+    /* 适配iPad Air */
+    .geo-list-view {
+      padding: 15px;
+    }
+  }
+  
+  @media screen and (max-width: 768px) {
+    /* 适配iPhone 12 */
+    .header {
+      flex-direction: column;
+      text-align: center;
+    }
+    .geo-list-view {
+      padding: 10px;
+    }
+  }

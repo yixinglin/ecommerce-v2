@@ -1,0 +1,97 @@
+.geo-map-view {
+    width: 100%;
+    height: calc(95vh - 104px);
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    box-sizing: border-box;
+    padding: 10px;
+  }
+
+  
+  /* 控件区域整体 */
+  .map-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: left; /* 让小屏时居中 */
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  
+  /* 每个分组 (Radius/Leads/Buttons/Info) */
+  .map-control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .control-label {
+    font-weight: 600;
+  }
+  
+  /* 下拉框 */
+  .radius-select {
+    width: 100px;
+  }
+  
+  .lead-switch {
+    margin-left: 5px;
+  }
+  
+  /* 按钮 */
+  .control-button {
+    margin-left: 5px;
+  }
+  
+  /* 显示“Gefunden: X” */
+  .control-info {
+    font-size: 14px;
+    color: #555;
+  }
+  
+  /* 地图容器 */
+  .map-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  
+  /* 加载时 Spinner 居中 */
+  .loading-spinner {
+    display: block;
+    margin: auto;
+  }
+  
+  /* Popup 内容样式 */
+  .popup-content {
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  
+  .contact-name {
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .map-button {
+    margin-top: 8px;
+  }
+  
+  /* 移动端适配 */
+  @media (max-width: 768px) {
+    .geo-map-view {
+      padding: 5px;
+      text-align: center;
+    }
+    .map-controls {
+      flex-direction: column;
+      align-items: flex-start; /* 左对齐 */
+      gap: 8px;
+    }
+    .map-container {
+      height: 80vh; /* 小屏幕时给地图更大显示空间 */
+    }
+  }
+  

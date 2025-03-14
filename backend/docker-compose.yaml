@@ -11,7 +11,7 @@ services:
             - "5018:5018"
         environment:
             ENV_DISABLE_DONATION_MSG: 1
-            env: prod
+            ENV: prod
         volumes:
             - ./assets:/code/assets
             - ./logs:/code/logs
@@ -22,4 +22,3 @@ services:
             options:
                 max-size: "500m"
                 max-file: "5"
-e
