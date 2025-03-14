@@ -8,7 +8,6 @@ from core.config2 import settings
 from core.log import logger
 from schemas.barcode import ProductFullInfo, ProductBasicInfo, ProductUpdate, Quant, ProductPackaging, \
     ProductPackagingUpdate, PutawayRule, PutawayRuleUpdate
-from services.odoo import OdooProductService
 from services.odoo.OdooScannerServier import OdooScannerService
 
 barcode = APIRouter(prefix="/product", )

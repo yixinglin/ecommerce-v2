@@ -309,8 +309,8 @@ class OdooOrderService(OdooOrderServiceBase):
         name = false_to_str(odoo_address.get('complete_name', ""))  # complete_name
         street = false_to_str(odoo_address.get('street', ""))  # street
         street2 = false_to_str(odoo_address.get('street2', ""))  # street2
-        zip_ = odoo_address.get('zip', "")  # zip
-        city = odoo_address.get('city', "")  # city
+        zip_ = false_to_str(odoo_address.get('zip', ""))  # zip
+        city = false_to_str(odoo_address.get('city', ""))  # city
         state = ""  # state
         country_code = odoo_address.get('country_code', "")
         email = false_to_str(odoo_address.get('email', ""))  # email

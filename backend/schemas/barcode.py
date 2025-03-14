@@ -13,8 +13,20 @@ class ProductBasicInfo(BaseModel):
     qty_available: int
     active: bool
 
+class ListProductBasicInfo(BaseModel):
+    products: list[ProductBasicInfo]
+    total: int
+    offset: int
+    limit: int
+
 class ProductFullInfo(ProductBasicInfo):
     pass
+
+class ListProductFullInfo(BaseModel):
+    products: list[ProductFullInfo]
+    total: int
+    offset: int
+    limit: int
 
 class ProductUpdate(BaseModel):
     barcode: str= Field(None, description="Barcode of the product")
@@ -52,6 +64,12 @@ class Quant(BaseModel):
     location_id: int
     location_name: str
     last_count_days: int
+
+class ListQuant(BaseModel):
+    quants: list[Quant]
+    total: int
+    offset: int
+    limit: int
 
 class PutawayRule(BaseModel):
     id: int

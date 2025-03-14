@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel, Field
 
 
@@ -9,6 +11,12 @@ class Seller(BaseModel):
     status: bool = Field(default=False)
     country: str
     region: str
+
+class ListSeller(BaseModel):
+    sellers: List[Seller]
+    total: int
+    offset: int
+    limit: int
 
 class Marketplace(BaseModel):
     mid: int
@@ -25,6 +33,11 @@ class Inventory(BaseModel):
     warehouse_name: str = Field(default='')
     storage_location: str = Field(default='')
 
+class ListInventory(BaseModel):
+    inventories: List[Inventory]
+    total: int
+    offset: int
+    limit: int
 
 class Listing(BaseModel):
     listing_id: str
@@ -43,6 +56,12 @@ class Listing(BaseModel):
     currency_code: str
     fulfillment_channel_type: str
     label: str = Field(default='')
+
+class ListListing(BaseModel):
+    listings: List[Listing]
+    total: int
+    offset: int
+    limit: int
 
 class FbaShipmentPlan(BaseModel):
     seq: str = Field(description="Sequence number")
@@ -83,6 +102,12 @@ class PrintShopListingVO(BaseModel):
 
     seller: Seller = Field(default=None, description="Seller information")
     inventories: list[Inventory] = Field(default=[], description="Inventory information")
+
+class ListPrintShopListingVO(BaseModel):
+    listings: List[PrintShopListingVO] = Field(default=[], description="List of product information")
+    total: int = Field(default=0, description="Total number of products")
+    offset: int = Field(default=0, description="Offset")
+    limit: int = Field(default=0, description="Limit")
 
 class PrintShopFbaShipmentPlanVO(FbaShipmentPlan):
     seller: Seller = Field(default=None, description="Seller information")

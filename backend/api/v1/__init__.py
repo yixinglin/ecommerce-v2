@@ -1,4 +1,6 @@
 from fastapi import APIRouter
+
+from .routes.crm_geo import crm_geo
 from .routes.user import user
 from .routes.amazon import amz_order
 from .routes.kaufland import kfld_order
@@ -9,6 +11,7 @@ from .routes.lingxing import warehouse_router, listing_router, basic_router, fba
 from .routes.print_task import print_task_router
 from .routes.barcode import barcode
 from .routes.common import common_router
+
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -37,6 +40,9 @@ lx.include_router(fba_schipment_plans)
 bcs = APIRouter(prefix="/scanner", tags=["Barcode Scanner"])
 bcs.include_router(barcode)
 
+geo = APIRouter(prefix="/crm-geo", tags=["CRM-Geolocation"])
+geo.include_router(crm_geo)
+
 ptask = APIRouter(prefix="/print_task", tags=["Print Task"])
 ptask.include_router(print_task_router)
 
@@ -52,5 +58,6 @@ v1.include_router(pickpack)
 v1.include_router(odoo)
 v1.include_router(lx)
 v1.include_router(bcs)
+v1.include_router(geo)
 v1.include_router(ptask)
 v1.include_router(common)
