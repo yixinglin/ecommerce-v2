@@ -34,12 +34,34 @@ pip install -r requirements.txt
 # Activate virtual environment
 source .venv/Scripts/activate
 # Run the application
-export $(grep -v '^#' conf/dev.env | xargs) && printenv  && python main.py
-
+export ENV=dev && python main.py
 ```
 
 # Unit tests:
 ```shell
 python pytest_integration.py
 python pytest_units.py
+```
+
+
+# Deployment:
+```shell
+# Build Dockerfile
+docker compose up --build -d
+```
+## Push to Production:
+```shell
+# Test the application locally
+cd /workspace/backend
+docker compose up --build 
+# If everything is ok, save the image in the local machine
+docker save -o ecommerce-api.tar yixing/ecommerce-api:latest
+# Copy the image to the production server
+scp -P 22 ecommerce-api.tar root@192.168.8.100:/tmp/
+# Login to production server, and load the image
+docker load -i /tmp/ecommerce-api.tar
+# Run the container at the workspace directory
+cd /workspace/backend
+# Run the container
+docker compose down && docker compose up -d
 ```

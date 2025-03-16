@@ -6,6 +6,9 @@ LOG_DIR = "logs"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+
 # Create a file handler for INFO level logs
 info_file_handler = TimedRotatingFileHandler(os.path.join(LOG_DIR, "info.log"), encoding="utf-8",
                                              when="W0", backupCount=12) # 按周日切割日志

@@ -21,3 +21,7 @@ static
 static2
 /test/amazon_packslips.py
 /scripts/pic
+
+/build
+/dist
+*.spec
