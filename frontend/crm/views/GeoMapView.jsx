@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Select, Spin, Switch, Button, Tag } from "antd";
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, ScaleControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, ScaleControl, Circle  } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./GeoMapView.css";
 import L from "leaflet";
@@ -296,8 +296,20 @@ const GeoMapView = () => {
             <ScaleControl position="bottomleft" metric={true} imperial={false} />
             {/* 用户位置 */}
             <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userIcon}>
-              <Popup>You are here</Popup>
+              <Popup> Ihr Standort </Popup>
             </Marker>
+
+              {/* 在用户当前位置绘制一个半透明圆 */}
+            <Circle
+              center={[userLocation.latitude, userLocation.longitude]}
+              radius={radius * 1000} // Leaflet 的单位是米
+              color="green" // 圆的边框颜色
+              weight={0.8} // 边框宽度
+              opacity={0.5} // 透明度
+              fillColor="green" // 填充颜色
+              fillOpacity={0.15} // 透明度
+            />
+
             {/* 联系人 */}
             {contacts.map((contact) => (
               <Marker
