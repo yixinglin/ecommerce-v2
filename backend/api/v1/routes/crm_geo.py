@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from core.config2 import settings
+from external.common.geometry import fetch_route, GeoPoint, GeoRoute
 from schemas.crm_geo import ListGeoContacts
 from services.odoo.OdooGeoService import OdooGeoService
 
@@ -36,3 +37,17 @@ def get_geo_contacts(longitude: float, latitude: float,
         contacts=customers,
         total=len(customers)
     )
+
+@crm_geo.get("/route",
+             response_model=GeoRoute,
+             summary="Calculate the route between two locations"
+             )
+def calc_route(lat0, lon0, lat1, lon1, mode='driving'):
+    source = GeoPoint(latitude=lat0, longitude=lon0)
+    destination = GeoPoint(latitude=lat1, longitude=lon1)
+    return fetch_route(source, destination, mode=mode)
+
+
+def calc_duration_matrix():
+    # TODO: Implement duration matrix calculation
+    pass
