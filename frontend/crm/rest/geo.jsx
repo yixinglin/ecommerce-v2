@@ -5,5 +5,10 @@ export function get_list_geo_contacts({ longitude, latitude, radius, is_calc_dis
     return get_method(url);
 }
 
+export function fetch_route_on_map({ start_latitude, start_longitude, end_latitude, end_longitude }) {    
+    const url = `${apiCrmGeoUrl}/route?lat0=${start_latitude}&lon0=${start_longitude}&lat1=${end_latitude}&lon1=${end_longitude}&mode=driving`;
+    return get_method(url);
+}
+
 
 

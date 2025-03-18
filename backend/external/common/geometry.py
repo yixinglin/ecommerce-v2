@@ -1,7 +1,9 @@
+import json
+import os
 from typing import List, Optional
 import requests
 from pydantic import BaseModel
-
+from core.config2 import settings
 
 class GeoPoint(BaseModel):
     latitude: float
@@ -15,13 +17,28 @@ class GeoRoute(BaseModel):
     distance: float
     coordinates: List[GeoPoint]
 
-# OSRM API
-osrm_api_url = "https://router.project-osrm.org/route"
+class OSRMConfig:
+
+    def __init__(self):
+        self.rm_conf_path = settings.api_keys.route_machine
+        self.rm_model = settings.api_keys.route_machine_model
+        self.rm_provider = settings.api_keys.route_machine_provider
+
+        with open(os.path.join("conf", "apikeys", self.rm_conf_path), "r") as f:
+            self.conf = json.load(f)
+        self.url = self.conf["osrm"][self.rm_provider]['host']
+        self.basic_auth = self.conf["osrm"][self.rm_provider]['basic_auth']
+
+osrm_config = OSRMConfig()
+
+osrm_headers = {
+    "Authorization": f"Basic {osrm_config.basic_auth}"
+}
 
 def fetch_route(source: GeoPoint, destination: GeoPoint, mode: str = "driving") -> GeoRoute:
-    url = (f"{osrm_api_url}/v1/{mode}/{source.longitude},{source.latitude};{destination.longitude},{destination.latitude}?"
+    url = (f"{osrm_config.url}/route/v1/{mode}/{source.longitude},{source.latitude};{destination.longitude},{destination.latitude}?"
           f"overview=full&geometries=geojson")
-    response = requests.get(url)
+    response = requests.get(url, headers=osrm_headers)
     if response.status_code != 200:
         raise RuntimeError(f"Failed to fetch route from OSRM API: {response.text}")
     data = response.json()

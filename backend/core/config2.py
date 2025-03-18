@@ -69,6 +69,10 @@ class ApiKeysConfig(BaseModel):
     gls_access_key_index: int
     lingxing_access_key: str
     lingxing_access_key_index: int
+    route_machine: str
+    route_machine_model: str
+    route_machine_provider: str
+
 
 class HttpProxyConfig(BaseModel):
     config_file: str

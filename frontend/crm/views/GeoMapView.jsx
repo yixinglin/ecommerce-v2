@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Select, Spin, Switch, Button, Tag } from "antd";
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, ScaleControl, Circle  } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Tooltip, ScaleControl, Circle, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./GeoMapView.css";
 import L from "leaflet";
-import { get_list_geo_contacts } from "../rest/geo";
+import { get_list_geo_contacts, fetch_route_on_map } from "../rest/geo";
 
 const { Option } = Select;
 
@@ -53,6 +53,8 @@ const GeoMapView = () => {
   const includeLeadsRef = useRef(includeLeads);  // 
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [route, setRoute] = useState(null); // 存储行车路径
+  const [selectedContact, setSelectedContact] = useState(null); // 存储选中的客户  
   const mapRef = useRef(null);
   const lastFetchedLocation = useRef({ lat: null, lon: null });
   const [favorites, setFavorites] = useState(
@@ -60,32 +62,32 @@ const GeoMapView = () => {
   );
   // 每次 includeLeads 变化时更新 ref
   useEffect(() => {
-      includeLeadsRef.current = includeLeads;
+    includeLeadsRef.current = includeLeads;
   }, [includeLeads]);
 
   // 获取用户地理位置
   useEffect(() => {
-    if ("geolocation" in navigator) {
+    if ("geolocation" in navigator) {      
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setUserLocation({ latitude, longitude });
+          setUserLocation({ latitude, longitude });          
           // 若移动超过100m，则重新获取联系人
           if (shouldFetchContacts(latitude, longitude)) {            
-            fetchContacts(latitude, longitude, radius,  includeLeadsRef.current);
+            fetchContacts(latitude, longitude, radius, includeLeadsRef.current)                    
           }
         },
-        (error) => {                    
-          console.error("Geolocation error:", error)     
-          alert("Browser failed to get your location.");     
+        (error) => {
+          console.error("Geolocation error:", error)
+          // alert("Browser failed to get your location.");
           setLoading(false);
-          
+
         },
         { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
       );
       return () => navigator.geolocation.clearWatch(watchId);
     } else {
-      console.error("Geolocation not supported by browser.");   
+      console.error("Geolocation not supported by browser.");
       alert("Geolocation not supported by browser.");
       setLoading(false);
     }
@@ -134,6 +136,34 @@ const GeoMapView = () => {
     }
   };
 
+  const fetchRoute = async (contact) => {
+    if (!userLocation) return;
+    setSelectedContact(contact); // 记录选中的客户    
+    setRoute(null); // 清除旧路线
+
+    try {
+      const response = await fetch_route_on_map({
+        start_latitude: userLocation.latitude,
+        start_longitude: userLocation.longitude,
+        end_latitude: contact.latitude,
+        end_longitude: contact.longitude,
+      });
+
+      if (response.status === 200) {
+        setRoute(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching route:", error);
+    }
+  };
+
+  const drawRoute = () => {
+    if (!route || !route.coordinates) return null;
+    const polylineCoords = route.coordinates.map((coord) => [coord.latitude, coord.longitude]);
+    return <Polyline positions={polylineCoords} color="blue" weight={4} opacity={0.6} />;
+  };
+
+
   const handleRadiusChange = (value) => {
     setRadius(value);
     if (userLocation) {
@@ -149,9 +179,9 @@ const GeoMapView = () => {
   };
 
   const parse_address = (contact) => {
-    const address = `${contact.street}${contact.street2 ? ", " + contact.street2  : ""}, ${contact.zip} ${contact.city}`;
+    const address = `${contact.street}${contact.street2 ? ", " + contact.street2 : ""}, ${contact.zip} ${contact.city}`;
     return address;
-};
+  };
 
   const toggleFavorite = (id) => {
     let updatedFavorites;
@@ -211,22 +241,28 @@ const GeoMapView = () => {
         <span className="contact-name">{contact.name}</span>
       </strong>
       <br />
+      {route && selectedContact?.id === contact.id && (
+        <>
+          <Tag color="blue">🚗 Fahrzeit: {Math.round(route.duration / 60)} min, {(route.distance/1000).toFixed(1)} km</Tag>          
+        </>
+      )}
+      <br />
       <strong>Vertreter/in:</strong> {contact.sales_person}
       <br />
-      <strong>Adresse:</strong> <a href="#" onClick={() => openInMapApp(parse_address(contact))} 
-              style={{ textDecoration: "none", color: "black" }}>{parse_address(contact)}</a>
+      <strong>Adresse:</strong> <a href="#" onClick={() => openInMapApp(parse_address(contact))}
+        style={{ textDecoration: "none", color: "black" }}>{parse_address(contact)}</a>
       <br />
       <strong>Umsatz:</strong> € {contact.total_invoiced.toFixed(0)}
       <br />
       <strong>Telefon:</strong>  <a href={`tel:${contact.phone}`} style={{ textDecoration: "none", color: "black" }}>{contact.phone}</a>
       <br />
       <strong>Email:</strong> <a href={`mailto:${contact.email}`} style={{ textDecoration: "none", color: "black" }}>{contact.email}</a>
-      <br />      
-        <Tag color="orange"> {contact.km_distance.toFixed(1)} km </Tag> 
-        <Tag color={contact.is_customer ? "blue" : "green"}>
-          {contact.is_customer ? `Kunde [${contact.customer_rank}]` : "Lead"}
-        </Tag>
-      <br />            
+      <br />
+      <Tag color="orange"> {contact.km_distance.toFixed(1)} km </Tag>
+      <Tag color={contact.is_customer ? "blue" : "green"}>
+        {contact.is_customer ? `Kunde [${contact.customer_rank}]` : "Lead"}
+      </Tag>
+      <br />
       <Button
         type="primary"
         onClick={() => openInMapApp(`${contact.latitude},${contact.longitude}`)}
@@ -235,9 +271,13 @@ const GeoMapView = () => {
         Navigation
       </Button>
 
-      <Button onClick={() => toggleFavorite(contact.id)} style={{marginLeft: "30px"}}>
+      <Button onClick={() => toggleFavorite(contact.id)} style={{ marginLeft: "30px" }}>
         {favorites.includes(contact.id) ? "❤️ Entfernen" : "🤍 Markieren"}
       </Button>
+
+      {/* <Button type="primary" onClick={() => fetchRoute(contact)}>
+        🏁 Go
+      </Button> */}
     </div>
   );
 
@@ -245,7 +285,7 @@ const GeoMapView = () => {
     <div className="geo-map-view">
       <h2> {contacts.length} Kontakte</h2>
       <div className="map-controls">
-        <div className="map-control-group">          
+        <div className="map-control-group">
           <Select
             value={radius}
             onChange={handleRadiusChange}
@@ -285,6 +325,7 @@ const GeoMapView = () => {
           <MapContainer
             center={[userLocation.latitude, userLocation.longitude]}
             zoom={getZoomLevel(radius)}
+            zoomControl={false}
             className="map-container"
             ref={mapRef}
             whenCreated={(map) => (mapRef.current = map)}
@@ -299,7 +340,7 @@ const GeoMapView = () => {
               <Popup> Ihr Standort </Popup>
             </Marker>
 
-              {/* 在用户当前位置绘制一个半透明圆 */}
+            {/* 在用户当前位置绘制一个半透明圆 */}
             <Circle
               center={[userLocation.latitude, userLocation.longitude]}
               radius={radius * 1000} // Leaflet 的单位是米
@@ -314,17 +355,22 @@ const GeoMapView = () => {
             {contacts.map((contact) => (
               <Marker
                 key={contact.id}
-                position={[contact.latitude, contact.longitude]}                
+                position={[contact.latitude, contact.longitude]}
                 icon={favorites.includes(contact.id) ? favoriteIcon : (contact.is_customer ? defaultIcon : grayIcon)}
+                eventHandlers={{
+                  click: () => fetchRoute(contact), // 点击客户时计算路线
+                }}
               >
                 <Popup>{popUpContent(contact)}</Popup>
-                {contact.total_invoiced && (
-                  <Tooltip direction="top" offset={[0, -50]} permanent>
-                    <span>💰 € {contact.total_invoiced.toFixed(0)}   </span>
+                {contact.total_invoiced && contact.total_invoiced >= 1000 && (
+                  <Tooltip direction="top" offset={[0, -50]} opacity={0.7}  permanent>
+                    <span style={{ fontSize: "10px" }}>💰 € {contact.total_invoiced.toFixed(0)}   </span>
                   </Tooltip>
                 )}
               </Marker>
             ))}
+            {drawRoute()}
+
           </MapContainer>
         )
       )}
