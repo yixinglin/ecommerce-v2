@@ -52,6 +52,7 @@ class OdooGeoService:
 
     def calc_distance(self, lon0, lat0,
                       geo_contacts: List[GeoContact]) -> List[GeoContact]:
+        # Calculate distance between geo_contacts and lon0, lat0
         df_geo_contacts = pd.DataFrame.from_dict([c.dict() for c in geo_contacts])
         df_geo_contacts['km_distance'] = haversine_vectorized(
             lat0,
@@ -65,6 +66,7 @@ class OdooGeoService:
             gc = GeoContact(**contact)
             list_geo.append(gc)
         return list_geo
+
 
     def query_all_geo_contacts(self, offset, limit, min_customer_rank=0) -> List[GeoContact]:
         filter_ = {

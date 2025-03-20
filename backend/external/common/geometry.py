@@ -4,6 +4,8 @@ from typing import List, Optional
 import requests
 from pydantic import BaseModel
 from core.config2 import settings
+from geopy.geocoders import Nominatim
+import time
 
 class GeoPoint(BaseModel):
     latitude: float
@@ -53,3 +55,30 @@ def fetch_route(source: GeoPoint, destination: GeoPoint, mode: str = "driving") 
                     duration=leg["duration"],
                     distance=leg["distance"]
     )
+
+def fetch_table(points: List[GeoPoint], mode: str = "driving"):
+    locations = ';'.join([f"{p.longitude},{p.latitude}" for p in points])
+    url = f"{osrm_config.url}/table/v1/{mode}/{locations}?annotations=distance,duration"
+    response = requests.get(url, headers=osrm_headers)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch table from OSRM API: {response.text}")
+    data = response.json()
+    points = [GeoPoint(
+        latitude=s['location'][1],
+        longitude=s['location'][0],
+        name=s['name']
+    ) for s in data['sources']]
+    return {
+        "durations": data['durations'],
+        "distances": data['distances'],
+        "sources": [p.dict() for p in points]
+    }
+
+
+def address_to_coordinates(address: str) -> GeoPoint:
+    geolocator = Nominatim(user_agent="my_app")
+    location = geolocator.geocode(address)
+    if location is None:
+        raise ValueError(f"Failed to find location for address: {address}")
+    time.sleep(1.1) # to avoid overloading the API
+    return GeoPoint(latitude=location.latitude, longitude=location.longitude, name=location.address)
