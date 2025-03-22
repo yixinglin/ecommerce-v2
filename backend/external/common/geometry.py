@@ -82,3 +82,4 @@ def address_to_coordinates(address: str) -> GeoPoint:
         raise ValueError(f"Failed to find location for address: {address}")
     time.sleep(1.1) # to avoid overloading the API
     return GeoPoint(latitude=location.latitude, longitude=location.longitude, name=location.address)
+

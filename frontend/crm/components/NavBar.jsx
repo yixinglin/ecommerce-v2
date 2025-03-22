@@ -6,11 +6,14 @@ import { SearchOutlined, UnorderedListOutlined } from "@ant-design/icons";
 const NavBar = () => {
   return (
     <Menu mode="horizontal" theme="light" style={{ justifyContent: "center" }}>
+      <Menu.Item key="planner" icon={<UnorderedListOutlined />}>
+        <Link to="/planner">PLANNER</Link>
+      </Menu.Item>
       <Menu.Item key="discovery" icon={<SearchOutlined />}>
-        <Link to="/map">KARTE</Link>        
+        <Link to="/map">KARTE</Link>
       </Menu.Item>
       <Menu.Item key="list" icon={<UnorderedListOutlined />}>
-        <Link to="/list">LISTE</Link>        
+        <Link to="/list">LISTE</Link>
       </Menu.Item>
     </Menu>
   );

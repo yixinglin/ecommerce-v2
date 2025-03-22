@@ -87,3 +87,28 @@ class OdooGeoService:
 
     def query_all_geo_customers(self, offset, limit) -> List[GeoContact]:
         return self.query_all_geo_contacts(offset, limit, min_customer_rank=1)
+
+    def query_contact_by_keyword(self, keyword: str, limit: int = 20) -> List[GeoContact]:
+        filter_ = {
+            "alias": self.api.get_alias(),
+            "data.is_company": True,
+            "data.active": True,
+            "$or": [
+                {"data.complete_name": {"$regex": keyword, "$options": "i"}},
+                {"data.contact_address_complete": {"$regex": keyword, "$options": "i"}},
+                {"data.contact_address_inline": {"$regex": keyword, "$options": "i"}},
+                {"data.email": {"$regex": keyword, "$options": "i"}},
+                {"data.phone": {"$regex": keyword, "$options": "i"}},
+                {"data.mobile": {"$regex": keyword, "$options": "i"}},
+            ]
+        }
+        data = self.mdb_contact.query_contacts(offset=0, limit=limit, filter=filter_)
+        list_geo = []
+        for contact in data:
+            try:
+                geo_contact = self.to_geo_contact(contact['data'])
+                list_geo.append(geo_contact)
+            except KeyError as e:
+                logger.error(f"Error parsing contact id={contact['data']['id']}: {e}")
+        return list_geo
+

@@ -38,6 +38,19 @@ def get_geo_contacts(longitude: float, latitude: float,
         total=len(customers)
     )
 
+@crm_geo.get("/contacts/keyword/{keyword}", response_model=ListGeoContacts,
+             summary="Get customers by keyword")
+def get_geo_contact_by_keyword(keyword: str, limit:int=20):
+    try:
+        with OdooGeoService(key_index=odoo_access_key_index, login=None) as service:
+            customers = service.query_contact_by_keyword(keyword.strip(), limit=limit)
+    except RuntimeError as e:
+        return HTTPException(status_code=500, detail=str(e))
+    return ListGeoContacts(
+        contacts=customers,
+        total=len(customers)
+    )
+
 @crm_geo.post("/route",
              response_model=GeoRoute,
              summary="Calculate the route between two locations"
@@ -72,7 +85,6 @@ def convert_address_to_coordinates(address: str) -> GeoPoint:
     if coordinates is None:
         raise HTTPException(status_code=400, detail="Invalid address")
     return coordinates
-
 
 @crm_geo.post("/route/duration_matrix",
               response_model=dict,

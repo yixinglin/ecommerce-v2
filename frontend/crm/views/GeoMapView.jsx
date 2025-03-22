@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Select, Spin, Switch, Button, Tag } from "antd";
+import { Select, Spin, Switch, Button, Tag, message } from "antd";
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, ScaleControl, Circle, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./GeoMapView.css";
@@ -78,8 +78,8 @@ const GeoMapView = () => {
           }
         },
         (error) => {
-          console.error("Geolocation error:", error)
-          // alert("Browser failed to get your location.");
+          console.error("Geolocation error:", error)          
+          message.error("Browser failed to get your location.")          
           setLoading(false);
 
         },

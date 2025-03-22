@@ -13,12 +13,12 @@ tar -zcvf project.tar.gz \
                 --exclude="build/*" \
                 --exclude="__pycache__" \
                 --exclude="static2/*"  \
-                --exclude="scripts/*" \                
+                --exclude="scripts/*" \
                 ./*
 
                  
 # 将打包好的文件移动到build目录下
-if [! -d "./build" ]; then
+if [ ! -d "./build" ]; then
     mkdir build
 fi
 

@@ -1,0 +1,106 @@
+/* 容器布局：左右结构（PC）或上下结构（移动） */
+.geo-route-container {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 左侧控制面板 */
+.geo-route-left {
+  width: 40%;
+  padding: 24px;
+  background-color: #f9f9f9;  
+  border-right: 1px solid #dcdcdc;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 标题 */
+.geo-route-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+/* 文本输入框 */
+.geo-route-textarea {
+  width: 100%;
+  height: 120px;
+  resize: none;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  
+}
+
+/* 按钮区域 */
+.geo-route-button-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 拖拽列表区域 */
+.geo-route-list {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 10px;
+  overflow-y: visible;
+}
+
+/* 摘要区域 */
+.geo-route-summary {
+  font-size: 14px;
+  line-height: 1.6;
+  background: #f0f0f0;
+  padding: 12px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  min-height: 100px;
+}
+
+/* 地图容器 */
+.geo-route-map {
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 复制按钮 */
+.geo-route-copy-button {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* 响应式适配：竖屏 iPad 或小屏幕 */
+@media screen and (max-width: 1024px) {
+  .geo-route-container {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .geo-route-left {
+    width: 100%;
+    padding: 16px;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+  }
+
+  .geo-route-map {
+    width: 100%;
+    height: 400px;
+    min-height: 300px;
+  }
+
+  .geo-route-button-group {
+    justify-content: space-between;
+  }
+
+  .geo-route-copy-button {
+    width: auto;
+  }
+}
