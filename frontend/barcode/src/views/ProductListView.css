@@ -25,6 +25,18 @@
   padding: 8px 12px;
 }
 
+.product-list-container {
+  height: 100vh; /* 或者根据页面需要设置固定高度 */
+  display: flex;
+  flex-direction: column;
+}
+
+.product-list-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+
 /* 适配小屏幕，搜索框 & 按钮换行 */
 @media (max-width: 300px) {
   .product-list-header {

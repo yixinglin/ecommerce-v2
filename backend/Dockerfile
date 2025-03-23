@@ -1,23 +1,24 @@
-# 使用官方 Python 3.12 镜像作为基础镜像
 FROM python:3.12-slim
 
-# 复制项目文件到容器中的工作目录
-ADD . /code
-
-# 设置工作目录
+# Specify the working directory
 WORKDIR /code
 
-# 进入工作目录
-RUN cd /code
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y fonts-wqy-zenhei && \
+    rm -rf /var/lib/apt/lists/*
 
-# 安装项目依赖
-RUN apt-get update
-RUN apt-get install fonts-wqy-zenhei -y
+# Copy requirements.txt to the working directory
+COPY requirements.txt .
+
 # RUN pip install --no-cache-dir -r requirements.txt
 RUN --mount=type=cache,target=/root/.cache pip install -r requirements.txt
 
-# 暴露应用端口
+# Copy the code to the working directory. This step should be after the pip install step to avoid cache invalidation.
+COPY . .
+
+# Expose port 5018
 EXPOSE 5018
 
-# 启动应用
+# Start the application
 CMD ["python", "/code/main.py"]

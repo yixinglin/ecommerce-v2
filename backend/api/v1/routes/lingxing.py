@@ -24,10 +24,12 @@ proxy_index = settings.http_proxy.index
 @listing_router.get("/listings",
                     summary="Get all listings",
                     response_model=BasicResponse[dict], )
-async def get_all_listings(offset: int = 0, limit: int = 100):
+async def get_all_listings(offset: int = 0, limit: int = 100, seller_id: int = None):
     async with ListingService(key_index, proxy_index) as service:
-        listings = await service.find_all_listings(offset=offset, limit=limit)
-
+        filter_ = {}
+        if seller_id is not None:
+            filter_['data.sid'] = seller_id
+        listings = await service.find_all_listings(offset=offset, limit=limit, filter_=filter_)
     data = {
         "listings": listings,
         "length": len(listings)
@@ -69,12 +71,13 @@ async def get_listing_by_fnsku(sid: int, fnsku: str):
                     response_model=BasicResponse[dict], )
 async def get_printshop_listing_view(offset: int = 0, limit: int = 100,
                                      has_fnsku: bool = True, include_off_sale: bool = False,
+                                     seller_id: int = None,
                                      is_unique_fnsku: bool = False):
     wid = 11222
     async with GeneralService(key_index, proxy_index) as service:
         list_vo = await service.get_printshop_listing_view(
             has_fnsku=has_fnsku, include_off_sale=include_off_sale,
-            wids=[wid], is_unique_fnsku=is_unique_fnsku,
+            wids=[wid], is_unique_fnsku=is_unique_fnsku, seller_id=seller_id,
             offset=offset, limit=limit)
     data = {
         "list_vo": list_vo,

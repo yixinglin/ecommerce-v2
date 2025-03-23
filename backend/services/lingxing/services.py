@@ -454,7 +454,8 @@ class GeneralService:
 
         seller = await self.basic_service.find_seller_by_sid(listing.sid)
 
-        note = f"[{dtime}] | {inv_str}"
+        # note = f"[{dtime}] | {inv_str}"
+        note = f"{dtime}"
         title = f"[{listing.seller_sku}] {listing.item_name}"
         title = title[:200]
         sku = f"{listing.local_sku} | {seller.name}"
@@ -463,13 +464,16 @@ class GeneralService:
         return listing.label
 
     async def get_printshop_listing_view(self, offset=0, limit=100, has_fnsku=True, is_unique_fnsku=False,
-                                         include_off_sale = False, wids = None,
+                                         include_off_sale = False, wids = None, seller_id = None,
                                          *args, **kwargs) -> List[PrintShopListingVO]:
         filter_ = {}
         if not include_off_sale:
             filter_['data.status'] = 1
         if has_fnsku:
             filter_['data.fnsku'] = {"$ne": ""}
+        if seller_id is not None:
+            filter_['data.sid'] = seller_id
+
 
         listings = await self.listing_service.find_all_listings(offset=offset, limit=limit, filter_=filter_, *args, **kwargs)
 
@@ -516,7 +520,7 @@ class GeneralService:
                 inventories=[inv] if inv else []
             )
             view_listings.append(vo)
-        view_listings = sorted(view_listings, key=lambda x: x.local_sku)
+        view_listings = sorted(view_listings, key=lambda x: (x.seller.sid if x.seller else "", x.local_sku))
         return view_listings
 
     async def get_fba_shipment_plans_view(self, offset=0, limit=100, statuses: List[FbaShipmentPlanStatus]=None,

@@ -48,9 +48,10 @@ class PrintTaskService:
         return await PrintTask_Pydantic.from_tortoise_orm(task_obj)
 
     async def get_print_tasks(self, offset, limit, **kwargs):
-        tasks = PrintTaskModel.all().order_by("-id").offset(offset).limit(limit)
+        qs = PrintTaskModel.filter(**kwargs)
+        total = await qs.count()
+        tasks = qs.order_by("-id").offset(offset).limit(limit)
         ans = await PrintTask_Pydantic.from_queryset(tasks)
-        total = await PrintTaskModel.all().count()
         return {
             "total": total,
             "items": ans
@@ -63,9 +64,8 @@ class PrintTaskService:
                                 file_paths: List[str],
                                 signature: str,
                                 **kwargs):
-        try:
-            task_obj = await PrintTaskModel.get(id=task_id)
-        except DoesNotExist:
+        task_obj = await PrintTaskModel.get_or_none(id=task_id)
+        if not task_obj:
             raise HTTPException(status_code=404, detail="Task not found")
 
         if task_name is not None and task_obj.task_name != task_name:

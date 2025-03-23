@@ -22,7 +22,7 @@ function ProductListView() {
     if (savedSearchTerm) setSearchTerm(savedSearchTerm);
     if (savedProductList) setProductList(JSON.parse(savedProductList));
 
-    setTimeout(() => {
+    setTimeout(() => {      
       if (listRef.current && savedScrollPosition) {
         listRef.current.scrollTop = parseInt(savedScrollPosition, 10) || 0;
       }
@@ -30,8 +30,8 @@ function ProductListView() {
   }, []);
 
   // ✅ 监听 `滚动事件`，实时更新 `sessionStorage`
-  const handleScroll = () => {
-    if (listRef.current) {
+  const handleScroll = () => {        
+    if (listRef.current) {      
       sessionStorage.setItem("scrollPosition", listRef.current.scrollTop);
     }
   };

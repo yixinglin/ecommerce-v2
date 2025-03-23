@@ -4,3 +4,5 @@ database
 logs
 static2
 *.tar.gz
+cicd
+ssh
