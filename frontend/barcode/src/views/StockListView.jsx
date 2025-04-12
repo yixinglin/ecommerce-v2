@@ -199,10 +199,6 @@ function StockListView() {
             {putawayLocation}
           </span>
         </div>
-
-        {/* <Button onClick={goBack} type="default" className="back-button">
-          Back to Product
-        </Button> */}
       </Card>
     </div>
   );

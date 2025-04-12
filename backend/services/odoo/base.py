@@ -1,11 +1,16 @@
 import base64
 import os
 import time
+from typing import List
+
+from pydantic import BaseModel
+
 from core.log import logger
 from crud.odoo import (OdooQuantMongoDB,
                        OdooStorageLocationMongoDB,
                        OdooPutawayRuleMongoDB,
-                       OdooProductTemplateMongoDB, OdooContactMongoDB, OdooProductMongoDB, OdooPackagingMongoDB)
+                       OdooProductTemplateMongoDB, OdooContactMongoDB, OdooProductMongoDB, OdooPackagingMongoDB,
+                       OdooOrderlineMongoDB)
 from external.odoo import OdooAPIKey, OdooInventoryAPI, OdooProductAPI, OdooContactAPI
 from external.odoo import DATETIME_PATTERN as ODOO_DATETIME_PATTERN
 import utils.time as time_utils
@@ -483,11 +488,58 @@ class OdooContactServiceBase:
         return addr
 
 
+# line = {
+#     "order_number": odl['order_id'][1],  # 订单号
+#     "product_name": odl['product_template_id'][1],
+#     "product_id": odl['product_template_id'][0],
+#     "internal_reference": __extract_internal_ref_from_product_name(odl['product_template_id'][1]),
+#     "currency": odl['currency_id'][1],
+#     "order_partner": odl['order_partner_id'][1],  # 客户
+#     "salesman": odl['salesman_id'][1],  # 销售员
+#     'state': odl['state'],
+#     'uom': odl['product_uom'][1],  # 单位
+#     'product_uom_qty': odl['product_uom_qty'],  # product_qty
+#     'product_qty': odl['product_qty'],  # 数量
+#     'price_unit': odl['price_unit'],  # 单价
+#     'price_subtotal': odl['price_subtotal'],  # 小计
+#     'price_tax': odl['price_tax'],  # 含税
+#     'price_total': odl['price_total'],  # 总计
+#     'qty_to_invoice': odl['qty_to_invoice'],
+#     'qty_to_deliver': odl['qty_to_deliver'],
+#     'product_type': odl['product_type'],
+#     'create_date': odl['create_date'],
+#     'is_delivery': odl['is_delivery'],
+#     'discount': odl['discount'],
+# }
+
+class OrderLine(BaseModel):
+    order_number: str
+    product_name: str
+    product_id: int
+    internal_reference: str
+    currency: str
+    order_partner: str
+    salesman: str
+    state: str
+    uom: str
+    product_uom_qty: float
+    product_qty: float
+    price_unit: float
+    price_subtotal: float
+    price_tax: float
+    price_total: float
+    qty_to_invoice: float
+    qty_to_deliver: float
+    product_type: str
+    create_date: str
+    is_delivery: bool
+    discount: float
+
 class OdooOrderServiceBase:
 
     def __init__(self, key_index, *args, **kwargs):
         self.key_index = key_index
-        self.mdb_order = None
+        self.mdb_order = OdooOrderlineMongoDB()
         if key_index is not None:
             api_key = OdooAPIKey.from_json(key_index)
             self.api = OdooOrderAPI(api_key, **kwargs)
@@ -495,8 +547,71 @@ class OdooOrderServiceBase:
             self.username = self.api.get_username()
             logger.info(f"Odoo username: {self.username} ({self.alias})")
 
+    def save_all_orderlines(self):
+        orderline_ids = self.api.fetch_orderline_ids()
+        orderlines = self.api.fetch_orderline_by_ids(orderline_ids)
+        fetchedAt = time_utils.now()
+        list_ids_ = []
+        list_docs = []
+        for line in orderlines:
+            id_ = line["id"]
+            list_ids_.append(id_)
+            create_date = convert_datetime_to_utc_format(line['create_date'])
+            doc_ = {
+                "_id": id_,
+                "fetchedAt": fetchedAt,
+                "createdAt": create_date,
+                "data": line,
+                "alias": self.api.get_alias()
+            }
+            list_docs.append(doc_)
+        logger.info(f"Saving orderlines")
+        return self.mdb_order.save_orderlines(list_ids_, list_docs)
+
+    def __extract_internal_ref_from_product_name(self, product_name):
+        # 正则表达式匹配中括号内的内容
+        pattern = r'\[(.*?)\]'
+        match = re.search(pattern, product_name)
+        content = ""
+        if match:
+            content = match.group(1)
+        else:
+            print(f"No match found: {product_name}")
+        return content
+
+    def to_standard_orderline(self, orderline_data) -> OrderLine:
+        odl = orderline_data
+        if odl['product_template_id'] == False:
+            raise ValueError(f"product_template_id is False")
+
+        orderline = OrderLine(
+            order_number= odl['order_id'][1],
+            product_name=odl['product_template_id'][1],
+            product_id=odl['product_template_id'][0],
+            internal_reference=self.__extract_internal_ref_from_product_name(odl['product_template_id'][1]),
+            currency=odl['currency_id'][1],
+            order_partner=odl['order_partner_id'][1],
+            salesman=odl['salesman_id'][1],
+            state=odl['state'],
+            uom=odl['product_uom'][1],
+            product_uom_qty=odl['product_uom_qty'],
+            product_qty=odl['product_qty'],
+            price_unit=odl['price_unit'],
+            price_subtotal=odl['price_subtotal'],
+            price_tax=odl['price_tax'],
+            price_total=odl['price_total'],
+            qty_to_invoice=odl['qty_to_invoice'],
+            qty_to_deliver=odl['qty_to_deliver'],
+            product_type=odl['product_type'],
+            create_date=odl['create_date'],
+            is_delivery=odl['is_delivery'],
+            discount=odl['discount'],
+        )
+        return orderline
+
     def __enter__(self):
+        self.mdb_order.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
+        self.mdb_order.close()

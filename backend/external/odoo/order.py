@@ -8,10 +8,19 @@ class OdooOrderAPI(OdooAPIBase):
         super().__init__(api_key, *args, **kwargs)
 
     def fetch_order_ids(self):
-        pass
+        raise NotImplementedError()
 
     def fetch_orderline_ids(self):
-        pass
+        domain = [('salesman_id', 'not in', [8, 6])]
+        return self.client.search('sale.order.line', [domain])
+
+    def fetch_orderline_by_ids(self, ids):
+        fields = ['order_id', 'name', 'currency_id', 'order_partner_id', 'salesman_id', 'product_template_id',
+                  'state', 'product_uom', 'product_uom_qty', 'product_qty', 'price_unit',
+                  'price_subtotal', 'price_tax', 'price_total', 'qty_to_invoice', 'qty_to_deliver',
+                  'product_type', 'create_date', 'is_delivery', 'display_type', 'discount'
+                  ]
+        return self.client.read('sale.order.line', [ids], {"fields": fields})
 
     # def make_quot_data():
     #     quotation_data = {

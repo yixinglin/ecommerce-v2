@@ -5,13 +5,25 @@ from unittest.mock import MagicMock
 from core.log import logger
 from models.orders import StandardProduct
 from services.odoo import OdooInventoryService, OdooContactService, OdooProductService
-from services.odoo.OdooOrderService import OdooProductPackagingService
+from services.odoo.OdooDashboardService import OdooOrderDashboardService
+from services.odoo.OdooOrderService import OdooProductPackagingService, OdooOrderService
 
 
 class TestOdooUnits(unittest.TestCase):
 
     def setUp(self):
         pass
+
+    def test_order(self):
+        with OdooOrderService(key_index=1, login=False) as svc:
+            order_lines = svc.query_orderlines_by_salesman_id([7])
+            assert len(order_lines) > 0
+            logger.info(f"Found {len(order_lines)} order lines")
+
+        with OdooOrderDashboardService(key_index=1, login=False) as svc:
+            data = svc.stats_sales_order_by_salesman(salesman_ids=[7])
+            data = svc.stats_sales_order_by_customer()
+
 
 
     def test_product(self):
@@ -57,6 +69,12 @@ class TestOdooUnits(unittest.TestCase):
             assert contact2["name"] == contacts1[0]['contact']["name"]
             logger.info(f"Found contact {contact2['name']} by id")
 
+
+class TestOdooUnits2(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
     # def test_saving(self):
     #     logger.info("Testing inventory")
     #     with OdooInventoryService(key_index=0) as svc:
@@ -73,6 +91,12 @@ class TestOdooUnits(unittest.TestCase):
     #
     #     with OdooProductPackagingService(key_index=0) as svc:
     #         svc.save_all_product_packaging()
+
+    def test_saving_2(self):
+        logger.info("Testing Order")
+        with OdooOrderService(key_index=0) as svc:
+            svc.save_all_orderlines()
+
 
 if __name__ == '__main__':
     unittest.main()

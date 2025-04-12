@@ -1,9 +1,6 @@
 import base64
 from typing import Union, List, Dict
-
 from fastapi import APIRouter, HTTPException, UploadFile, File
-
-
 from core.config2 import settings
 from core.log import logger
 from schemas.barcode import ProductFullInfo, ProductBasicInfo, ProductUpdate, Quant, ProductPackaging, \

@@ -1,11 +1,16 @@
 import re
+from typing import List
 
+from pydantic import BaseModel
+
+import utils.time as time_utils
 from core.config2 import settings
 from core.log import logger
 from models import Address
 from models.orders import StandardProduct
 from schemas.vip import VipOrder
-from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase)
+from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase,
+                   convert_datetime_to_utc_format, OrderLine)
 from .base import save_record, OdooOrderServiceBase
 import utils.address as addr_utils
 
@@ -51,6 +56,17 @@ class OdooProductService(OdooProductServiceBase):
             products=products,
         )
         return ans
+
+    def query_product_templates_by_ids(self, ids: List[int]):
+        # Query products by ids from DB
+        filter_ = {"alias": self.api.get_alias(), "data.id": {"$in": ids}}
+        data = self.mdb_product_templ.query_product_templates(filter=filter_)
+        products = []
+        for product in data:
+            # To standard product object
+            p = self.to_standard_product(product)
+            products.append(p)
+        return products
 
     def query_product_by_code(self, code) -> StandardProduct:
         filter_ = {"alias": self.api.get_alias(), "data.default_code": code}
@@ -197,7 +213,6 @@ class OdooContactService(OdooContactServiceBase):
 
 class OdooOrderService(OdooOrderServiceBase):
 
-
     def __init__(self, key_index, *args, **kwargs):
         super().__init__(key_index, *args, **kwargs)
         self.svc_product = OdooProductService(key_index, *args, **kwargs)
@@ -213,6 +228,47 @@ class OdooOrderService(OdooOrderServiceBase):
         super().__exit__(exc_type, exc_val, exc_tb)
         self.svc_product.__exit__(exc_type, exc_val, exc_tb)
         self.svc_contact.__exit__(exc_type, exc_val, exc_tb)
+
+
+    def query_orderline_by_id(self, id) -> OrderLine:
+        filter_ = {"alias": self.api.get_alias(), "data.id": id}
+        data = self.mdb_order.query_orderlines(filter=filter_)
+        if len(data) == 0:
+            return None
+        orderline = data[0]
+        return self.to_standard_orderline(orderline.get('data', ""))
+
+    def query_orderlines_by_order_id(self, order_id) -> List[OrderLine]:
+        filter_ = {"alias": self.api.get_alias(), "data.order_id": order_id}
+        data = self.mdb_order.query_orderlines(filter=filter_)
+        if len(data) == 0:
+            return None
+        orderlines = []
+        for li in data:
+            try:
+                line = self.to_standard_orderline(li.get('data', ""))
+                orderlines.append(line)
+            except Exception as e:
+                logger.error(f"Failed to convert orderline to standard: {e}")
+                logger.error(f"Orderline: {li['data']['id']}")
+        return orderlines
+
+    def query_orderlines_by_salesman_id(self, salesman_ids: List[int]) -> List[OrderLine]:
+        filter_ = {"alias": self.api.get_alias()}
+        if salesman_ids is not None:
+            filter_["data.salesman_id"] = {"$in": salesman_ids}
+
+        data = self.mdb_order.query_orderlines(filter=filter_)
+        if len(data) == 0:
+            return None
+        orderlines = []
+        for li in data:
+            try:
+                line = self.to_standard_orderline(li.get('data', ""))
+                orderlines.append(line)
+            except Exception as e:
+                logger.error(f"Failed to convert orderline [id={li['data']['id']}] to standard: {e}")
+        return orderlines
 
     def split_seller_sku(self, seller_sku):
         pattern = r"^(.*?)(PK\d+)$"

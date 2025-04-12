@@ -134,7 +134,7 @@ function ProductListView() {
         )}
       </div>
       <p style={{textAlign: "left", fontSize: "8px", color: "gray"}}>%orderline%</p>
-    </div>    
+    </div> 
     </>
 
   );

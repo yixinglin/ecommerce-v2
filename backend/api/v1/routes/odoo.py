@@ -1,14 +1,22 @@
+import io
+from typing import List
+
+import pandas as pd
 from fastapi import APIRouter, Body, HTTPException
+from starlette.responses import StreamingResponse, HTMLResponse
+
 from core.config2 import settings
 from core.log import logger
 from schemas import ResponseSuccess, BasicResponse, ResponseFailure, ResponseNotFound
 from schemas.vip import VipOrder
+from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
 from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService
 
 odoo_inventory = APIRouter(prefix="/inventory",)
 odoo_sales = APIRouter(prefix="/sales", )
 odoo_contact = APIRouter(prefix="/contact", )
+odoo_dashboard = APIRouter(prefix="/dashboard", )
 
 odoo_access_key_index = settings.api_keys.odoo_access_key_index
 
@@ -64,3 +72,30 @@ def get_odoo_delivery_order(order_number: str):
         data = svc.query_delivery_order_by_order_number(order_number)
     return ResponseSuccess(data=data)
 
+
+@odoo_dashboard.get('/sales_order_report',
+                    summary="Download Sales Order Report")
+def download_sales_order_report(days_ago: int = 365):
+    salesman_ids = [7]
+    with OdooOrderDashboardService(key_index=odoo_access_key_index, login=False) as svc:
+        df_report1 = svc.stats_sales_order_by_salesman(salesman_ids, days_ago=days_ago)
+        df_report2 = svc.stats_sales_order_by_customer(days_ago=days_ago)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output) as writer:
+        df_report1.to_excel(writer, sheet_name='sheet1', index=False)
+        df_report2.to_excel(writer, sheet_name='sheet2', index=False)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=Sales Order Report.xlsx"}
+    )
+
+@odoo_dashboard.get('/sales_order_report/bubble_chart',
+                    summary="Render Sales Order Report Bubble Chart",
+                    response_class=HTMLResponse)
+def render_sales_order_report_bubble_chart(days_ago: int = 365):
+    with OdooOrderDashboardService(key_index=odoo_access_key_index, login=False) as svc:
+        html = svc.stats_sales_order_by_customer_bubble_chart(days_ago=days_ago)
+    return HTMLResponse(html)

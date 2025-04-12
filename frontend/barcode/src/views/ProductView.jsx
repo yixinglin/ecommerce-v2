@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate  } from "react-router-dom";
-import { fetch_product_by_id, update_product_image, 
-      update_product_barcode, update_product_weight } from "../rest/odoo";
+import { useParams, useNavigate } from "react-router-dom";
+import {
+  fetch_product_by_id, update_product_image,
+  update_product_barcode, update_product_weight
+} from "../rest/odoo";
 import { Card, Spin, Upload, message, Button } from "antd";
 import { CameraOutlined, BarcodeOutlined, EditOutlined, NodeIndexOutlined } from "@ant-design/icons";
 import "./ProductView.css"; // 引入 CSS 文件
@@ -14,7 +16,7 @@ function ProductView() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch_product_by_id({product_id:id, up_to_date:upToDate}).then((response) => {
+    fetch_product_by_id({ product_id: id, up_to_date: upToDate }).then((response) => {
       setProduct(response.data);
       setLoading(false);
       if (upToDate) {
@@ -75,45 +77,46 @@ function ProductView() {
   }
 
   return (
-    <div className="product-view-container">
-      <Card className="product-card">
-        {/* Image Upload */}
-        <Upload customRequest={handleImageUpload} showUploadList={false}>
-          <div className="product-image-container">
-            <img alt={product.name} src={product.image_url} className="product-image" />
-            <CameraOutlined className="camera-icon" />
-          </div>
-        </Upload>
+    <div>
+      <div className="product-view-container">
+        <Card className="product-card">
+          {/* Image Upload */}
+          <Upload customRequest={handleImageUpload} showUploadList={false}>
+            <div className="product-image-container">
+              <img alt={product.name} src={product.image_url} className="product-image" />
+              <CameraOutlined className="camera-icon" />
+            </div>
+          </Upload>
 
-        {/* Product Information */}
-        <div className="product-info">
-          <h2 className="product-title">{product.name}</h2>
-          <p className="product-field">
-            <NodeIndexOutlined className="icon" />
-            <strong>SKU:</strong> {product.sku || "N/A"}
-          </p>
-
-          <p className="product-field" onClick={handleBarcodeUpdate}>
-            <BarcodeOutlined className="icon" />
-            <strong>Barcode:</strong> {product.barcode || "N/A"}
-          </p>
-
-          <p className="product-field" onClick={handleWeightUpdate}>
-            <EditOutlined className="icon" />
-            <strong>Weight:</strong> {product.weight} kg
-          </p>
-
-          <p className={`product-stock ${product.qty_available > 0 ? "stock-available" : "stock-out"}`}>
-            <strong>Stock:</strong> {product.qty_available} {product.uom}
-          </p>
-
-          {product.description && (
-            <p className="product-description">
-              <strong>Description:</strong> {product.description}
+          {/* Product Information */}
+          <div className="product-info">
+            <h2 className="product-title">{product.name}</h2>
+            <p className="product-field">
+              <NodeIndexOutlined className="icon" />
+              <strong>SKU:</strong> {product.sku || "N/A"}
             </p>
-          )}
-        </div>
-      </Card>
+
+            <p className="product-field" onClick={handleBarcodeUpdate}>
+              <BarcodeOutlined className="icon" />
+              <strong>Barcode:</strong> {product.barcode || "N/A"}
+            </p>
+
+            <p className="product-field" onClick={handleWeightUpdate}>
+              <EditOutlined className="icon" />
+              <strong>Weight:</strong> {product.weight} kg
+            </p>
+
+            <p className={`product-stock ${product.qty_available > 0 ? "stock-available" : "stock-out"}`}>
+              <strong>Stock:</strong> {product.qty_available} {product.uom}
+            </p>
+
+            {product.description && (
+              <p className="product-description">
+                <strong>Description:</strong> {product.description}
+              </p>
+            )}
+          </div>
+        </Card>
 
         <Button type="primary" onClick={() => navigate(`/stock/${product.id}`)} className="stock-button">
           View Stock List
@@ -124,7 +127,9 @@ function ProductView() {
         </Button>
         <br />
         <Button onClick={() => handleUpdateButton()}>Update</Button>
+      </div>      
     </div>
+
   );
 }
 

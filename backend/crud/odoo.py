@@ -1,5 +1,7 @@
 from typing import List
 
+from pymongo import UpdateOne
+
 from core.db import MongoDBDataManager
 
 
@@ -293,9 +295,55 @@ class OdooQuantMongoDB(MongoDBDataManager):
         raise NotImplementedError
 
 
+class OdooOrderlineMongoDB(MongoDBDataManager):
 
+    def __init__(self):
+        super().__init__()
+        self.db_name = "odoo_data"
+        self.db_collection_name = "sale.order.line"
 
+    def get_db_collection(self):
+        return self.db_client[self.db_name][self.db_collection_name]
 
+    def save_orderline(self, orderline_id, document):
+        collection = self.get_db_collection()
+        result = collection.update_one(
+            {"_id": orderline_id},
+            {"$set": document},
+            upsert=True
+        )
+        return result
+
+    def save_orderlines(self, orderline_ids, documents):
+        collection = self.get_db_collection()
+        operations = []
+
+        for orderline_id, document in zip(orderline_ids, documents):
+            operations.append(
+                UpdateOne(
+                    {"_id": orderline_id},
+                    {"$set": document},
+                    upsert=True
+                )
+            )
+
+        if operations:
+            result = collection.bulk_write(operations)
+            return result
+        else:
+            return None
+
+    def query_orderlines(self, offset: int = 0, limit=None, *args, **kwargs):
+        collection = self.get_db_collection()
+        results = collection.find(**kwargs)
+        if limit is not None:
+            results = results.limit(limit)
+        if offset > 0:
+            results = results.skip(offset)
+        return list(results)
+
+    def to_standard_orderline(self, orderline: dict):
+        raise NotImplementedError
 
 
 

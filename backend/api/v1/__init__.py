@@ -6,7 +6,7 @@ from .routes.amazon import amz_order
 from .routes.kaufland import kfld_order
 from .routes.carriers import gls
 from .routes.pickpack import pp_amazon, pp_common
-from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact
+from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact, odoo_dashboard
 from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans
 from .routes.print_task import print_task_router
 from .routes.barcode import barcode
@@ -30,6 +30,7 @@ odoo = APIRouter(prefix="/odoo", tags=["Odoo Services"])
 odoo.include_router(odoo_inventory)
 odoo.include_router(odoo_sales)
 odoo.include_router(odoo_contact)
+odoo.include_router(odoo_dashboard)
 
 lx = APIRouter(prefix="/lingxing", tags=["LingXing Services"])
 lx.include_router(warehouse_router)

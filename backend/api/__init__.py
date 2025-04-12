@@ -34,16 +34,18 @@ app.add_middleware(
 )
 
 # http://127.0.0.1:8000/static/images/logo.png
-os.makedirs("./static2/images", exist_ok=True)
-os.makedirs("./static2/uploads", exist_ok=True)
-app.mount("/static2", StaticFiles(directory="static2"), name="static2")
+STATIC2 = "./static2"
+os.makedirs(f"{STATIC2}/images", exist_ok=True)
+os.makedirs(f"{STATIC2}/uploads", exist_ok=True)
+app.mount("/static2", StaticFiles(directory=STATIC2), name="static2")
 
-os.makedirs("./assets/media", exist_ok=True)
-app.mount("/media", StaticFiles(directory="./assets/media"), name="media")
-os.makedirs("./assets/static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="./assets/static"), name="static")
-os.makedirs("./assets/pic", exist_ok=True)
-app.mount("/pic", StaticFiles(directory="./assets/pic"), name="pic")
+ASSETS = "./assets"
+os.makedirs(f"{ASSETS}/media", exist_ok=True)
+app.mount("/media", StaticFiles(directory=f"{ASSETS}/media"), name="media")
+os.makedirs(f"{ASSETS}/static", exist_ok=True)
+app.mount("/static", StaticFiles(directory=f"{ASSETS}/static"), name="static")
+os.makedirs(f"{ASSETS}/pic", exist_ok=True)
+app.mount("/pic", StaticFiles(directory=f"{ASSETS}/pic"), name="pic")
 
 
 

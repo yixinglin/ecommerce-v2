@@ -13,7 +13,7 @@ from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
-from services.odoo.OdooOrderService import OdooProductPackagingService
+from services.odoo.OdooOrderService import OdooProductPackagingService, OdooOrderService
 
 hourly_scheduler = BackgroundScheduler()
 
@@ -146,6 +146,17 @@ def save_odoo_data_jobs():
     finally:
         # wait for 15 seconds before running the next job, to avoid rate limiting
         time.sleep(15)
+
+    try:
+        logger.info("Scheduled job to save order data to Odoo")
+        with OdooOrderService(key_index=odoo_access_key_index, login=True) as svc:
+            svc.save_all_orderlines()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save order data to Odoo: {e}")
+    finally:
+        # wait for 15 seconds before running the next job, to avoid rate limiting
+        time.sleep(15)
+
 
     logger.info("Successfully scheduled Odoo data scheduler job...")
 
