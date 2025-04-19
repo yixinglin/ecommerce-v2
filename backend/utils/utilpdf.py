@@ -1,10 +1,14 @@
 import base64
 import io
-from typing import List
+from typing import List, Union, Tuple
 
 import PyPDF2
+from PyPDF2.generic import RectangleObject
+import numpy as np
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
+
+
 
 PARCEL_LABEL = (4.126 * inch, 5.835 * inch)
 GLS_TEXT_POS = (8 * mm, 65 * mm)
@@ -96,22 +100,107 @@ def add_watermark(pdf_bytes: bytes,
     pdf_writer.write(watermarked_pdf_bytes)
     return watermarked_pdf_bytes.getvalue()
 
-# def html_to_pdf(html_string: str,) -> bytes:
-#     """
-#     Converts an HTML string to a PDF file.
-#     :param html_string:  The HTML string to convert.
-#     :return:  The PDF file as bytes.
-#     """
-#     # pdf_bytes = weasyprint.HTML(string=html_string).write_pdf()
-#     pdfkit.from_string(html_string, 'output.pdf')
-#     return None
+def count_pages(file: Union[bytes, str]) -> int:
+    """
+    Counts the number of pages in a PDF file.
+    :param pdf_bytes:  The PDF file as bytes.
+    :return:  The number of pages in the PDF file.
+    """
+    if isinstance(file, str):
+        pdf_reader = PyPDF2.PdfReader(file)
+    elif isinstance(file, bytes):
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file))
+    else:
+        raise TypeError("File must be a string or bytes object.")
+    return len(pdf_reader.pages)
+
+def extract_pdf_pages(file: Union[bytes, str], page_list: List[int],
+                      extra_info: str = None):
+    """
+    Extracts a range of pages from a PDF file.
+    :param pdf_bytes:  The PDF file as bytes.
+    :param page_list:  A list of page numbers (from 1).
+    :return:  The extracted PDF file as bytes.
+    """
+    if isinstance(file, str):
+        pdf_reader = PyPDF2.PdfReader(file)
+    elif isinstance(file, bytes):
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file))
+    else:
+        raise TypeError("File must be a string or bytes object.")
+
+    pdf_writer = PyPDF2.PdfWriter()
+    for i in page_list:
+        if i < len(pdf_reader.pages):
+            pdf_writer.add_page(pdf_reader.pages[i - 1])
+        else:
+            break
+
+    page_size = (pdf_reader.pages[0].mediabox.height, pdf_reader.pages[0].mediabox.width)
+    if extra_info:
+        watermark_pdf_bytes = create_watermark_text(watermark_text=extra_info,
+                                                    position=(20, 20),
+                                                    page_size=page_size)
+        watermark_pdf_reader = PyPDF2.PdfReader(io.BytesIO(watermark_pdf_bytes))
+        watermark_page = watermark_pdf_reader.pages[0]
+        # Append watermark to the last page
+        pdf_writer.add_page(watermark_page)
+    buffer = io.BytesIO()
+    pdf_writer.write(buffer)
+    return buffer.getvalue()
+
+def mm(*args):
+    """
+    Converts millimeters to points.
+    :param args:
+    :return:
+    """
+    return tuple(int(v * 2.835) for v in args)
+
+def crop_pdf_area(
+    file: Union[bytes, str],
+    crop_box: Tuple[float, float, float, float],
+) -> bytes:
+    """
+    Crops a rectangular area from a PDF file.
+    :param file:  The PDF file as bytes or a file path.
+    :param crop_box:  The crop box as a tuple of (x0, y0, x1, y1) in pt.
+    :return:  The cropped PDF file as bytes.
+    """
+    if isinstance(file, str):
+        reader = PyPDF2.PdfReader(file)
+    elif isinstance(file, bytes):
+        reader = PyPDF2.PdfReader(io.BytesIO(file))
+    else:
+        raise TypeError("File must be a string or bytes object.")
+
+    writer = PyPDF2.PdfWriter()
+
+    for page in reader.pages:
+        # 应用裁剪框
+        page.cropbox = RectangleObject(crop_box)
+        writer.add_page(page)
+
+    output_buffer = io.BytesIO()
+    writer.write(output_buffer)
+    return output_buffer.getvalue()
+
+if __name__ == '__main__':
+    with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMD-77580_04260715492736.pdf', 'rb') as f:
+        pdf_bytes = f.read()
+        count = count_pages(pdf_bytes)
+        print(count)
 
 
-# import asyncio
-# from pyppeteer import launch
-# async def html_to_pdf(html_content):
-#     browser = await launch()
-#     page = await browser.newPage()
-#     await page.setContent(html_content)
-#     await page.pdf({'path': "output.pdf"})
-#     await browser.close()
+    # text = extract_datamatrix_from_pdf(pdf_bytes)
+    # print(text)
+
+    # extracted_pdf_bytes = extract_pdf_pages(pdf_bytes, 1, 2201)
+    extra_info = "This is an 55你哈 extröa info\nThis is an extra info\nThis is an extra info"
+    extracted_pdf_bytes = extract_pdf_pages(pdf_bytes, [5, 6, 10], extra_info)
+
+    # crop_box = mm(0, 0, 35, 35)
+    crop_box = mm(0, 0, 38, 38)
+    extracted_pdf_bytes = crop_pdf_area(extracted_pdf_bytes, crop_box)
+    with open("extracted.pdf", "wb") as f:
+        f.write(extracted_pdf_bytes)

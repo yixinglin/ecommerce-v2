@@ -39,6 +39,12 @@ class AsyncLingxingListingDB(AsyncMongoDBDataManager):
         result = [doc async for doc in cursor]
         return result
 
+    async def query_listings_by_seller_sku(self, sku: str):
+        collection = self.get_db_collection()
+        cursor = collection.find({"data.seller_sku": sku, "data.is_delete": 0})
+        result = [doc async for doc in cursor]
+        return result
+
     async def query_all_listings(self, offset=0, limit=100, filter_=None, *args, **kwargs):
         collection = self.get_db_collection()
         if filter_:

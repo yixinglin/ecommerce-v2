@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from .routes.crm_geo import crm_geo
+from .routes.transparency import transparency_router
 from .routes.user import user
 from .routes.amazon import amz_order
 from .routes.kaufland import kfld_order
@@ -47,6 +48,9 @@ geo.include_router(crm_geo)
 ptask = APIRouter(prefix="/print_task", tags=["Print Task"])
 ptask.include_router(print_task_router)
 
+amazon_print = APIRouter(prefix="/amazon/print", tags=["Transparency Services"])
+amazon_print.include_router(transparency_router)
+
 common = APIRouter(prefix="/common", tags=["Common Services"])
 common.include_router(common_router)
 
@@ -61,4 +65,5 @@ v1.include_router(lx)
 v1.include_router(bcs)
 v1.include_router(geo)
 v1.include_router(ptask)
+v1.include_router(amazon_print)
 v1.include_router(common)

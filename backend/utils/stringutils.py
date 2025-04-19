@@ -1,6 +1,8 @@
 import base64
 import hashlib
 from collections import OrderedDict, Counter
+from typing import List
+
 import jsonpath as jp_
 import barcode
 from barcode.writer import SVGWriter
@@ -70,6 +72,42 @@ def base64_decode_str(base64_str: str) -> str:
     :return:  The decoded string.
     """
     return str(base64.b64decode(base64_str.encode('utf-8')), 'utf-8')
+
+
+def format_ranges(nums: List[int]):
+    """
+    Formats a list of numbers into a list of ranges.
+    :param nums:  The list of numbers to format.
+    :return:  The list of ranges.
+    Example:
+    >>> format_ranges([1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15])
+    ['1-3', '5-8', '10-15']
+    """
+    if not nums:
+        return []
+
+    nums = sorted(set(nums))  # Remove duplicates and sort
+    result = []
+    start = end = nums[0]
+
+    for n in nums[1:]:
+        if n == end + 1:
+            end = n
+        else:
+            if start == end:
+                result.append(str(start))
+            else:
+                result.append(f"{start}-{end}")
+            start = end = n
+
+    # Add the last range
+    if start == end:
+        result.append(str(start))
+    else:
+        result.append(f"{start}-{end}")
+
+    return result
+
 
 from pypinyin import pinyin, lazy_pinyin
 def chinese_to_pinyin(text: str, tone: bool = True, separator: str = " ") -> str:

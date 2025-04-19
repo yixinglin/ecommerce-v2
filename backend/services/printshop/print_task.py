@@ -4,8 +4,8 @@ from typing import List
 from fastapi import HTTPException
 from tortoise.exceptions import DoesNotExist
 
-from models import PrintTaskModel
-from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLogModel, PrintLog_Pydantic
+from models import PrintTaskModel, PrintLogModel
+from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic
 
 
 class PrintTaskService:
