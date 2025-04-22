@@ -427,6 +427,7 @@ class TransparencyCodeService:
             batch_dict[code.batch_id] = li
 
         pdf_list = []
+        final_page_list = []
         for batch_id, li in batch_dict.items():
             filename = UPLOAD_DIR + li[0].filename
             lid = li[0].listing_id
@@ -454,6 +455,7 @@ class TransparencyCodeService:
                            f"Seller: {seller_name}, {seller_account_name}\n"
                            f"Quantity: {len(li)}\n"
             )
+            final_page_list.extend(page_list + [-1])
             pdf_list.append(pdf)
 
             await self.create_print_log(
@@ -470,6 +472,10 @@ class TransparencyCodeService:
         if isinstance(crop_box, tuple) and len(crop_box) == 4:
             crop_box = utilpdf.mm(*crop_box)  # convert mm to pt
             final_pdf = utilpdf.crop_pdf_area(final_pdf, crop_box)
+            final_pdf = utilpdf.add_page_numbers(final_pdf,
+                                                 font_size=7,
+                                                 position=utilpdf.mm(15.0, 3.0),
+                                                 page_list=final_page_list)
 
         return final_pdf
 

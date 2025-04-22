@@ -1,10 +1,11 @@
 import base64
 import io
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Optional
 
 import PyPDF2
 from PyPDF2.generic import RectangleObject
 import numpy as np
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
 
@@ -185,6 +186,50 @@ def crop_pdf_area(
     writer.write(output_buffer)
     return output_buffer.getvalue()
 
+
+def add_page_numbers(input_bytes: bytes,
+                     font_size: int = 6,
+                     position: Tuple[float, float] = (5, 5),
+                     page_list: Optional[List[int]] = None
+                     ) -> bytes:
+    input_pdf = io.BytesIO(input_bytes)
+    reader = PyPDF2.PdfReader(input_pdf)
+    writer = PyPDF2.PdfWriter()
+    total_pages = len(reader.pages)
+    if isinstance(page_list, (list, tuple)) and len(page_list) != total_pages:
+        raise ValueError('The length of page_list must be equal to the total number of pages in the PDF file.')
+
+    for i in range(total_pages):
+        original_page = reader.pages[i]
+        width = float(original_page.mediabox.width)
+        height = float(original_page.mediabox.height)
+        print(width, height)
+
+        # 创建与原页面相同尺寸的PDF页，写上页码
+        packet = io.BytesIO()
+        can = canvas.Canvas(packet, pagesize=(width, height))
+
+        if page_list:
+            page_num_text = f"{page_list[i]}"
+        else:
+            page_num_text = f"{i + 1} / {total_pages}"
+        textObj = can.beginText(*position)
+        textObj.setFont("Helvetica", font_size)
+        textObj.textLine(page_num_text)
+        can.drawText(textObj)
+        can.save()
+        packet.seek(0)
+
+        overlay_pdf = PyPDF2.PdfReader(packet)
+        overlay_page = overlay_pdf.pages[0]
+
+        original_page.merge_page(overlay_page)
+        writer.add_page(original_page)
+
+    output_stream = io.BytesIO()
+    writer.write(output_stream)
+    return output_stream.getvalue()
+
 if __name__ == '__main__':
     with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMD-77580_04260715492736.pdf', 'rb') as f:
         pdf_bytes = f.read()
@@ -201,6 +246,10 @@ if __name__ == '__main__':
 
     # crop_box = mm(0, 0, 35, 35)
     crop_box = mm(0, 0, 38, 38)
-    extracted_pdf_bytes = crop_pdf_area(extracted_pdf_bytes, crop_box)
+    # extracted_pdf_bytes = crop_pdf_area(extracted_pdf_bytes, crop_box)
+    extracted_pdf_bytes = add_page_numbers(extracted_pdf_bytes,
+                                           position=mm(15.0, 2.0),
+                                           page_list=[2] * 4)
+
     with open("extracted.pdf", "wb") as f:
         f.write(extracted_pdf_bytes)
