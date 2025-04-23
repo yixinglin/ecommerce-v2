@@ -97,7 +97,7 @@ async def mark_transparency_codes_used(ids: List[int]):
 
 @transparency_router.put("/transparency/mark/status/{status}",
                          response_model=TransparencyCodeStatusUpdateResponse)
-async def mark_transparency_codes_unused(ids: List[int], status: TransparencyCodeStatus):
+async def mark_transparency_codes(ids: List[int], status: TransparencyCodeStatus):
     async with TransparencyCodeService() as service:
         result = await service.update_transparency_codes_status(ids,
                                                                 status=status,
@@ -136,11 +136,11 @@ async def generate_transparency_pdf_by_ids(body: GenerateTransparencyPdfRequest)
         headers=headers
     )
 
-@transparency_router.delete("/transparency/batch/{batch_id}/all")
-async def delete_transparency_code_by_batch_id(batch_id: str):
-    async with TransparencyCodeService() as service:
-        result = await service.delete_transparency_code_by_batch_id(batch_id)
-    return result
+# @transparency_router.delete("/transparency/batch/{batch_id}/all")
+# async def delete_transparency_code_by_batch_id(batch_id: str):
+#     async with TransparencyCodeService() as service:
+#         result = await service.delete_transparency_code_by_batch_id(batch_id)
+#     return result
 
 @transparency_router.delete("/transparency/batch/hash/{hash_}/all")
 async def delete_transparency_code_by_hash(hash_: str):
@@ -155,19 +155,3 @@ async def get_print_logs(listing_id: str):
         result = await service.get_print_logs(listing_id)
     return result
 
-# @transparency_router.put("/transparency/mark/locked")
-# async def mark_transparency_codes_locked(ids: List[int]):
-#     async with TransparencyCodeService() as service:
-#         result = await service.update_transparency_codes_status(ids,
-#                                                                 status=TransparencyCodeStatus.LOCKED,
-#                                                                 updated_by="system")
-#         return result
-#
-# @transparency_router.put("/transparency/mark/deleted")
-# async def mark_transparency_codes_deleted(ids: List[int]):
-#     async with TransparencyCodeService() as service:
-#         result = await service.update_transparency_codes_status(ids,
-#                                                                 status=TransparencyCodeStatus.DELETED,
-#                                                                 updated_by="system")
-#         return result
-#

@@ -48,6 +48,8 @@ class TransparencyCodePrintLogModel(models.Model):
     listing_id = fields.CharField(max_length=15, description="Listing ID of the product")
     seller_sku = fields.CharField(max_length=30, description="Seller SKU of the product")
     action = fields.IntEnumField(ActionType, description="Action performed on the code")
+    charged = fields.IntField(description="Number of codes charged")
+    status = fields.IntEnumField(TransparencyCodeStatus, description="Status of the code")
     created_at = fields.DatetimeField(auto_now_add=True, description="Creation date")
     created_by = fields.CharField(max_length=20, description="User who created the log")
     content = fields.CharField(max_length=200, description="Content of the log")

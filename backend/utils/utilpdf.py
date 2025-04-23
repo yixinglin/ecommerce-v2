@@ -203,7 +203,6 @@ def add_page_numbers(input_bytes: bytes,
         original_page = reader.pages[i]
         width = float(original_page.mediabox.width)
         height = float(original_page.mediabox.height)
-        print(width, height)
 
         # 创建与原页面相同尺寸的PDF页，写上页码
         packet = io.BytesIO()

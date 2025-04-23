@@ -138,6 +138,8 @@ class TransparencyCodeService:
             seller_sku=listing["seller_sku"],
             batch_id=batch_id,
             created_by=created_by,
+            charged=len(item_list),
+            status=TransparencyCodeStatus.UNUSED,
             action=ActionType.CREATE,
             content=f"{len(item_list)} Transparency codes were uploaded (file={filename2}).",
         )
@@ -355,7 +357,7 @@ class TransparencyCodeService:
                                                status: TransparencyCodeStatus,
                                                updated_by: str):
         """
-        Mark transparency codes as used
+        Mark transparency codes as xx
         :param code_ids: list of transparency code ids
         :return:
         """
@@ -377,6 +379,13 @@ class TransparencyCodeService:
 
         page_list = [code.page for code in code_list]
         page_ranges = format_ranges(page_list)
+        charged_dict = {
+            TransparencyCodeStatus.UNUSED: len(code_list),
+            TransparencyCodeStatus.USED: -len(code_list),
+            TransparencyCodeStatus.LOCKED: 0,
+            TransparencyCodeStatus.DELETED: -len(code_list),
+        }
+
 
         await self.create_print_log(
             listing_id=code_list[0].listing_id,
@@ -384,6 +393,8 @@ class TransparencyCodeService:
             seller_sku=code_list[0].seller_sku,
             created_by=updated_by,
             action=ActionType.UPDATE,
+            charged=charged_dict[status],
+            status=status,
             content=f"Transparency codes were marked as {status.name} (pages: {page_ranges}) . ",
         )
         return {
@@ -464,6 +475,8 @@ class TransparencyCodeService:
                 seller_sku=seller_sku,
                 created_by="system",
                 action=ActionType.CALCULATE,
+                charged=0,
+                status=TransparencyCodeStatus.UNUSED,
                 content=f"{len(page_list)} Transparency codes were generated (pages: {page_ranges}) . ",
             )
 
@@ -479,38 +492,28 @@ class TransparencyCodeService:
 
         return final_pdf
 
-    async def delete_transparency_code_by_batch_id(self, bid):
-        # Query
-        result = await TransparencyCodeModel.filter(batch_id=bid).first()
-        # Delete all transparency codes in a batch
-        count = await TransparencyCodeModel.filter(batch_id=bid).delete()
-
-        if result:
-            await self.create_print_log(
-                batch_id=bid,
-                listing_id=result.listing_id,
-                seller_sku=result.seller_sku,
-                action=ActionType.DELETE,
-                created_by="system",
-                content=f"{count} Transparency codes were deleted in batch (batch_id={bid}). ",
-            )
-        return {
-            "count": count,
-            "batch_id": bid,
-        }
-
     async def delete_transparency_code_by_hash(self, hash_):
         # Query
-        result = await TransparencyCodeModel.filter(hash=hash_).first()
+        # result = await TransparencyCodeModel.filter(hash=hash_).first()
+        results = await TransparencyCodeModel.filter(hash=hash_)
+        unused_count = 0
+        for code in results:
+            if code.status == TransparencyCodeStatus.UNUSED:
+                unused_count += 1
+
+        # Delete all transparency codes in a batch
         # Delete transparency code by hash
         count = await TransparencyCodeModel.filter(hash=hash_).delete()
 
-        if result:
+        if results:
+            result = results[0]
             await self.create_print_log(
                 batch_id=result.batch_id,
                 listing_id=result.listing_id,
                 seller_sku=result.seller_sku,
                 action=ActionType.DELETE,
+                charged=-unused_count,
+                status=TransparencyCodeStatus.DELETED,
                 created_by="system",
                 content=f"{count} Transparency codes were deleted (hash={hash_}). ",
             )
@@ -543,6 +546,8 @@ class TransparencyCodeService:
 
     async def create_print_log(self, batch_id: str, listing_id: str, seller_sku: str,
                                action: ActionType,
+                               charged: int,
+                               status: TransparencyCodeStatus,
                                created_by: str,
                                content: str):
         """
@@ -554,6 +559,8 @@ class TransparencyCodeService:
             listing_id=listing_id,
             seller_sku=seller_sku,
             action=action.value,
+            charged=charged,
+            status=status,
             created_by=created_by,
             content=content,
         )
@@ -572,7 +579,3 @@ class TransparencyCodeService:
             "total": len(logs),
         }
 
-    #
-    # async def delete_transparency_code_by_batch_id(self, batch_id: str):
-    #     # Delete all transparency codes in a batch
-    #     pass
