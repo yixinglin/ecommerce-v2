@@ -450,7 +450,7 @@ class TransparencyCodeService:
                            f"SellerSKU: {li[0].seller_sku}\n"
                            f"FNSKU: {li[0].fnsku}\n"
                            f"BID: {li[0].batch_id}\n"
-                           f"Range: {", ".join(page_ranges)}\n"
+                           f"Range: {', '.join(page_ranges)}\n"
                            f"Date: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
                            f"Seller: {seller_name}, {seller_account_name}\n"
                            f"Quantity: {len(li)}\n"
