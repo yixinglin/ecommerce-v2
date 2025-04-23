@@ -4,8 +4,6 @@ from typing import List, Union, Tuple, Optional
 
 import PyPDF2
 from PyPDF2.generic import RectangleObject
-import numpy as np
-from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
 
