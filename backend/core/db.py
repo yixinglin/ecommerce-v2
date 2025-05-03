@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import List
 import pymongo
+from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 from fastapi import FastAPI
 # from core.config import settings
@@ -26,7 +27,7 @@ def init_db_sqlite(app: FastAPI):
     )
 
 
-def init_db_mysql(app: FastAPI):
+def init_db_mysql_for_app(app: FastAPI):
     db_url = f"mysql://{settings.mysql.user}:{settings.mysql.password}@{settings.mysql.host}:{settings.mysql.port}/{settings.mysql.database}"
     register_tortoise(
         app,
@@ -34,6 +35,12 @@ def init_db_mysql(app: FastAPI):
         modules={"models": ["models"]},
         generate_schemas=True,
         add_exception_handlers=True,
+    )
+
+async def init_db_mysql_async():
+    await Tortoise.init(
+        db_url=f"mysql://{settings.mysql.user}:{settings.mysql.password}@{settings.mysql.host}:{settings.mysql.port}/{settings.mysql.database}",
+        modules={"models": ["models"]},
     )
 
 redis_pool = None

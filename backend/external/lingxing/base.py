@@ -263,3 +263,32 @@ class InventoryClient(LingxingClient):
         logger.info(f"Total Fetched Inventory: {len(inventories)}")
         return inventories
 
+    async def __fetch_fba_inventory_details_by_sid(self, sid: int):
+        logger.info(f"Fetching FBA inventory for seller {sid}...")
+        item_count = 0
+        total = 99999
+        fba_inventories = []
+        params = {}
+        while item_count < total:
+            params['sid'] = sid
+            params['offset'] = item_count
+            params['length'] = 800
+            resp = await self.request("/erp/sc/routing/fba/fbaStock/fbaList",
+                                      "POST", req_body=params)
+            fba_inv = resp.data['list']
+            item_count += len(fba_inv)
+            total = resp.data['total']
+            fba_inventories.extend(fba_inv)
+        logger.info(f"Total Fetched FBA Inventory (sid={sid}): {len(fba_inventories)}")
+        return fba_inventories
+
+    async def fetch_fba_inventory_details(self, list_sid: List[int]):
+        fba_inventories = []
+        for sid in list_sid:
+            fba_inv = await self.__fetch_fba_inventory_details_by_sid(sid)
+            fba_inventories.extend(fba_inv)
+        logger.info(f"Total Fetched FBA Inventory: {len(fba_inventories)}")
+        return fba_inventories
+
+
+

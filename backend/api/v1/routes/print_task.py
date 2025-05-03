@@ -41,7 +41,7 @@ async def update_print_task(
     services = PrintTaskService()
     task_obj = await services.update_print_task(task_id=task_id,
                                task_name=task_name,
-                              created_by=created_by,
+                               created_by=created_by,
                                printed_by=printed_by,
                                status=status,
                                file_paths=file_paths,

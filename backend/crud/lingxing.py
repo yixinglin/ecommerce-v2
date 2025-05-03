@@ -20,8 +20,6 @@ class AsyncLingxingListingDB(AsyncMongoDBDataManager):
                 {"$set": document},
                 upsert=True
             )
-            # if result.upserted_id:
-            #     logger.info(f"Inserted new listing with ID: {result.upserted_id}")
             return result
         except Exception as e:
             logger.error(f"Failed to save listing {listing_id}: {e}")
@@ -124,6 +122,7 @@ class AsyncLingxingInventoryDB(AsyncMongoDBDataManager):
         self.db_name = "lingxing_data"
         self.db_collection_inventory = "inventory"
         self.db_collection_inventory_bin = "inventory_bin"
+        self.db_collection_fba_inventory = "fba_inventory"
 
     async def save_inventory(self, inventory_id, document):
         collection = self.db_client[self.db_name][self.db_collection_inventory]
@@ -184,6 +183,33 @@ class AsyncLingxingInventoryDB(AsyncMongoDBDataManager):
         collection = self.db_client[self.db_name][self.db_collection_inventory_bin]
         result = await collection.delete_many({})
         return result
+
+    async def save_fba_inventory(self, fba_inventory_id, document):
+        collection = self.db_client[self.db_name][self.db_collection_fba_inventory]
+        try:
+            result = await collection.insert_one(document)
+            return result
+        except Exception as e:
+            logger.error(f"Failed to save fba_inventory {fba_inventory_id}: {e}")
+            raise
+
+    async def query_all_fba_inventory(self, offset=0, limit=100):
+        collection = self.db_client[self.db_name][self.db_collection_fba_inventory]
+        cursor = collection.find().skip(offset).limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def query_fba_inventory(self, offset=0, limit=100, *args, **kwargs):
+        collection = self.db_client[self.db_name][self.db_collection_fba_inventory]
+        cursor = collection.find(*args, **kwargs).skip(offset).limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def delete_all_fba_inventory(self):
+        collection = self.db_client[self.db_name][self.db_collection_fba_inventory]
+        result = await collection.delete_many({})
+        return result
+
 
 class AsyncLingxingFbaShipmentPlanDB(AsyncMongoDBDataManager):
 

@@ -6,7 +6,8 @@ from typing import List, Dict, Tuple
 from fastapi import HTTPException
 from tortoise.exceptions import DoesNotExist
 from tortoise.transactions import in_transaction
-from api.v1.routes.common import UPLOAD_DIR
+
+from core.config2 import settings
 from core.log import logger
 from crud.lingxing import AsyncLingxingListingDB, AsyncLingxingBasicDataDB, AsyncLingxingInventoryDB
 from models import TransparencyCodeModel, TransparencyCodePrintLogModel
@@ -16,6 +17,8 @@ from models.amazon_print import (TransparencyCodePrintLog_Pydantic,
 import utils.utilpdf as utilpdf
 from schemas.common import UTCModel
 from utils.stringutils import format_ranges
+
+UPLOAD_DIR = settings.static.upload_dir
 
 class BatchInformation(UTCModel):
     batch_id: str

@@ -1,7 +1,9 @@
 import os
 import sys
 import tomllib
-from pydantic import BaseModel
+from typing import Optional
+
+from pydantic import BaseModel, Field
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -25,6 +27,11 @@ class AppConfig(BaseModel):
     host: str
     domain: str
     prefix: str
+
+class StaticConfig(BaseModel):
+    static_dir: str
+    upload_dir: Optional[str] = Field(None, alias='upload_directory')
+    image_dir: Optional[str] = Field(None, alias='image_directory')
 
 class SmtpConfig(BaseModel):
     server: str
@@ -89,6 +96,7 @@ class SchedulerConfig(BaseModel):
 
 class Config(BaseModel):
     app: AppConfig
+    static: StaticConfig
     mongodb: MongoDBConfig
     mysql: MySqlConfig
     redis: RedisConfig
@@ -114,6 +122,8 @@ except FileNotFoundError:
 # 解析为 Pydantic 配置对象
 settings = Config.parse_obj(config_dict)
 
+settings.static.upload_dir = os.path.join(settings.static.static_dir, 'uploads')
+settings.static.image_dir = os.path.join(settings.static.static_dir, 'images')
 
 if __name__ == '__main__':
     with open('../conf/dev.toml', 'rb') as f:

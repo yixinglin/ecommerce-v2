@@ -2,7 +2,9 @@ import base64
 import io
 from urllib.parse import quote
 
+import pandas as pd
 from fastapi import APIRouter
+from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
 from core.config2 import settings
@@ -10,7 +12,8 @@ from external.lingxing.base import FbaShipmentPlanStatus
 from schemas import ResponseSuccess, BasicResponse
 from services.lingxing import (ListingService, BasicDataService,
                                WarehouseService, FbaShipmentPlanService)
-from services.lingxing.services import GeneralService
+from services.lingxing.services import GeneralService, ReplenishmentService, SKUReplenishmentProfileUpdate
+import utils.time as time_utils
 
 warehouse_router = APIRouter(prefix="/warehouse")
 listing_router = APIRouter(prefix="/listing")
@@ -136,7 +139,66 @@ async def get_all_inventories(offset: int = 0, limit: int = 100):
     return ResponseSuccess(data=data)
 
 
+class ReplenishmenetReportRequestBody(BaseModel):
+    filename: str
+
+
+@warehouse_router.post("/replenishment/report",
+                       summary="Create replenishment report",
+                       response_class=StreamingResponse)
+async def create_replenishment_report(body: ReplenishmenetReportRequestBody):
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        filename = body.filename
+        df_report = await service.create_replenishment_report(filename)
+        now_ = time_utils.now(pattern='%Y%m%d')
+        buffer = service.to_excel(df_report)
+        headers = {
+            'Content-Disposition': f'attachment; filename="report_replenishment_{now_}.xlsx"'
+        }
+        return StreamingResponse(
+            buffer,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers=headers
+        )
+
+class ReplenishmenetProfileImportRequestBody(BaseModel):
+    filename: str
+
+@warehouse_router.post("/replenishment/profiles/import",
+                          response_model=BasicResponse[dict],
+                          summary="Import replenishment profiles")
+async def import_replenishment_profiles(body: ReplenishmenetProfileImportRequestBody):
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        filename = body.filename
+        results = await service.import_replenishment_profiles(filename)
+    return ResponseSuccess(data=results)
+
+@warehouse_router.get("/replenishment/profiles",
+                       summary="Get replenishment profiles",
+                       response_model=BasicResponse[dict], )
+async def get_replenishment_profiles(offset: int = 0, limit: int = 100):
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        results = await service.get_replenishment_profiles(offset=offset, limit=limit)
+    return ResponseSuccess(data=results)
+
+@warehouse_router.put("/replenishment/profile/{profile_id}",
+                      summary="Update replenishment profile",
+                      response_model=BasicResponse[dict])
+async def update_replenishment_profile(profile_id: int, update_data: SKUReplenishmentProfileUpdate):
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        results = await service.update_replenishment_profile(profile_id, update_data)
+    return ResponseSuccess(data=results)
+
+@warehouse_router.delete("/replenishment/profile/{profile_id}",
+                         summary="Delete replenishment profile",
+                         response_model=BasicResponse[dict])
+async def delete_replenishment_profile(profile_id: int):
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        results = await service.delete_replenishment_profile(profile_id)
+    return ResponseSuccess(data=results)
+
 @fba_schipment_plans.get("/plans", summary="Get all FBA shipment plans",
+                         deprecated=True,
                          response_model=BasicResponse[dict], )
 async def get_fba_shipment_plans(reduced: bool = False, offset: int = 0, limit: int = 100):
     async with GeneralService(key_index, proxy_index) as service:

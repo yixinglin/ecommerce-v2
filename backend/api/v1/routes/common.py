@@ -6,11 +6,12 @@ from typing import List
 from fastapi import APIRouter, UploadFile, HTTPException
 import hashlib
 
+from core.config2 import settings
+
 common_router = APIRouter()
 
 valid_extensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx", ".txt", ".csv", ".jpg", ".jpeg", ".png", ".gif"]
-#TODO: 这里的UPLOAD_DIR应该是配置项，需要从环境变量或者配置文件中读取
-UPLOAD_DIR = "static2/uploads"
+UPLOAD_DIR = settings.static.upload_dir
 
 @common_router.post("/file-upload", response_model=dict)
 async def file_upload(file: UploadFile):

@@ -204,7 +204,7 @@ from services.lingxing import (ListingService, BasicDataService,
 
 async_hourly_scheduler = AsyncIOScheduler()
 
-@async_hourly_scheduler.scheduled_job('interval', seconds=interval_seconds)
+@async_hourly_scheduler.scheduled_job('interval', seconds=3600)
 async def save_lingxing_job():
     enabled = settings.scheduler.lingxing_fetch_enabled
     if not enabled:
@@ -228,6 +228,7 @@ async def save_lingxing_job():
         async with WarehouseService(key_index, proxy_index) as svc_inventory:
             await svc_inventory.save_all_inventories()
             await svc_inventory.save_all_inventory_bins()
+            await svc_inventory.save_all_fba_inventories()
     except Exception as e:
         logger.error(f"Error in scheduled job to save LingXing inventory data: {e}")
     finally:
