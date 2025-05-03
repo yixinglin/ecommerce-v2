@@ -1,3 +1,8 @@
+import datetime
+import glob
+import os
+import subprocess
+import time
 from abc import abstractmethod
 from typing import List
 import pymongo
@@ -15,7 +20,8 @@ import json
 from models.shipment import StandardShipment
 
 DATETIME_PATTERN = '%Y-%m-%dT%H:%M:%SZ'
-
+BACKUP_DIR = settings.static.backup_dir
+os.makedirs(BACKUP_DIR, exist_ok=True)
 
 def init_db_sqlite(app: FastAPI):
     register_tortoise(
@@ -42,6 +48,34 @@ async def init_db_mysql_async():
         db_url=f"mysql://{settings.mysql.user}:{settings.mysql.password}@{settings.mysql.host}:{settings.mysql.port}/{settings.mysql.database}",
         modules={"models": ["models"]},
     )
+
+
+def backup_mysql_db():
+    now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{BACKUP_DIR}/backup_{settings.mysql.database}_{now}.sql"
+    command = [
+        "mysqldump",
+        "-h", settings.mysql.host,
+        "-P", str(settings.mysql.port),
+        "-u", settings.mysql.user,
+        f"-p{settings.mysql.password}",
+        settings.mysql.database
+    ]
+
+    try:
+        with open(filename, "w") as f:
+            subprocess.run(command, stdout=f, check=True)
+        logger.info(f"[{now}] Backup successful: {filename}")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"[{now}] Backup failed: {e}")
+        return
+
+def clean_old_mysql_db_backups(retain_days=7):
+    cutoff = time.time() - (retain_days * 86400)
+    for file in glob.glob(f"{BACKUP_DIR}/backup_*.sql"):
+        if os.path.getmtime(file) < cutoff:
+            os.remove(file)
+            logger.info(f"Removed old backup file：{file}")
 
 redis_pool = None
 

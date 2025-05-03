@@ -6,3 +6,5 @@ static2
 *.tar.gz
 cicd
 ssh
+.backup
+.venv

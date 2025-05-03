@@ -1,5 +1,6 @@
 import base64
 import io
+from typing import Optional
 from urllib.parse import quote
 
 import pandas as pd
@@ -174,11 +175,19 @@ async def import_replenishment_profiles(body: ReplenishmenetProfileImportRequest
     return ResponseSuccess(data=results)
 
 @warehouse_router.get("/replenishment/profiles",
-                       summary="Get replenishment profiles",
-                       response_model=BasicResponse[dict], )
-async def get_replenishment_profiles(offset: int = 0, limit: int = 100):
+    summary="Get replenishment profiles",
+    response_model=BasicResponse[dict])
+async def get_replenishment_profiles(
+    offset: int = 0,
+    limit: int = 100,
+    brand: Optional[str] = None,
+):
     async with ReplenishmentService(key_index, proxy_index) as service:
-        results = await service.get_replenishment_profiles(offset=offset, limit=limit)
+        results = await service.get_replenishment_profiles(
+            offset=offset,
+            limit=limit,
+            brand=brand
+        )
     return ResponseSuccess(data=results)
 
 @warehouse_router.put("/replenishment/profile/{profile_id}",
@@ -196,6 +205,14 @@ async def delete_replenishment_profile(profile_id: int):
     async with ReplenishmentService(key_index, proxy_index) as service:
         results = await service.delete_replenishment_profile(profile_id)
     return ResponseSuccess(data=results)
+
+@warehouse_router.get("/replenishment/profile/filters",
+                       summary="Get replenishment profile filters",
+                       response_model=BasicResponse[dict])
+async def get_replenishment_profile_filters():
+    async with ReplenishmentService(key_index, proxy_index) as service:
+        filters = await service.get_replenishment_profile_filters()
+    return ResponseSuccess(data=filters)
 
 @fba_schipment_plans.get("/plans", summary="Get all FBA shipment plans",
                          deprecated=True,

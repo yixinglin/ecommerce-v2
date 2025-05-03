@@ -13,6 +13,7 @@ ssh
 *.tar.gz
 test*.py
 *.xlsx
+.backup
 
 asserts/pic/*
 asserts/media/*

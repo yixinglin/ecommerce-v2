@@ -15,6 +15,7 @@ services:
         volumes:
             - ./assets:/code/assets
             - ./logs:/code/logs
+            - ./.backup:/code/.backup
             - ./database:/code/database
             - ./static2:/code/static2
         logging:

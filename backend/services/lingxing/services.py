@@ -6,6 +6,7 @@ from typing import List, Optional
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
+from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 import external.lingxing as lx
@@ -440,6 +441,7 @@ class ReplenishmentService:
         return df_replenishment
 
     async def import_replenishment_profiles(self, filename):
+        logger.info(f"Importing replenishment profiles from {filename}")
         full_filename =UPLOAD_DIR + filename
         df_listing = await self.__load_lingxing_listing_excel(full_filename)
         df_fba_inv, _ = await self.__query_fba_inventories()
@@ -483,8 +485,12 @@ class ReplenishmentService:
         return {"inserted": inserted, "updated": updated}
 
 
-    async def get_replenishment_profiles(self, offset=0, limit=100, **kwargs):
-        qs = SKUReplenishmentProfileModel.filter(**kwargs)
+    async def get_replenishment_profiles(self, offset=0, limit=100, brand=None, **kwargs):
+        query = Q()
+        if brand:
+            query &= Q(brand=brand)
+
+        qs = SKUReplenishmentProfileModel.filter(query, **kwargs)
         total = await qs.count()
         profiles = qs.order_by("brand", "local_sku").offset(offset).limit(limit)
         results = await SKUReplenishmentProfile_Pydantic.from_queryset(profiles)
@@ -494,6 +500,7 @@ class ReplenishmentService:
         }
 
     async def update_replenishment_profile(self, id: int, update_data: SKUReplenishmentProfileUpdate):
+        logger.info(f"Updating replenishment profile {id}: {update_data.dict()}")
         obj = await SKUReplenishmentProfileModel.get_or_none(id=id)
         if not obj:
             raise HTTPException(status_code=404, detail="Replenishment profile not found")
@@ -506,12 +513,21 @@ class ReplenishmentService:
         return result.dict()
 
     async def delete_replenishment_profile(self, id: int):
+        logger.info(f"Deleting replenishment profile {id}")
         obj = await SKUReplenishmentProfileModel.get_or_none(id=id)
         if not obj:
             raise HTTPException(status_code=404, detail="Replenishment profile not found")
         await obj.delete()
         deleted = 1
         return {"deleted": deleted}
+
+    async def get_replenishment_profile_filters(self):
+        brands = await SKUReplenishmentProfileModel.all().distinct().values_list("brand", flat=True)
+        return {
+            "brands": brands,
+            "sort_by": ["brand", "local_sku", "created_at", "updated_at"],
+            "sort_order": ["asc", "desc"],
+        }
 
     def to_excel(self, df_report: pd.DataFrame) -> io.BytesIO:
         buffer = io.BytesIO()
@@ -586,6 +602,9 @@ class ReplenishmentService:
             "data.fulfillment_channel_name": "FBA"
         }
         fba_inventories = await self.wh_service.find_fba_inventories(filter=filter_, limit=10000)
+        if not fba_inventories:
+            raise HTTPException(status_code=404, detail="No FBA inventories found.")
+
         sellers = await self.basic_service.find_all_sellers()
         sid_list = [s.sid for s in sellers if s.country == '德国']
         fba_inv_list = []

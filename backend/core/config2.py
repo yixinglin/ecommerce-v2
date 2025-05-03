@@ -32,6 +32,8 @@ class StaticConfig(BaseModel):
     static_dir: str
     upload_dir: Optional[str] = Field(None, alias='upload_directory')
     image_dir: Optional[str] = Field(None, alias='image_directory')
+    log_dir: str
+    backup_dir: str
 
 class SmtpConfig(BaseModel):
     server: str
