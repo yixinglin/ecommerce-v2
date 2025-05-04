@@ -28,7 +28,8 @@ class Marketplace(BaseModel):
 
 class Inventory(BaseModel):
     sku: str
-    quantity: int
+    quantity: int = Field(default=0, description="On hand quantity")
+    in_transit_quantity: int = Field(default=0, description="Quantity in transit")
     warehouse_id: int = Field(default=0)
     warehouse_name: str = Field(default='')
     storage_location: str = Field(default='')

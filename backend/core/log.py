@@ -1,10 +1,8 @@
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
-
 from core.config2 import settings
 
-# LOG_DIR = "logs"
 LOG_DIR = settings.static.log_dir
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

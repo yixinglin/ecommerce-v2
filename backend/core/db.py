@@ -9,7 +9,6 @@ import pymongo
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
 from fastapi import FastAPI
-# from core.config import settings
 from core.config2 import settings
 from core.log import logger
 from pymongo.errors import ServerSelectionTimeoutError
@@ -58,7 +57,7 @@ def backup_mysql_db():
         "-h", settings.mysql.host,
         "-P", str(settings.mysql.port),
         "-u", settings.mysql.user,
-        f"-p{settings.mysql.password}",
+        f"-p'{settings.mysql.password}'",
         settings.mysql.database
     ]
 

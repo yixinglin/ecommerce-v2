@@ -1,4 +1,4 @@
-from sp_api.api import Catalog
+from sp_api.api import Catalog, CatalogItems
 from sp_api.base import Marketplaces
 from core.log import logger
 from external.amazon.base import AmazonSpAPIKey
@@ -17,6 +17,8 @@ class AmazonCatalogAPI:
         credentials = self.key.__dict__
         self.catalogClient = Catalog(credentials=credentials,
                                      marketplace=self.marketplace)
+        self.catalogItmesClient = CatalogItems(credentials=credentials,
+                                               marketplace=self.marketplace)
 
     def fetch_catalog_item(self, asin: str):
         """

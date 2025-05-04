@@ -289,6 +289,8 @@ class WarehouseService:
         return inventory_bins
 
     async def find_all_inventory_with_bin(self, wids: List[str]=None, offset=0, limit=100) -> List[Inventory]:
+        # TODO: 优化这段代码。多仓库的情况下，这段代码会有问题。
+        # TODO: 这段代码查询效率不高，以后需要优化。
         filter_ = {}
         if wids:
             filter_['data.wid'] = {"$in": wids}
@@ -313,8 +315,13 @@ class WarehouseService:
         # Create a dataframe for inventory details
         df_wh = pd.DataFrame.from_dict(inventory_details) \
             .drop(['stock_age_list'], axis=1).sort_values(by=['sku'])
+        df_wh['quantity_receive'] = df_wh['quantity_receive'].astype(int)
         # Aggregate inventory details by sku
-        df_wh_agg = df_wh.groupby(['sku']).agg({'product_valid_num': 'sum', 'wid': 'first'})
+        df_wh_agg = df_wh.groupby(['sku']).agg({
+            'product_valid_num': 'sum', # on hand quantity
+            'quantity_receive': 'sum',  # in transit quantity
+            'wid': 'first' # warehouse id
+        })
         df_wh_agg.reset_index(inplace=True)
 
         def get_wh_name(row):
@@ -322,13 +329,15 @@ class WarehouseService:
 
         # Left join
         df_left = pd.merge(df_wh_agg, df_whb_agg, on='sku', how='left')
-        df_left = df_left[['sku', 'product_valid_num', 'wid', 'whb_name', 'wh_name']]
+        df_left = df_left[['sku', 'product_valid_num', 'quantity_receive', 'wid', 'whb_name', 'wh_name']]
         # Handle missing values
         df_left['whb_name'] = df_left['whb_name'].fillna("")
         df_left['wh_name'] = df_left.apply(lambda row: get_wh_name(row), axis=1)
 
-        rename_cols = {'sku': 'sku', 'product_valid_num': 'quantity', 'wid': 'warehouse_id',
-                                'whb_name': 'storage_location', 'wh_name': 'warehouse_name'}
+        rename_cols = {'sku': 'sku', 'product_valid_num': 'quantity',
+                       'quantity_receive': 'in_transit_quantity',
+                       'wid': 'warehouse_id',
+                        'whb_name': 'storage_location', 'wh_name': 'warehouse_name'}
         df_left.rename(columns=rename_cols, inplace=True)
 
         inv_dicts = df_left.to_dict(orient='records')
