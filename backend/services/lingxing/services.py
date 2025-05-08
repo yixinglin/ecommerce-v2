@@ -423,7 +423,6 @@ class ReplenishmentService:
             "image": "图片",
             'msku': 'MSKU',
             'brand_name': '品牌',
-            'units_per_carton': '单箱数量',
             'fnsku': 'FNSKU',
             'product_name': '产品名称',
             'total_quantity': '总库存',
@@ -439,7 +438,9 @@ class ReplenishmentService:
             'thirty_days_sell_through': '30天动销比',
             'weighted_lead_time_demand': '加权平均月销量 (4/2/1)',
             'lead_time': '补货周期',
-            'reorder_quantity': '囤货计算',
+            'reorder_quantity': '囤货计算(件)',
+            'units_per_carton': '单箱数量',
+            'reorder_carton_quantity': "囤货计算(箱)",
             'in_transit_quantity': '在途库存',
             'remark': '备注',
         }
@@ -710,6 +711,8 @@ class ReplenishmentService:
         df['lead_time_demand'] = round(
             df['weighted_lead_time_demand'] * df['lead_time'])  # 计算采购周期内预期会销售出去的数量
         df['reorder_quantity'] = df['lead_time_demand'] - df['total_quantity']
+        df['reorder_carton_quantity'] = df['reorder_quantity'] / df['units_per_carton']
+        df['reorder_carton_quantity'] = df['reorder_carton_quantity'].round(0)
         # 按照补货排序，而不是sku
         df.sort_values(by=['brand_name', 'reorder_quantity'],
                        ascending=[True, False],
