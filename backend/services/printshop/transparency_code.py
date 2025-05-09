@@ -32,6 +32,14 @@ class BatchInformation(UTCModel):
     locked: int
     deleted: int
 
+class OverallStatistics(UTCModel):
+    total: int
+    unused: int
+    used: int
+    locked: int
+    deleted: int
+
+
 
 class TransparencyCodeService:
 
@@ -354,6 +362,50 @@ class TransparencyCodeService:
         return {
             "data": code_list,
             "total": len(code_list),
+        }
+
+    async def get_old_used_transparency_code_ids(self, days_ago: int) -> Dict:
+        cutoff_date = datetime.datetime.now() - datetime.timedelta(days=days_ago)
+        id_list = await (TransparencyCodeModel.filter(
+            status__not = TransparencyCodeStatus.UNUSED,
+            updated_at__lt = cutoff_date
+        ).values_list('id', flat=True))
+        results = {
+            "data": id_list,
+            "total": len(id_list),
+        }
+        return results
+
+    async def get_overall_transparency_code_statistics(self) -> Dict:
+        """
+        Get overall transparency code statistics
+        :return:
+        """
+        sql = """
+             SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS unused,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS used,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS locked,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS deleted
+            FROM 
+                transparency_code;                        
+        """
+        try:
+            async with in_transaction() as conn:
+                result = await conn.execute_query_dict(sql, [
+                    TransparencyCodeStatus.UNUSED.value,
+                    TransparencyCodeStatus.USED.value,
+                    TransparencyCodeStatus.LOCKED.value,
+                    TransparencyCodeStatus.DELETED.value
+                ])
+                statistics = OverallStatistics(**result[0])
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+        return {
+            "data": statistics,
+            "total": 1,
         }
 
     async def update_transparency_codes_status(self, code_ids: List[int],

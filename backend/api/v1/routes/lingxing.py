@@ -13,7 +13,9 @@ from external.lingxing.base import FbaShipmentPlanStatus
 from schemas import ResponseSuccess, BasicResponse
 from services.lingxing import (ListingService, BasicDataService,
                                WarehouseService, FbaShipmentPlanService)
-from services.lingxing.services import GeneralService, ReplenishmentService, SKUReplenishmentProfileUpdate
+from services.lingxing.ReplenishmentService import WarehouseReplenishmentService, ReplenishmentBasicService, \
+    SKUReplenishmentProfileUpdate, AmazonWarehouseReplenishmentService
+from services.lingxing.services import GeneralService
 import utils.time as time_utils
 
 warehouse_router = APIRouter(prefix="/warehouse")
@@ -148,19 +150,28 @@ class ReplenishmenetReportRequestBody(BaseModel):
                        summary="Create replenishment report",
                        response_class=StreamingResponse)
 async def create_replenishment_report(body: ReplenishmenetReportRequestBody):
-    async with ReplenishmentService(key_index, proxy_index) as service:
-        filename = body.filename
-        df_report = await service.create_replenishment_report(filename)
-        now_ = time_utils.now(pattern='%Y%m%d')
-        buffer = service.to_excel(df_report)
-        headers = {
-            'Content-Disposition': f'attachment; filename="report_replenishment_{now_}.xlsx"'
-        }
-        return StreamingResponse(
-            buffer,
-            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers=headers
-        )
+    filename = body.filename
+    now_ = time_utils.now(pattern='%Y%m%d')
+    async with WarehouseReplenishmentService(key_index, proxy_index) as service:
+        df_warehouse_report = await service.create_replenishment_report(filename)
+
+    async with AmazonWarehouseReplenishmentService(key_index, proxy_index) as service:
+        df_amazon_report = await service.create_replenishment_report(filename)
+
+    df_reports = {
+        "warehouse_report": df_warehouse_report,
+        "amazon_report": df_amazon_report
+    }
+
+    buffer = service.to_excel(df_reports)
+    headers = {
+        'Content-Disposition': f'attachment; filename="report_replenishment_{now_}.xlsx"'
+    }
+    return StreamingResponse(
+        buffer,
+        media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        headers=headers
+    )
 
 class ReplenishmenetProfileImportRequestBody(BaseModel):
     filename: str
@@ -169,7 +180,7 @@ class ReplenishmenetProfileImportRequestBody(BaseModel):
                           response_model=BasicResponse[dict],
                           summary="Import replenishment profiles")
 async def import_replenishment_profiles(body: ReplenishmenetProfileImportRequestBody):
-    async with ReplenishmentService(key_index, proxy_index) as service:
+    async with ReplenishmentBasicService(key_index, proxy_index) as service:
         filename = body.filename
         results = await service.import_replenishment_profiles(filename)
     return ResponseSuccess(data=results)
@@ -182,7 +193,7 @@ async def get_replenishment_profiles(
     limit: int = 100,
     brand: Optional[str] = None,
 ):
-    async with ReplenishmentService(key_index, proxy_index) as service:
+    async with ReplenishmentBasicService(key_index, proxy_index) as service:
         results = await service.get_replenishment_profiles(
             offset=offset,
             limit=limit,
@@ -194,7 +205,7 @@ async def get_replenishment_profiles(
                       summary="Update replenishment profile",
                       response_model=BasicResponse[dict])
 async def update_replenishment_profile(profile_id: int, update_data: SKUReplenishmentProfileUpdate):
-    async with ReplenishmentService(key_index, proxy_index) as service:
+    async with ReplenishmentBasicService(key_index, proxy_index) as service:
         results = await service.update_replenishment_profile(profile_id, update_data)
     return ResponseSuccess(data=results)
 
@@ -202,7 +213,7 @@ async def update_replenishment_profile(profile_id: int, update_data: SKUReplenis
                          summary="Delete replenishment profile",
                          response_model=BasicResponse[dict])
 async def delete_replenishment_profile(profile_id: int):
-    async with ReplenishmentService(key_index, proxy_index) as service:
+    async with ReplenishmentBasicService(key_index, proxy_index) as service:
         results = await service.delete_replenishment_profile(profile_id)
     return ResponseSuccess(data=results)
 
@@ -210,7 +221,7 @@ async def delete_replenishment_profile(profile_id: int):
                        summary="Get replenishment profile filters",
                        response_model=BasicResponse[dict])
 async def get_replenishment_profile_filters():
-    async with ReplenishmentService(key_index, proxy_index) as service:
+    async with ReplenishmentBasicService(key_index, proxy_index) as service:
         filters = await service.get_replenishment_profile_filters()
     return ResponseSuccess(data=filters)
 
