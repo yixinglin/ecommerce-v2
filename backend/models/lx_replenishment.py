@@ -11,11 +11,13 @@ class SKUReplenishmentProfileModel(models.Model):
     """
     id = fields.IntField(pk=True)
     local_sku = fields.CharField(max_length=30, unique=True, description="Local SKU in Lingxing")
+    alias = fields.CharField(max_length=50, null=True, unique=True, description="Alias for this SKU")
     brand = fields.CharField(max_length=80, default="Unknown Brand", description="Brand name")
     lead_time = fields.FloatField(default=1.5, description="Lead time in months")
     image = fields.CharField(max_length=255, default="", description="Image URL for this SKU")
     product_name = fields.CharField(max_length=255, default="", description="Product name for this SKU")
     units_per_carton = fields.IntField(default=1, description="Number of units per carton")
+    units_per_fba_carton = fields.IntField(default=1, description="Number of units per FBA carton")
     remark = fields.CharField(max_length=255, default="", description="Remarks for this profile")
     active = fields.BooleanField(default=True, description="Whether this SKU is active for replenishment reporting")
     created_at = fields.DatetimeField(auto_now_add=True, description="Creation timestamp")

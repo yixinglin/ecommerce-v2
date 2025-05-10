@@ -1,10 +1,12 @@
 import io
 import os
+import re
 from typing import Optional, Dict
 
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
+from tortoise.exceptions import IntegrityError
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
@@ -15,8 +17,10 @@ from services.lingxing import WarehouseService, BasicDataService
 UPLOAD_DIR = settings.static.upload_dir
 
 class SKUReplenishmentProfileUpdate(BaseModel):
+    alias: Optional[str] = Field(None, description="Alias")
     lead_time: Optional[float] = Field(None, description="Lead time in months")
     units_per_carton: Optional[int] = Field(None, description="Units per carton")
+    units_per_fba_carton: Optional[int] = Field(None, description="Units per FBA carton")
     active: Optional[bool] = Field(None, description="Whether active")
     remark: Optional[str] = Field(None, description="Remark")
     updated_by: str = Field(..., description="User who updated this record")
@@ -47,7 +51,11 @@ class ReplenishmentBasicService:
         df_lx_inventory = await self.__query_lx_inventories()
         result = await self.get_replenishment_profiles(offset=0, limit=9999)
         df_profiles = pd.DataFrame.from_dict([item.dict() for item in result['data']])
-        df_profiles = df_profiles[['local_sku', 'lead_time', 'units_per_carton', 'active', 'remark']]
+        df_profiles = df_profiles[[
+            'local_sku', 'lead_time',
+            'units_per_fba_carton', 'alias',
+            'units_per_carton', 'active', 'remark'
+        ]]
         df_profiles = df_profiles.rename(columns={"local_sku": "sku"})
         return {
             "listing": df_listing,
@@ -204,11 +212,15 @@ class ReplenishmentBasicService:
 
         return {"inserted": inserted, "updated": updated}
 
-    async def get_replenishment_profiles(self, offset=0, limit=100, brand=None, **kwargs):
+    async def get_replenishment_profiles(self, offset=0, limit=100,
+                                         brand=None, keyword=None, **kwargs):
         query = Q()
+        if keyword:
+            query &= Q(local_sku__icontains=keyword)
+            query |= Q(alias__icontains=keyword)
+            query |= Q(product_name__icontains=keyword)
         if brand:
             query &= Q(brand=brand)
-
         qs = SKUReplenishmentProfileModel.filter(query, **kwargs)
         total = await qs.count()
         profiles = qs.order_by("brand", "local_sku").offset(offset).limit(limit)
@@ -227,8 +239,15 @@ class ReplenishmentBasicService:
         update_dict = update_data.dict(exclude_unset=True)
         for k, v in update_dict.items():
             setattr(obj, k, v)
-        await obj.save()
-        result = await SKUReplenishmentProfile_Pydantic.from_tortoise_orm(obj)
+        try:
+            await obj.save()
+            result = await SKUReplenishmentProfile_Pydantic.from_tortoise_orm(obj)
+        except IntegrityError as e:
+            logger.error(e)
+            raise HTTPException(status_code=400, detail=f"Duplicate SKU: {obj.local_sku}")
+        except Exception as e:
+            logger.error(e)
+            raise HTTPException(status_code=500, detail=f"Failed to update replenishment profile: {e}")
         return result.dict()
 
     async def delete_replenishment_profile(self, id: int):
@@ -435,6 +454,7 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
 
         df_merged.loc[:, 'on_hand_quantity'] = df_merged['on_hand_quantity'].fillna(0)
         df_merged.loc[:, 'in_transit_quantity'] = df_merged['in_transit_quantity'].fillna(0)
+        df_merged.loc[:, 'units_per_fba_carton'] = df_merged['units_per_fba_carton'].fillna(1)
 
         # Calculation
         df_replenishment = self.__calculate_replenishment_fields(df_merged)
@@ -464,7 +484,9 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
             'inv_age_0_to_30_days': "0-30天库龄",
             'thirty_days_sell_through': '30天动销比',
             'weighted_lead_time_demand': '加权平均月销量 (4/2/1)',
-            'fba_replenish_quantity': 'FBA补货量',
+            'fba_replenish_quantity': 'FBA补货量(件)',
+            'units_per_fba_carton': 'FBA单箱数量',
+            'fba_replenish_carton_quantity': 'FBA补货量(箱)',
             'fba_replenish_expression': 'FBA补货表达式',
             'in_transit_quantity': '在途库存',
             'is_stock_enough': '德国仓库存状态',
@@ -477,9 +499,27 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
         df_replenishment = df_replenishment.rename(columns=EN_TO_CN)
         return df_replenishment
 
+    def __create_fba_replenish_expression(self, row):
+        units = row['fba_replenish_quantity']
+        sku = row['sku'] if pd.isna(row['alias']) else row['alias']
+        if units < 1:
+            return ""
 
+        pattern = r"^([A-Z]+)-(.+?)(?:PK(\d+))?$"
+        match = re.match(pattern, sku)
+        if not match:
+            return "无法生成表达式, 请规范SKU格式"
+
+        cartons = row['fba_replenish_carton_quantity']
+        units_per_carton = row['units_per_fba_carton']
+        expr = f"{units}×({sku})"
+        if units_per_carton > 1:
+            expr += f"={cartons}ctn"
+        return expr
 
     def __calculate_replenishment_fields(self, df):
+        round_to_nearest_half = lambda x: round(x * 2) / 2
+
         df['total_quantity'] = df['afn_inbound_shipped_quantity'] + df['afn_fulfillable_quantity'] + df['total_reserved_quantity']
 
         df['thirty_days_sell_through'] = round(df['thirty_days_volume'] / df['total_quantity'], 2)
@@ -491,10 +531,14 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
         df['weighted_lead_time_demand'] = df['weighted_lead_time_demand'].round(2)
 
         df['fba_replenish_quantity'] = df['weighted_lead_time_demand'] - df['total_quantity']
-        df['fba_replenish_quantity'] = df['fba_replenish_quantity'].round(0).astype(int)
+        df['fba_replenish_carton_quantity'] = df['fba_replenish_quantity'] / df['units_per_fba_carton']
+        # df['fba_replenish_carton_quantity'] = round_to_nearest_half(df['fba_replenish_carton_quantity'])
+        df['fba_replenish_carton_quantity'] = df['fba_replenish_carton_quantity'].round(1)
 
-        df['fba_replenish_expression'] = df['fba_replenish_quantity'].astype(str) \
-                                                + '×(' + df['sku'] + ')'
+        df['fba_replenish_quantity'] = df['fba_replenish_quantity'].round(0).astype(int)
+        df['fba_replenish_carton_quantity'] = df['fba_replenish_carton_quantity'].round(1)
+
+        df['fba_replenish_expression'] = df.apply(self.__create_fba_replenish_expression, axis=1)
 
         # 德国仓库存是否足够发货
         df['is_stock_enough'] = df['fba_replenish_quantity'] < df['on_hand_quantity']
@@ -506,8 +550,8 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
 
         # 按照补货排序，而不是sku
         df.sort_values(
-            by=['brand_name', 'fba_replenish_quantity'],
-            ascending=[True, False],
+            by=['seller', 'brand_name', 'fba_replenish_quantity'],
+            ascending=[True, True, False],
             inplace=True)
         return df
 

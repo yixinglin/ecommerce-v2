@@ -192,12 +192,14 @@ async def get_replenishment_profiles(
     offset: int = 0,
     limit: int = 100,
     brand: Optional[str] = None,
+    keyword: Optional[str] = None,
 ):
     async with ReplenishmentBasicService(key_index, proxy_index) as service:
         results = await service.get_replenishment_profiles(
             offset=offset,
             limit=limit,
-            brand=brand
+            brand=brand,
+            keyword=keyword
         )
     return ResponseSuccess(data=results)
 
