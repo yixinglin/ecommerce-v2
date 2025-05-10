@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 from abc import abstractmethod
-from typing import List
+from typing import List, Optional
 import pymongo
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import register_tortoise
@@ -168,6 +168,48 @@ class MongoDBDataManager:
     def close(self):
         if self.db_client:
             self.db_client.close()
+
+    def delete_random_documents(
+            self,
+            database_name: str,
+            collection_name: str,
+            percentage: float = 0.1,
+            min_delete: int = 1,
+            dry_run: bool = False,
+            **kwargs,
+    ) -> Optional[int]:
+        """
+        随机删除 MongoDB 某集合中指定百分比的文档。
+        :param database_name: 数据库名
+        :param collection_name: 集合名
+        :param percentage: 要删除的比例 (默认 0.1 表示 10%)
+        :param min_delete: 至少删除的最小条数（防止 0 条）
+        :param dry_run: 如果为 True，仅返回将删除的文档数，不实际删除
+        :return: 实际删除的文档数量，或 None（dry_run 时）
+        """
+        client = self.db_client
+        collection = client[database_name][collection_name]
+        logger.info(f"正在删除文档{database_name}-{collection_name}")
+
+        total_docs = collection.count_documents({})
+        delete_count = max(int(total_docs * percentage), min_delete)
+
+        if delete_count == 0:
+            logger.info("文档过少，无需删除。")
+            return 0
+
+        # 随机抽样文档
+        pipeline = [{"$sample": {"size": delete_count}}]
+        random_docs = list(collection.aggregate(pipeline))
+        ids_to_delete = [doc["_id"] for doc in random_docs]
+
+        if dry_run:
+            logger.info(f"[Dry Run] 将删除 {len(ids_to_delete)} 条文档。")
+            return None
+
+        result = collection.delete_many({"_id": {"$in": ids_to_delete}})
+        logger.info(f"已删除 {result.deleted_count} 条文档。")
+        return result.deleted_count
 
 class OrderQueryParams:
     limit: int = 100

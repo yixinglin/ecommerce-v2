@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pymongo import UpdateOne
 
@@ -49,6 +49,13 @@ class OdooContactMongoDB(MongoDBDataManager):
         # TODO: To Standard Contact Object
         pass
 
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
+
 
 class OdooProductTemplateMongoDB(MongoDBDataManager):
 
@@ -90,6 +97,14 @@ class OdooProductTemplateMongoDB(MongoDBDataManager):
     def to_standard_product(self, product_template: dict):
         #TODO: To Standard Product Object
         raise NotImplementedError
+
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
+
 
 class OdooProductMongoDB(OdooProductTemplateMongoDB):
 
@@ -134,6 +149,12 @@ class OdooProductMongoDB(OdooProductTemplateMongoDB):
         #TODO: To Standard Product Object
         raise NotImplementedError
 
+    def delete_random_documents(self,  **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            **kwargs,
+        )
+
+
 class OdooPackagingMongoDB(MongoDBDataManager):
 
     def __init__(self):
@@ -170,6 +191,14 @@ class OdooPackagingMongoDB(MongoDBDataManager):
             upsert=True
         )
         return result
+
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
+
 
 
 class OdooStorageLocationMongoDB(MongoDBDataManager):
@@ -213,6 +242,13 @@ class OdooStorageLocationMongoDB(MongoDBDataManager):
         #TODO: To Standard Storage Location Object
         pass
 
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
+
 
 class OdooPutawayRuleMongoDB(MongoDBDataManager):
 
@@ -251,6 +287,14 @@ class OdooPutawayRuleMongoDB(MongoDBDataManager):
             upsert=True
         )
         return result
+
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
+
 
 class OdooQuantMongoDB(MongoDBDataManager):
 
@@ -293,6 +337,13 @@ class OdooQuantMongoDB(MongoDBDataManager):
     def to_standard_quant(self, quant: dict):
         # TODO: To Standard Quant Object
         raise NotImplementedError
+
+    def delete_random_documents(self, **kwargs) -> Optional[int]:
+        return super().delete_random_documents(
+            database_name=self.db_name,
+            collection_name=self.db_collection_name,
+            **kwargs,
+        )
 
 
 class OdooOrderlineMongoDB(MongoDBDataManager):

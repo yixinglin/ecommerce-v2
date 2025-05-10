@@ -56,7 +56,7 @@ from utils import stringutils
 #             return False
 
 
-def need_to_fetch(query_method, record_id, current_write_date: str):
+def need_to_fetch_random(query_method, record_id, current_write_date: str):
     """
     判断是否需要从 Odoo 再次获取数据：
       1. 在数据库中没有查到该记录时；
@@ -79,6 +79,23 @@ def need_to_fetch(query_method, record_id, current_write_date: str):
     # 数据库中已经有记录，但 write_date 不一致，需要更新
     return item['data']['write_date'] != current_write_date
 
+def need_to_fetch(query_method, record_id, current_write_date: str):
+    """
+    判断是否需要从 Odoo 再次获取数据：
+        1. 在数据库中没有查到该记录时；
+        2. 数据库中的 write_date 与当前 Odoo 的 write_date 不一致时。
+    :param query_method: 数据库查询回调函数
+    :param record_id:    Odoo 记录的 ID
+    :param current_write_date:
+    :return:  需要抓取则返回
+    """
+    item = query_method(record_id)
+    if not item:
+        # Do not find the record in DB, need to fetch it
+        logger.info(f"Fetching new data with id = {record_id}...")
+        return True
+    # 数据库中已经有记录，但 write_date 不一致，需要更新
+    return item['data']['write_date'] != current_write_date
 
 def save_record(fetch_object_ids, fetch_write_date,
                 query_object_by_id, object_name, save_object, include_inactive=False):
