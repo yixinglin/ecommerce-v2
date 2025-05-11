@@ -164,8 +164,8 @@ class ReplenishmentBasicService:
         df_lx_inventory = pd.DataFrame.from_dict(lx_inv_list)
         return df_lx_inventory
 
-    async def import_replenishment_profiles(self, filename):
-        logger.info(f"Importing replenishment profiles from {filename}")
+    async def import_replenishment_profiles(self, filename: str, updated_by: str):
+        logger.info(f"Importing replenishment profiles from {filename} by {updated_by}")
         full_filename = UPLOAD_DIR + filename
         df_listing = await self.__load_lingxing_listing_excel(full_filename)
         df_fba_inv = await self.__query_fba_inventories()
@@ -198,18 +198,18 @@ class ReplenishmentBasicService:
                 if obj:
                     await obj.update_from_dict({
                         **data,
-                        "updated_by": "import"
+                        "updated_by": updated_by
                     }).save()
                     updated += 1
                 else:
                     await SKUReplenishmentProfileModel.create(
                         local_sku=local_sku,
-                        created_by="import",
-                        updated_by="import",
+                        created_by=updated_by,
+                        updated_by=updated_by,
                         **data
                     )
                     inserted += 1
-
+        logger.info(f"Imported replenishment profiles: {inserted} inserted, {updated} updated.")
         return {"inserted": inserted, "updated": updated}
 
     async def get_replenishment_profiles(self, offset=0, limit=100,
@@ -409,6 +409,7 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
         super().__init__(*args, **kwargs)
 
     async def create_replenishment_report(self, filename):
+        logger.info(f"Creating replenishment report from {filename}")
         # Collection of raw data
         collections = await self.data_collection(filename)
         df_listing = collections['listing']
