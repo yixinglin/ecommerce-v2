@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from .routes.crm_geo import crm_geo
 from .routes.transparency import transparency_router
-from .routes.user import user
 from .routes.amazon import amz_order
 from .routes.kaufland import kfld_order
 from .routes.carriers import gls
@@ -12,6 +11,7 @@ from .routes.print_task import print_task_router
 from .routes.barcode import barcode
 from .routes.common import common_router
 from .routes.llm import parser_router
+from .routes.user import app as user
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -57,8 +57,8 @@ llm = APIRouter(prefix="/llm", tags=["LLM Services"])
 llm.include_router(parser_router)
 
 v1 = APIRouter(prefix='/v1')
-v1.include_router(common)
 v1.include_router(user)
+v1.include_router(common)
 v1.include_router(carriers)
 v1.include_router(odoo)
 v1.include_router(lx)

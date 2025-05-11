@@ -2,7 +2,6 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-# from core.config import settings
 from core.config2 import settings
 from core.db import init_db_mysql_for_app
 from core.log import logger
@@ -22,6 +21,7 @@ app = FastAPI(title=settings.app.project_name,
               },
               docs_url=f"{settings.app.prefix}/docs",
               )
+
 
 app.include_router(v1, prefix=settings.app.prefix)
 
@@ -101,7 +101,7 @@ async def log_requests(request: Request, call_next):
     """
     # Record request information, including client IP address
     client_ip = request.client.host
-    logger.info(f"Request: {request.method} {request.url}, Client IP: {client_ip}")
+    logger.info(f"Request: [{request.method}] {request.url}, Client IP: {client_ip}")
     # Continue processing the request
     response = await call_next(request)
     # Return response information
