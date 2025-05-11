@@ -175,6 +175,7 @@ async def create_replenishment_report(body: ReplenishmenetReportRequestBody):
 
 class ReplenishmenetProfileImportRequestBody(BaseModel):
     filename: str
+    updated_by: str
 
 @warehouse_router.post("/replenishment/profiles/import",
                           response_model=BasicResponse[dict],
@@ -182,7 +183,8 @@ class ReplenishmenetProfileImportRequestBody(BaseModel):
 async def import_replenishment_profiles(body: ReplenishmenetProfileImportRequestBody):
     async with ReplenishmentBasicService(key_index, proxy_index) as service:
         filename = body.filename
-        results = await service.import_replenishment_profiles(filename)
+        updated_by = body.updated_by
+        results = await service.import_replenishment_profiles(filename, updated_by)
     return ResponseSuccess(data=results)
 
 @warehouse_router.get("/replenishment/profiles",

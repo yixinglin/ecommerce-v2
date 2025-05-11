@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-
 from .routes.crm_geo import crm_geo
 from .routes.transparency import transparency_router
 from .routes.user import user
@@ -12,7 +11,7 @@ from .routes.lingxing import warehouse_router, listing_router, basic_router, fba
 from .routes.print_task import print_task_router
 from .routes.barcode import barcode
 from .routes.common import common_router
-
+from .routes.llm import parser_router
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -54,16 +53,20 @@ amazon_print.include_router(transparency_router)
 common = APIRouter(prefix="/common", tags=["Common Services"])
 common.include_router(common_router)
 
+llm = APIRouter(prefix="/llm", tags=["LLM Services"])
+llm.include_router(parser_router)
+
 v1 = APIRouter(prefix='/v1')
+v1.include_router(common)
 v1.include_router(user)
-v1.include_router(amz)
-v1.include_router(kfld)
 v1.include_router(carriers)
-v1.include_router(pickpack)
 v1.include_router(odoo)
 v1.include_router(lx)
 v1.include_router(bcs)
 v1.include_router(geo)
 v1.include_router(ptask)
 v1.include_router(amazon_print)
-v1.include_router(common)
+v1.include_router(amz)
+v1.include_router(kfld)
+v1.include_router(pickpack)
+v1.include_router(llm)
