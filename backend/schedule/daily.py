@@ -29,7 +29,7 @@ def standardize_raw_data():
     print('Standardize raw data')
     # TODO common.standardize
 
-@daily_scheduler.scheduled_job('cron', hour="20,22,0,2", minute=47)
+@daily_scheduler.scheduled_job('cron', hour="20,22,0,2", minute=50)
 def random_delete_odoo_doc_in_mongodb():
     """
     目的：每天晚上20:47至22:47，随机删除MongoDB中Odoo相关的文档，以强制程序重新拉取数据。

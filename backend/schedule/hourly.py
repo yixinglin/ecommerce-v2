@@ -2,7 +2,6 @@ import asyncio
 from datetime import datetime, timedelta
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import time
-
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from sp_api.base import Marketplaces
@@ -197,14 +196,12 @@ def three_hourly_task():
 AsyncIOScheduler
 
 """
-
-
 from services.lingxing import (ListingService, BasicDataService,
                                WarehouseService, FbaShipmentPlanService)
 
 async_hourly_scheduler = AsyncIOScheduler()
 
-@async_hourly_scheduler.scheduled_job('interval', seconds=3600)
+@async_hourly_scheduler.scheduled_job('interval', seconds=4 * 3600)
 async def save_lingxing_job():
     enabled = settings.scheduler.lingxing_fetch_enabled
     if not enabled:

@@ -170,13 +170,14 @@ class MongoDBDataManager:
             self.db_client.close()
 
     def delete_random_documents(
-            self,
-            database_name: str,
-            collection_name: str,
-            percentage: float = 0.1,
-            min_delete: int = 1,
-            dry_run: bool = False,
-            **kwargs,
+        self,
+        database_name: str,
+        collection_name: str,
+        percentage: float = 0.1,
+        min_delete: int = 1,
+        max_delete: int = 100,
+        dry_run: bool = False,
+        **kwargs,
     ) -> Optional[int]:
         """
         随机删除 MongoDB 某集合中指定百分比的文档。
@@ -193,6 +194,7 @@ class MongoDBDataManager:
 
         total_docs = collection.count_documents({})
         delete_count = max(int(total_docs * percentage), min_delete)
+        delete_count = min(delete_count, max_delete)
 
         if delete_count == 0:
             logger.info("文档过少，无需删除。")

@@ -1,9 +1,6 @@
 from typing import List, Optional
-
 from pymongo import UpdateOne
-
 from core.db import MongoDBDataManager
-
 
 class OdooContactMongoDB(MongoDBDataManager):
 

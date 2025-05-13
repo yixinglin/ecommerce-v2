@@ -1,13 +1,10 @@
 import io
-from typing import List
-
 import pandas as pd
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body
 from starlette.responses import StreamingResponse, HTMLResponse
-
 from core.config2 import settings
 from core.log import logger
-from schemas import ResponseSuccess, BasicResponse, ResponseFailure, ResponseNotFound
+from schemas import ResponseSuccess, BasicResponse
 from schemas.vip import VipOrder
 from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
