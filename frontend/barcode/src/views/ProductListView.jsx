@@ -69,8 +69,7 @@ function ProductListView() {
 
     fetch_all_products_brief({"kw": searchValue, "page": 0, "page_size": 100}).then((response) => {
       let products = response.data;
-      products = products.filter((product) => product.active);
-
+      products = products.filter((product) => product.active);      
       setProductList(products);
       setLoading(false);
 

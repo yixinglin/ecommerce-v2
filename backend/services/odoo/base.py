@@ -1,10 +1,9 @@
 import base64
 import os
 import time
-from typing import List
-
 from pydantic import BaseModel
 
+from core.config2 import settings
 from core.log import logger
 from crud.odoo import (OdooQuantMongoDB,
                        OdooStorageLocationMongoDB,
@@ -24,36 +23,7 @@ import random
 
 from utils import stringutils
 
-
-# def need_to_fetch(query_mothed, id, current_write_date: str):
-#     """
-#     Check if the record in DB needs to be fetched again.
-#     The record needs to be fetched if it is not found in DB or
-#     if the last write date is different from the current write date.
-#     :param query_mothed: A callback function of a query method of the DB
-#     :param id: The id of the record in Odoo
-#     :param current_write_date: The current write date of the record in Odoo
-#     :return:  True if the record needs to be fetched, False otherwise
-#     """
-#     is_readom_fetch = random.random() < 0.01
-#     # 0.01 is the probability of fetching the record from Odoo API
-#
-#     item = query_mothed(id)
-#     if item is None or is_readom_fetch:
-#         # Do not find the record in DB, need to fetch it
-#         if is_readom_fetch:
-#             logger.info(f"Fetching randomly with id = {id}...")
-#         else:
-#             logger.info(f"Fetching new data with id = {id}...")
-#         return True
-#     else:
-#         last_write_date = item['data']['write_date']
-#         if last_write_date != current_write_date:
-#             # The record in DB is outdated, need to fetch it
-#             return True
-#         else:
-#             # The record in DB is up-to-date, no need to fetch it
-#             return False
+IMG_DIR = settings.static.image_dir
 
 
 def need_to_fetch_random(query_method, record_id, current_write_date: str):
@@ -359,13 +329,14 @@ class OdooProductServiceBase:
     def save_product_image(self, b64_image: str):
         mid = int(len(b64_image) / 2)
         md5 = stringutils.text_to_md5(b64_image[:256] + b64_image[mid - 256:mid + 256] + b64_image[-256:])
-        filename = f"static2/images/{md5}.jpg"
+        filename = f"{IMG_DIR}/{md5}.jpg"
+        _, rest = filename.split("images", 1)
+        new_path = rest
         if os.path.exists(filename):
-            return "/" + filename
-
+            return new_path
         with open(filename, "wb") as f:
             f.write(base64.b64decode(b64_image))
-        return "/" + filename
+        return new_path
 
     def to_standard_product(self, product_data) -> StandardProduct:
         alias = product_data['alias']

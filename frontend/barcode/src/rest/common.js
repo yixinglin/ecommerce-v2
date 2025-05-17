@@ -60,6 +60,7 @@ const apiUrl = `${baseUrl}/api/v1`;
 const apiScannerUrl = `${apiUrl}/scanner`;
 const apiCarriersUrl = `${apiUrl}/carriers`;
 const apiOdooUrl = `${apiUrl}/odoo`;
+const staticImageURL = `http://${import.meta.env.VITE_ECM_API_STATIC_URL}/images`;
 
 export {
     baseUrl,
@@ -67,4 +68,5 @@ export {
     apiScannerUrl,
     apiCarriersUrl,
     apiOdooUrl,
+    staticImageURL,
 };

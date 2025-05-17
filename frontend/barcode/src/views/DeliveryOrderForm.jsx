@@ -201,7 +201,7 @@ const DeliveryOrderForm = () => {
         email: parsed.email,
         telephone: parsed.telephone,
         mobile: parsed.mobile,
-        parcels: [ { weight: 0.1 } ],
+        parcels: [{ weight: 0.1 }],
       });
 
       message.success("Address parsed and applied to form.");
@@ -217,14 +217,12 @@ const DeliveryOrderForm = () => {
   return (
     <>
       <div className="delivery-form-container">
-
         <Card title="🚚 Delivery 📦" className="delivery-form-card">
           <Spin spinning={loading}>
             <h3 style={{ textAlign: "left" }}>
               {" "}
-              <SolutionOutlined /> ORDER{" "}
+              <SolutionOutlined /> 订单 ORDER{" "}
             </h3>
-
             <Form
               form={form}
               layout="vertical"
@@ -232,7 +230,7 @@ const DeliveryOrderForm = () => {
               autoComplete="off"
             >
               <Form.Item
-                label="Order Number"
+                label="订单号 Order Number"
                 name="orderNumber"
                 rules={[
                   { required: true, message: "Please enter the order number" },
@@ -244,61 +242,65 @@ const DeliveryOrderForm = () => {
                 />
               </Form.Item>
 
-              <Form.Item label="References" name="references">
+              <Form.Item label="参考号 References" name="references">
                 <Input disabled />
               </Form.Item>
 
-                      <Button
-          type="dashed"
-          onClick={() => {            
-            setAddressModalVisible(true);
-          }}
-          style={{ marginBottom: 16 }}
-        >
-          🧠 Parse Address
-        </Button>
-
+              <Button
+                type="dashed"
+                onClick={() => {
+                  setAddressModalVisible(true);
+                }}
+                style={{ marginBottom: 16, marginRight: 8 }}
+              >
+                🧠 地址解析器 Parser
+              </Button>
               <h3 style={{ textAlign: "left" }}>
-                <HomeOutlined /> CONSIGNEE{" "}
+                <HomeOutlined /> 收件人 CONSIGNEE{" "}
               </h3>
               <Form.Item
                 label="Name 1"
                 name="name1"
                 rules={[{ required: true, message: "Please enter the name" }]}
               >
-                <Input />
+                <Input placeholder="Enter the first name" />
               </Form.Item>
               <Form.Item label="Name 2" name="name2">
-                <Input />
+                <Input placeholder="Enter the second name" />
               </Form.Item>
               <Form.Item label="Name 3" name="name3">
-                <Input />
+                <Input placeholder="Enter the third name" />
               </Form.Item>
               <Form.Item
-                label="Street"
+                label="街道 Street"
                 name="street1"
-                rules={[{ required: true, message: "Please enter the street" }]}
+                rules={[
+                  {
+                    required: true,
+                    message: "Please enter the street and house number",
+                  },
+                ]}
               >
-                <Input />
+                <Input placeholder="Please enter the street and house number" />
               </Form.Item>
               <Form.Item
-                label="Zip Code"
+                label="邮编 ZIP Code"
                 name="zipCode"
                 rules={[
                   { required: true, message: "Please enter the zip code" },
                 ]}
               >
-                <Input />
+                <Input placeholder="Enter the zip code" />
               </Form.Item>
               <Form.Item
-                label="City"
+                label="城市 City"
                 name="city"
                 rules={[{ required: true, message: "Please enter the city" }]}
               >
-                <Input />
+                <Input placeholder="Please enter the city" />
               </Form.Item>
               <Form.Item
-                label="Country"
+                label="国家/地区 Country"
                 name="country"
                 rules={[
                   { required: true, message: "Please enter the country" },
@@ -309,7 +311,7 @@ const DeliveryOrderForm = () => {
               </Form.Item>
               <h3 style={{ textAlign: "left" }}>
                 {" "}
-                <ProductOutlined /> PARCELS (KG)
+                <ProductOutlined /> 包裹 PARCELS (KG)
               </h3>
               <Form.List name="parcels">
                 {(fields, { add, remove }) => (
@@ -326,7 +328,7 @@ const DeliveryOrderForm = () => {
                         <Form.Item
                           {...restField}
                           name={[name, "weight"]}
-                          label={`#${name + 1}. Weight`}
+                          label={`#${name + 1}. 重量 Weight`}
                           rules={[
                             {
                               required: true,
@@ -346,7 +348,7 @@ const DeliveryOrderForm = () => {
                         <Form.Item
                           {...restField}
                           name={[name, "comment"]}
-                          label="Comment"
+                          label="备注 Comment"
                           style={{ flex: 5, marginLeft: 5 }}
                           tooltip={"Comment or note of the parcel."}
                         >
@@ -364,16 +366,13 @@ const DeliveryOrderForm = () => {
                         onClick={() => handleAddParcel(add)}
                         icon={<PlusOutlined />}
                       >
-                        Add Parcel
+                        新增 Add Parcel
                       </Button>
                     </Form.Item>
                   </>
                 )}
               </Form.List>
 
-              {/* <Button type="primary" htmlType="submit" style={{ marginRight: 10 }}>Submit</Button>
-            <Button type="default" onClick={handleReset} style={{ marginRight: 10 }}>Reset</Button>            
-            {labelUrl && <Button type="dashed" onClick={handleShowLabel}>Label</Button>} */}
               {/* 按钮垂直排列 */}
               <div
                 style={{
@@ -384,10 +383,10 @@ const DeliveryOrderForm = () => {
                 }}
               >
                 <Button type="primary" htmlType="submit">
-                  Submit
+                  提交 Submit
                 </Button>
                 <Button type="default" onClick={handleReset}>
-                  Reset
+                  重设 Reset
                 </Button>
                 {labelUrl && (
                   <Button type="dashed" onClick={handleUseExistingLabel}>
@@ -413,7 +412,7 @@ const DeliveryOrderForm = () => {
               type="primary"
               onClick={handleGenerateNewShipment}
             >
-              New Label
+              重建快递单 New Label
             </Button>,
             labelUrl && (
               <Button
@@ -421,7 +420,7 @@ const DeliveryOrderForm = () => {
                 type="dashed"
                 onClick={handleUseExistingLabel}
               >
-                Use Existing Label
+                历史快递单 Use Existing Label
               </Button>
             ),
           ]}
@@ -438,7 +437,7 @@ const DeliveryOrderForm = () => {
           onCancel={() => setAddressModalVisible(false)}
           footer={[
             <Button key="cancel" onClick={() => setAddressModalVisible(false)}>
-              Cancel
+              取消 Cancel
             </Button>,
             <Button
               key="parse"
@@ -446,20 +445,45 @@ const DeliveryOrderForm = () => {
               loading={parsing}
               onClick={handleAddressParse}
             >
-              Parse
+              解析 Parse
             </Button>,
           ]}
         >
-          <p>
-            请输入完整地址信息（如客户提供的文本）Paste the full address text
-            below :
-          </p>
+          <p>请填写完整的地址信息 Paste the full address text below:</p>
           <Input.TextArea
             rows={5}
             value={rawAddress}
             onChange={(e) => setRawAddress(e.target.value)}
-            placeholder="如：张三, ABC科技公司, 南京路123号, 上海市, 200000, 13888888888, zhangsan@example.com"
+            placeholder="E.g. Dr. Musterman, ABC GmbH, 22114 Hamburg, Germany"
           />
+          <p style={{ color: "#4a4a4a", fontSize: "14px", lineHeight: "1.8" }}>
+            <strong style={{ color: "#8B3A3A", fontWeight: 600 }}>
+              温馨提示：
+            </strong>
+            本系统使用 AI 进行
+            <span
+              style={{
+                backgroundColor: "#fff4f0",
+                color: "#b05c5c",
+                padding: "0 4px",
+                borderRadius: "4px",
+                margin: "0 4px",
+              }}
+            >
+              智能解析
+            </span>
+            ，结果仅供参考。
+            <span
+              style={{
+                fontWeight: "bold",
+                color: "#3a3a3a",
+                textDecoration: "underline",
+              }}
+            >
+              请您在提交前仔细核对地址信息
+            </span>
+            ，确保准确无误。
+          </p>
         </Modal>
       </div>
     </>

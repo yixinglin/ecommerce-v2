@@ -1,6 +1,5 @@
 import { get_method, put_method, put_method_form } from './common';
-import { baseUrl, apiOdooUrl, apiScannerUrl } from './common';
-
+import { baseUrl, apiOdooUrl, apiScannerUrl, staticImageURL } from './common';
 
 // Scanner api
 
@@ -11,11 +10,11 @@ export function fetch_all_products_brief({'kw': kw,
     const keyword = encodeURIComponent(kw);
     const limit = page_size;
     const offset = (page - 0) * limit;
-    return get_method(apiScannerUrl + `/product/kw/${keyword}?offset=${offset}&limit=${limit}`)
+    return get_method(apiScannerUrl + `/product/kw/${keyword}?offset=${offset}&limit=${limit}`)    
        .then(response => {            
             if (response.status === 200 ) {
-                response.data.forEach(product => {
-                    product.image_url = `${baseUrl}${product.image_url}`;
+                response.data.forEach(product => {                    
+                    product.image_url = `${staticImageURL}${product.image_url}`;
                 });
             }
             return response;
@@ -26,7 +25,8 @@ export function fetch_product_by_id({product_id, up_to_date}) {
     return get_method(apiScannerUrl + '/product/pid/' + product_id + '?up_to_date=' + up_to_date)
        .then(response => {
             if (response.status === 200 ) {
-                response.data.image_url = `${baseUrl}${response.data.image_url}`;
+                // response.data.image_url = `${baseUrl}${response.data.image_url}`;
+                response.data.image_url = `${staticImageURL}${response.data.image_url}`;
             }
             return response;
        })
@@ -48,7 +48,7 @@ export function update_product_image(id, image) {
     return put_method_form(apiScannerUrl + '/product/pid/' + id + '/image', image)
         .then(response => {
             if (response.status === 200 ) {
-                response.data.image_url = `${baseUrl}${response.data.image_url}`;
+                response.data.image_url = `${staticImageURL}${response.data.image_url}`;
             }
             return response;
         })
