@@ -193,12 +193,25 @@ class OdooContactService(OdooContactServiceBase):
         )
         return ans
 
-    def query_contact_by_company_name(self, company_name):
-        regex = re.compile(f"{company_name.strip()}", re.IGNORECASE)
-        filter_ = {"alias": self.api.get_alias(), "data.name": regex, "data.active": True}
+    def query_contact_by_company_name(self, company_name, email=None):
+        company_regex = re.compile(f"{company_name.strip()}", re.IGNORECASE)
+
+        filter_ = {
+            "alias": self.api.get_alias(),
+            "data.name": company_regex,
+            "data.active": True
+        }
+
+        if email:
+            # 提取 email 域名部分（含 @）
+            email_domain = email[email.find("@"):].strip()
+            email_regex = re.compile(f"{re.escape(email_domain)}$", re.IGNORECASE)
+            filter_["data.email"] = email_regex
+
         data = self.mdb_contact.query_contacts(filter=filter_)
-        if len(data) == 0:
+        if not data:
             return None
+
         contact = data[0]
         return contact.get('data', "")
 
@@ -300,8 +313,8 @@ class OdooOrderService(OdooOrderServiceBase):
                 'price_unit': price_unit,  # 单价
             }))
 
-        contact = self.svc_contact.query_contact_by_company_name(order.shipAddress.name1)
-        testContact = self.svc_contact.query_contact_by_company_name("Test-Kunde GmbH")
+        contact = self.svc_contact.query_contact_by_company_name(order.shipAddress.name1, email=order.shipAddress.email)
+        testContact = self.svc_contact.query_contact_by_company_name("Test-Kunde GmbH", email=None)
         contactName = ""
         if contact is not None:
             logger.info(f"Found contact: {contact['name']}")
