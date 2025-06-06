@@ -23,5 +23,5 @@ npm install
 # Development build
 npm start
 # Production build
-npm run build 
+npm run prod
 ```

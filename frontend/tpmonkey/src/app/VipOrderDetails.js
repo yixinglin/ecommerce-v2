@@ -33,8 +33,12 @@ class VipOrderDetails {
                 'Upload to Odoo', () => {this.handleUploadToOdoo()});
         }).then(() => {
             addVersionInfo('.app-container', 'version-info');
-        })
-        .catch(err => {
+            return this.#fetchOrderFromVipServer();
+        }).then((res) => {            
+            const order = JSON.parse(res.response).data;
+            console.log("Order fetched from VIP server", order);
+            this.#addBuyerInfo('.app-container', order);
+        }).catch(err => {
             console.error("vip-order-details not found", err);
         });
 
@@ -46,11 +50,8 @@ class VipOrderDetails {
         const orderLines = JSON.parse(resp.response);
         resp = await this.#fetchOrderFromVipServer();
         const order = JSON.parse(resp.response).data;
-        const odoo_order = this.#toOdooOrder(order, orderLines);
+        const odoo_order = this.#toOdooOrder(order, orderLines);        
         console.log("Odoo Order Formatted: ", odoo_order);
-        
-        // debugger;
-        // const orderline_tr = document.querySelectorAll('tr.el-table__row');
 
         create_order_from_vip(odoo_order).then(res => {
             const state_code = res.status;
@@ -204,13 +205,23 @@ class VipOrderDetails {
         tempDiv.innerHTML = vip_odoo_disclaimer; // 将 HTML 字符串赋值为 innerHTML
         const disclaimerElement = tempDiv; // 获取第一个子节点（实际的 DOM 对象）
 
-        const disclaimer = disclaimerElement.querySelector('#disclaimer-' + selectedLanguage);
-        // console.log(disclaimer);
-
+        const disclaimer = disclaimerElement.querySelector('#disclaimer-' + selectedLanguage);        
         const container = document.querySelector(selector);
-        // console.log(this.browserLanguage);
-        // container.insertAdjacentHTML('beforeend', vip_odoo_disclaimer);
         container.appendChild(disclaimer);
+    }
+
+
+    #addBuyerInfo(selector, order) {
+        var buyerInfo = $('<div></div>')
+           .text('Buyer-ID: '
+                + order.customerId
+                + '; Address: ' + order.address)            
+           .css({
+                'font-size': '14px',
+                'color': 'red'
+            });
+
+        $(selector).append(buyerInfo);
     }
 
 }
