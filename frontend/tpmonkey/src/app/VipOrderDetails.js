@@ -108,6 +108,7 @@ class VipOrderDetails {
 
         var order_ = {};
         order_.orderId = order.orderCode;
+        order_.buyerId = order.customerId;
         order_.orderLines = orderLines_;        
         order_.shipAddress = shipAddress_;
         return order_;

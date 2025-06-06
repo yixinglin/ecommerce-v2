@@ -25,7 +25,7 @@ module.exports = {
     },
     plugins: [
         new webpack.DefinePlugin({
-            'VERSION': JSON.stringify('1.1.0'),
+            'VERSION': JSON.stringify('1.1.2'),
             'BASE_URL': JSON.stringify('http://127.0.0.1:5018'),
             'USERNAME': JSON.stringify('admin'),
             'PASSWORD': JSON.stringify('123456'),

@@ -223,6 +223,14 @@ class OdooContactService(OdooContactServiceBase):
         contact = data[0]
         return contact.get('data', "")
 
+    def query_contact_by_vip_id(self, vip_id: int) -> dict:
+        filter_ = {"alias": self.api.get_alias(), "data.x_studio_vip_id": vip_id}
+        data = self.mdb_contact.query_contacts(filter=filter_)
+        if len(data) == 0:
+            return None
+        contact = data[0]
+        return contact.get('data', "")
+
 
 class OdooOrderService(OdooOrderServiceBase):
 
@@ -313,19 +321,28 @@ class OdooOrderService(OdooOrderServiceBase):
                 'price_unit': price_unit,  # 单价
             }))
 
-        contact = self.svc_contact.query_contact_by_company_name(order.shipAddress.name1, email=order.shipAddress.email)
-        testContact = self.svc_contact.query_contact_by_company_name("Test-Kunde GmbH", email=None)
-        contactName = ""
-        if contact is not None:
-            logger.info(f"Found contact: {contact['name']}")
-            contactId = contact['id']
-            contactName = contact['name']
-        elif testContact is not None:
-            logger.info(f"Found test contact: {testContact['name']}")
-            contactId = testContact['id']
-            contactName = testContact['name']
+        if order.buyerId is not None:
+            contact_by_vipid = self.svc_contact.query_contact_by_vip_id(order.buyerId)
         else:
-            raise RuntimeError(f"Company name {order.shipAddress.name1} dose not match any contact in the Odoo Database.")
+            contact_by_vipid = None
+        contact_by_name = self.svc_contact.query_contact_by_company_name(order.shipAddress.name1, email=order.shipAddress.email)
+        # testContact = self.svc_contact.query_contact_by_company_name("Test-Kunde GmbH")
+
+        contactName = ""
+        if contact_by_vipid is not None:
+            logger.info(f"Found contact by vip_id: {contact_by_vipid['name']}")
+            contactId = contact_by_vipid['id']
+            contactName = f"{contact_by_vipid['contact_address_inline']} <{contact_by_vipid['email']}>"
+        elif contact_by_name is not None:
+            logger.info(f"Found contact by name: {contact_by_name['name']}")
+            contactId = contact_by_name['id']
+            contactName = f"{contact_by_name['contact_address_inline']} <{contact_by_name['email']}>"
+        # elif testContact is not None:
+        #     logger.info(f"Found test contact: {testContact['name']}")
+        #     contactId = testContact['id']
+        #     contactName = testContact['name']
+        else:
+            raise RuntimeError(f"Company name {order.shipAddress.name1} <{order.shipAddress.email}> dose not match any contact in the Odoo Database.")
 
         quot_data = {
             'partner_id': contactId,  # 客户ID（必填）
