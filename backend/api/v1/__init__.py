@@ -12,6 +12,7 @@ from .routes.barcode import barcode
 from .routes.common import common_router
 from .routes.llm import parser_router
 from .routes.user import app as user
+from .routes.table_converter import tc_router
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -56,6 +57,9 @@ common.include_router(common_router)
 llm = APIRouter(prefix="/llm", tags=["LLM Services"])
 llm.include_router(parser_router)
 
+tc = APIRouter(prefix="/table_convert", tags=["Table Converter"])
+tc.include_router(tc_router)
+
 v1 = APIRouter(prefix='/v1')
 v1.include_router(user)
 v1.include_router(common)
@@ -70,3 +74,4 @@ v1.include_router(amz)
 v1.include_router(kfld)
 v1.include_router(pickpack)
 v1.include_router(llm)
+v1.include_router(tc)

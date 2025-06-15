@@ -5,3 +5,9 @@ from .lx_replenishment import SKUReplenishmentProfileModel, SKUReplenishmentProf
 
 from .shipment import StandardShipment, Address
 from .orders import StandardOrder, OrderItem
+
+from .table_converter import (
+    TemplateModel, TemplateFieldModel,
+    MappingModel, MappingPairModel,
+    DataType, ConversionLogModel
+)

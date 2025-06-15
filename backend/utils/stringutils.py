@@ -2,6 +2,7 @@ import base64
 import hashlib
 from collections import OrderedDict, Counter
 from typing import List
+import re
 
 import jsonpath as jp_
 import barcode
@@ -108,6 +109,17 @@ def format_ranges(nums: List[int]):
 
     return result
 
+def split_seller_sku(seller_sku):
+    pattern = r"^(.*?)(PK\d+)$"
+    match = re.match(pattern, seller_sku)
+    if match:
+        base = match.group(1)
+        n_pack = match.group(2)
+        n_pack = int(n_pack.replace("PK", ""))
+    else:
+        base = seller_sku
+        n_pack = 1
+    return base, n_pack
 
 from pypinyin import pinyin, lazy_pinyin
 def chinese_to_pinyin(text: str, tone: bool = True, separator: str = " ") -> str:

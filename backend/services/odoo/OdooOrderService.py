@@ -9,6 +9,7 @@ from core.log import logger
 from models import Address
 from models.orders import StandardProduct
 from schemas.vip import VipOrder
+from utils.stringutils import split_seller_sku
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase,
                    convert_datetime_to_utc_format, OrderLine)
 from .base import save_record, OdooOrderServiceBase
@@ -291,23 +292,11 @@ class OdooOrderService(OdooOrderServiceBase):
                 logger.error(f"Failed to convert orderline [id={li['data']['id']}] to standard: {e}")
         return orderlines
 
-    def split_seller_sku(self, seller_sku):
-        pattern = r"^(.*?)(PK\d+)$"
-        match = re.match(pattern, seller_sku)
-        if match:
-            base = match.group(1)
-            n_pack = match.group(2)
-            n_pack = int(n_pack.replace("PK", ""))
-        else:
-            base = seller_sku
-            n_pack = 1
-        return base, n_pack
-
     def create_sales_order(self, order: VipOrder):
         order_line_data = []
         for line in order.orderLines:
             code = line.sellerSKU
-            base, n_pack = self.split_seller_sku(code)
+            base, n_pack = split_seller_sku(code)
             product = self.svc_product.query_product_by_code(base)
             if not product:
                 logger.error(f"Product {code} not found")
@@ -326,7 +315,6 @@ class OdooOrderService(OdooOrderServiceBase):
         else:
             contact_by_vipid = None
         contact_by_name = self.svc_contact.query_contact_by_company_name(order.shipAddress.name1, email=order.shipAddress.email)
-        # testContact = self.svc_contact.query_contact_by_company_name("Test-Kunde GmbH")
 
         contactName = ""
         if contact_by_vipid is not None:
@@ -337,10 +325,6 @@ class OdooOrderService(OdooOrderServiceBase):
             logger.info(f"Found contact by name: {contact_by_name['name']}")
             contactId = contact_by_name['id']
             contactName = f"{contact_by_name['contact_address_inline']} <{contact_by_name['email']}>"
-        # elif testContact is not None:
-        #     logger.info(f"Found test contact: {testContact['name']}")
-        #     contactId = testContact['id']
-        #     contactName = testContact['name']
         else:
             raise RuntimeError(f"Company name {order.shipAddress.name1} <{order.shipAddress.email}> dose not match any contact in the Odoo Database.")
 
