@@ -7,7 +7,7 @@ from external.lingxing.sdk.openapi import OpenApiBase
 from core.config2 import settings
 from external.lingxing.sdk.resp_schema import AccessTokenDto
 from core.log import logger
-
+import datetime
 
 class LingxingClient:
     def __init__(self, host, app_id, app_secret, alias, proxy=None, proxy_auth: BasicAuth=None, *args, **kwargs):
@@ -289,6 +289,51 @@ class InventoryClient(LingxingClient):
             fba_inventories.extend(fba_inv)
         logger.info(f"Total Fetched FBA Inventory: {len(fba_inventories)}")
         return fba_inventories
+
+class OrderClient(LingxingClient):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    async def fetch_orders(
+            self,
+            order_status: List[str],
+            days_ago: int,
+            offset: int,
+            length: int,
+    ):
+        today = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        start_date = (datetime.datetime.now() - datetime.timedelta(days=days_ago)).strftime('%Y-%m-%d %H:%M:%S')
+        params = {
+            "order_status": order_status,
+            "start_date": start_date,
+            "end_date": today,
+            "offset": offset,
+            "length": length,
+        }
+        logger.info(f"Fetching orders with params: {params}")
+        resp = await self.request(
+            "/erp/sc/data/mws/orders",
+            "POST",
+            req_body=params)
+        if resp.code != 0:
+            raise RuntimeError(f"fetch_lx_orders error: {resp.message}")
+        return resp
+
+    async def fetch_order_details(self, order_ids: List[str]):
+        params = {
+            "order_id": ",".join(order_ids)
+        }
+        logger.info(f"Fetching order details of {len(order_ids)} orders")
+        resp = await self.request(
+            "/erp/sc/data/mws/orderDetail",
+            "POST",
+            req_body=params)
+        if resp.code != 0:
+            raise Exception(f"Failed to fetch order details: {resp.message}, {resp.error_details}")
+        return resp
+
+
+
 
 
 

@@ -6,7 +6,7 @@ from .routes.kaufland import kfld_order
 from .routes.carriers import gls
 from .routes.pickpack import pp_amazon, pp_common
 from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact, odoo_dashboard
-from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans
+from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans, order_router as lx_order_router
 from .routes.print_task import print_task_router
 from .routes.barcode import barcode
 from .routes.common import common_router
@@ -38,6 +38,7 @@ lx.include_router(warehouse_router)
 lx.include_router(listing_router)
 lx.include_router(basic_router)
 lx.include_router(fba_schipment_plans)
+lx.include_router(lx_order_router)
 
 bcs = APIRouter(prefix="/scanner", tags=["Barcode Scanner"])
 bcs.include_router(barcode)

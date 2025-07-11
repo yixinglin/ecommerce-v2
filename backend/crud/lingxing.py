@@ -1,7 +1,41 @@
 from typing import List
 
+from pymongo import UpdateOne
+
 from core.log import logger
 from core.db import AsyncMongoDBDataManager
+
+
+
+async def bulk_upsert(
+    collection,
+    documents,
+    ordered=False
+):
+    operations = []
+    id_field = "_id"
+    for doc in documents:
+        if id_field not in doc:
+            raise ValueError(f"Documents must have field '{id_field}': {doc}")
+        operations.append(
+            UpdateOne(
+                {id_field: doc[id_field]},
+                {"$set": doc},
+                upsert=True
+            )
+        )
+
+    if not operations:
+        logger.info("No documents to upsert")
+        return 0
+
+    try:
+        result = await collection.bulk_write(operations, ordered=ordered)
+        return result.upserted_count
+    except Exception as e:
+        logger.error(f"Failed to upsert documents: {e}")
+        raise
+
 class AsyncLingxingListingDB(AsyncMongoDBDataManager):
 
     def __init__(self):
@@ -249,4 +283,114 @@ class AsyncLingxingFbaShipmentPlanDB(AsyncMongoDBDataManager):
         cursor = collection.find(*args, **kwargs).skip(offset).limit(limit)
         result = [doc async for doc in cursor]
         return result
+
+
+class AsyncLingxingOrderDB(AsyncMongoDBDataManager):
+    def __init__(self):
+        super().__init__()
+        self.db_name = "lingxing_data"
+        self.db_collection_orders = "orders"
+        self.db_collection_order_details = "order_details"
+
+    async def save_order(self, order_id, document):
+        collection = self.db_client[self.db_name][self.db_collection_orders]
+        try:
+            result = await collection.update_one(
+                {"_id": order_id},
+                {"$set": document},
+                upsert=True
+            )
+            if result.upserted_id:
+                logger.info(f"Inserted new order with ID: {result.upserted_id}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to save order {order_id}: {e}")
+            raise
+
+    async def bulk_save_orders(self, documents):
+        collection = self.db_client[self.db_name][self.db_collection_orders]
+        return await bulk_upsert(
+            collection,
+            documents,
+            ordered=False
+        )
+
+    async def query_order(self, order_id):
+        collection = self.db_client[self.db_name][self.db_collection_orders]
+        result = await collection.find_one({"_id": order_id})
+        return result
+
+    async def query_orders(self, offset=0, limit=None, *args, **kwargs):
+        collection = self.db_client[self.db_name][self.db_collection_orders]
+        cursor = (collection.find(*args, **kwargs)
+                  .sort("data.purchase_date_local", -1)
+                  .skip(offset))
+        if limit:
+            cursor = cursor.limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def query_all_orders(self, offset=0, limit=None):
+        collection = self.db_client[self.db_name][self.db_collection_orders]
+        cursor = (collection.find()
+                  .sort("data.purchase_date_local", -1)
+                  .skip(offset))
+        if limit:
+            cursor = cursor.limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def save_order_detail(self, order_detail_id, document):
+        collection = self.db_client[self.db_name][self.db_collection_order_details]
+        try:
+            result = await collection.update_one(
+                {"_id": order_detail_id},
+                {"$set": document},
+                upsert=True
+            )
+            if result.upserted_id:
+                logger.info(f"Inserted new order_detail with ID: {result.upserted_id}")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to save order_detail {order_detail_id}: {e}")
+            raise
+
+    async def bulk_save_order_details(self, documents):
+        collection = self.db_client[self.db_name][self.db_collection_order_details]
+        return await bulk_upsert(
+            collection,
+            documents,
+            ordered=False
+        )
+
+    async def query_order_detail(self, order_id):
+        collection = self.db_client[self.db_name][self.db_collection_order_details]
+        result = await collection.find_one({"_id": order_id})
+        return result
+
+    async def query_order_details(self, offset=0, limit=None, *args, **kwargs):
+        collection = self.db_client[self.db_name][self.db_collection_order_details]
+        cursor = (collection.find(*args, **kwargs)
+                  .sort("data.purchase_date_local", -1)
+                  .skip(offset))
+        if limit:
+            cursor = cursor.limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def query_all_order_details(self, offset=0, limit=None):
+        collection = self.db_client[self.db_name][self.db_collection_order_details]
+        cursor = (collection.find()
+                  .sort("data.purchase_date_local", -1)
+                  .skip(offset))
+        if limit:
+            cursor = cursor.limit(limit)
+        result = [doc async for doc in cursor]
+        return result
+
+    async def query_all_ids(self, collection_name):
+        collection = self.db_client[self.db_name][collection_name]
+        cursor = collection.find({}, {"_id": 1})  # 查询全部，只返回 _id 字段
+        return [doc["_id"] async for doc in cursor]
+
 

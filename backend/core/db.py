@@ -318,3 +318,4 @@ class AsyncMongoDBDataManager:
             logger.error(f"Error connecting to MongoDB: {e}")
             raise RuntimeError("Error connecting to MongoDB") from e
         return self
+

@@ -11,6 +11,7 @@ from core.config2 import settings
 from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
+from services.lingxing.services import OrderService
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
 from services.odoo.OdooOrderService import OdooProductPackagingService, OdooOrderService
 
@@ -236,6 +237,15 @@ async def save_lingxing_job():
             await svc_fba_shipment_plan.save_fba_shipment_plans_latest(100)
     except Exception as e:
         logger.error(f"Error in scheduled job to save LingXing FBA shipment plan data: {e}")
+    finally:
+        await asyncio.sleep(15)
+
+    try:
+        async with OrderService(key_index, proxy_index) as svc_order:
+            await svc_order.save_orders(days_ago=7)
+            await svc_order.save_order_details()
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save LingXing order data: {e}")
     finally:
         await asyncio.sleep(15)
 

@@ -1,6 +1,6 @@
 import base64
 import io
-from typing import Optional
+from typing import Optional, List
 from urllib.parse import quote
 
 import pandas as pd
@@ -9,19 +9,20 @@ from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
 from core.config2 import settings
-from external.lingxing.base import FbaShipmentPlanStatus
+from external.lingxing.base import FbaShipmentPlanStatus, OrderClient
 from schemas import ResponseSuccess, BasicResponse
 from services.lingxing import (ListingService, BasicDataService,
                                WarehouseService, FbaShipmentPlanService)
 from services.lingxing.ReplenishmentService import WarehouseReplenishmentService, ReplenishmentBasicService, \
     SKUReplenishmentProfileUpdate, AmazonWarehouseReplenishmentService
-from services.lingxing.services import GeneralService
+from services.lingxing.services import GeneralService, LingxingOrderDetail, OrderService
 import utils.time as time_utils
 
 warehouse_router = APIRouter(prefix="/warehouse")
 listing_router = APIRouter(prefix="/listing")
 basic_router = APIRouter(prefix="/basic")
 fba_schipment_plans = APIRouter(prefix="/fba-shipment-plans")
+order_router = APIRouter(prefix="/order")
 
 key_index = settings.api_keys.lingxing_access_key_index
 proxy_index = settings.http_proxy.index
@@ -244,3 +245,21 @@ async def get_fba_shipment_plans(reduced: bool = False, offset: int = 0, limit: 
         "length": len(fba_shipment_plans)
     }
     return ResponseSuccess(data=data)
+
+@order_router.get("/details/download", summary="Download LingXing order details",
+                 response_class=StreamingResponse)
+async def download_lingxing_order_details(is_business_order: bool = True):
+    async with OrderService(key_index, proxy_index) as service:
+        orders = await service.find_order_details(is_business_order=is_business_order)
+        df = pd.DataFrame([o.dict() for o in orders])
+        buffer = io.BytesIO()
+        df.to_excel(buffer, index=False)
+        buffer.seek(0)
+        headers = {
+            'Content-Disposition': 'attachment; filename="order_details.xlsx"'
+        }
+        return StreamingResponse(
+            buffer,
+            media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers=headers
+        )

@@ -1,10 +1,12 @@
+import asyncio
 import io
 import os
 import warnings
 from copy import copy
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict
 import pandas as pd
+from aiohttp import ClientPayloadError
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from tortoise.expressions import Q
@@ -14,7 +16,7 @@ import external.lingxing as lx
 from core.config2 import settings
 from core.log import logger
 from crud.lingxing import AsyncLingxingBasicDataDB, AsyncLingxingListingDB, AsyncLingxingInventoryDB, \
-    AsyncLingxingFbaShipmentPlanDB
+    AsyncLingxingFbaShipmentPlanDB, AsyncLingxingOrderDB
 from external.lingxing import *
 import utils.time as time_utils
 from external.lingxing.base import FbaShipmentPlanStatus
@@ -624,4 +626,162 @@ class GeneralService:
 #  https://apidoc.lingxing.com/#/docs/Warehouse/productLabel?id=%e8%af%b7%e6%b1%82%e5%8f%82%e6%95%b0
 #  https://apidoc.lingxing.com/#/docs/FBA/printFnskuLabels?id=%e6%9f%a5%e8%af%a2fba%e8%b4%a7%e4%bb%b6%e5%95%86%e5%93%81fnsku%e6%a0%87%e7%ad%be
 
+class LingxingOrderDetail(BaseModel):
+    amazon_order_id: str
+    purchase_date: str
+    name: str
+    city: str
+    seller: Optional[str]
+    fulfillment_channel: str
+    order_status: str
+    order_total_amount: float
+    currency: str
+    is_business_order: bool
+    buyer_email: str
+    buyer_name: str
+    postal_code: str
+    state_or_region: str
+    country_code: str
+    address_line1: str
+    address_line2: str
+    address_line3: str
+    content: str
 
+class OrderService:
+
+    def __init__(self, key_index, proxy_index=None):
+        self.key_index = key_index
+        self.proxy_index = proxy_index
+        self.client = lx.OrderClient.from_json(key_index, proxy_index)
+        self.mdb_order = AsyncLingxingOrderDB()
+
+    async def __aenter__(self):
+        await self.mdb_order.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.mdb_order.__aexit__(exc_type, exc_val, exc_tb)
+
+    async def save_orders(self, days_ago=20):
+        offset = 0
+        length = 4500
+        total = 1e6
+        count = 0
+
+        while offset < total:
+            try:
+                order_resp = await self.client.fetch_orders(
+                    order_status=['Shipped'],
+                    days_ago=days_ago,
+                    offset=offset,
+                    length=length,
+                )
+                total = order_resp.total
+                # Save orders to mongodb
+                saved_count = await self.__save_orders_to_mongodb(order_resp.data)
+                count += saved_count
+            except ClientPayloadError as e:
+                logger.info(f"Error while fetching orders: {e}")
+                await asyncio.sleep(10)
+            finally:
+                offset += length
+        logger.info(f"Saved {count} orders to database")
+            
+
+    async def __save_orders_to_mongodb(self, orders: List[Dict]) -> int:
+        logger.info(f"Fetched {len(orders)} orders.")
+        documents = [{
+                "_id": order['amazon_order_id'],
+                "fetchedAt": time_utils.now(),
+                "data": order,
+                "alias": self.client.alias,
+            }
+            for order in orders
+        ]
+        count = await self.mdb_order.bulk_save_orders(documents)
+        logger.info(f"Saved {count} orders to database.")
+        return count
+
+    async def __order_ids_to_fetch_details(self):
+        order_ids1 = set(await self.mdb_order.query_all_ids(self.mdb_order.db_collection_orders))
+        order_ids2 = set(await self.mdb_order.query_all_ids(self.mdb_order.db_collection_order_details))
+        return list(set(order_ids1 - order_ids2))
+
+    def __chunked_iterable(self, lst, chunk_size):
+        for i in range(0, len(lst), chunk_size):
+            yield lst[i:i + chunk_size]
+
+    async def save_order_details(self):
+        logger.info(f"Fetching order details.")
+        order_ids = await self.__order_ids_to_fetch_details()
+        logger.info(f"Fetching order details for {len(order_ids)} orders.")
+        count = 0
+        for i, chunked_ids in enumerate(self.__chunked_iterable(order_ids, 180)):
+            try:
+                print(i, len(chunked_ids), count)
+                details_resp = await self.client.fetch_order_details(chunked_ids)
+                # Save order details to mongodb
+                saved_count = await self.__save_order_details_to_mongodb(details_resp.data)
+                count += saved_count
+            except ClientPayloadError as e:
+                logger.error(f"Error while fetching order details: {e}")
+                await asyncio.sleep(10)
+        logger.info(f"Saved {count} order details to database.")
+
+    async def __save_order_details_to_mongodb(self, details: List[Dict]):
+        logger.info(f"Fetched {len(details)} order details.")
+        documents = [{
+                "_id": detail["amazon_order_id"],
+                "fetchedAt": time_utils.now(),
+                "data": detail,
+                "alias": self.client.alias,
+            }
+            for detail in details
+        ]
+        count = await self.mdb_order.bulk_save_order_details(documents)
+        logger.info(f"Saved {count} order details to database.")
+        return count
+
+    async def find_order_details(
+            self,
+            is_business_order: bool,
+            limit=None,
+            offset=0,
+    ):
+        filter_ = {
+            "data.is_business_order": 1 if is_business_order else 0,
+        }
+        details = await self.mdb_order.query_order_details(
+            offset=offset,
+            limit=limit,
+            filter=filter_,
+        )
+        return [self.to_order_detail(detail) for detail in details]
+
+    def to_order_detail(self, order_detail) -> LingxingOrderDetail:
+        order_detail = order_detail["data"]
+        content = [item['seller_sku'] for item in order_detail['item_list']]
+        content = ';'.join(content)
+        data = {
+            "amazon_order_id": order_detail["amazon_order_id"],
+            "purchase_date": order_detail["purchase_date_local"],
+            "name": order_detail["name"],
+            "city": order_detail["city"],
+            "seller": order_detail.get("seller", ""),
+            "fulfillment_channel": order_detail["fulfillment_channel"],
+            "order_status": order_detail["order_status"],
+            "order_total_amount": order_detail["order_total_amount"],
+            "currency": order_detail["currency"],
+            "is_business_order": order_detail["is_business_order"],
+            "buyer_email": order_detail['buyer_email'],
+            "buyer_name": order_detail['buyer_name'],
+            "postal_code": order_detail['postal_code'],
+            "state_or_region": order_detail['state_or_region'],
+            "country_code": order_detail['country_code'],
+            "address_line1": order_detail['address_line1'],
+            "address_line2": order_detail['address_line2'],
+            "address_line3": order_detail['address_line3'],
+            "content": content
+        }
+        detail = LingxingOrderDetail(**data)
+        return detail
