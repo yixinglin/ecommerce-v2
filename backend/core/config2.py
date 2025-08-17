@@ -74,6 +74,8 @@ class ApiKeysConfig(BaseModel):
     kaufland_access_key: str
     odoo_access_key: str
     odoo_access_key_index: int
+    wp_access_key: str
+    wp_access_key_index: int
     gls_access_key: str
     gls_access_key_index: int
     lingxing_access_key: str
@@ -96,6 +98,7 @@ class SchedulerConfig(BaseModel):
     kaufland_orders_fetch_enabled: bool
     gls_tracking_fetch_enabled: bool
     lingxing_fetch_enabled: bool
+    woocommerce_fetch_enabled: bool
 
 class Config(BaseModel):
     app: AppConfig

@@ -70,7 +70,11 @@ class OdooProductService(OdooProductServiceBase):
         return products
 
     def query_product_by_code(self, code) -> StandardProduct:
-        filter_ = {"alias": self.api.get_alias(), "data.default_code": code}
+        filter_ = {
+            "alias": self.api.get_alias(),
+            "data.active": True,
+            "data.default_code": code
+        }
         data = self.mdb_product.query_products(filter=filter_)
         if len(data) == 0:
             return None

@@ -1,17 +1,26 @@
-import React from "react";
-import { Row, Col } from "antd";
+import { List } from "antd";
 import ProductCard from "./ProductCard";
 
 const ProductList = ({ products }) => {
   return (
     <div style={{ padding: "20px" }}>
-      <Row gutter={[16, 16]} justify="center">
-        {products.map((product, index) => (
-          <Col xs={24} sm={24} md={20} lg={16} xl={12} key={product.id}>
-            <ProductCard product={product} index={index+1} />
-          </Col>
-        ))}
-      </Row>
+      <List
+        grid={{
+          gutter: 16,
+          xs: 1,
+          sm: 1,
+          md: 2,
+          lg: 3,
+          xl: 4,
+          xxl: 4
+        }}
+        dataSource={products}
+        renderItem={(product, index) => (
+          <List.Item key={product.id}>
+            <ProductCard product={product} index={index + 1} />
+          </List.Item>
+        )}
+      />
     </div>
   );
 };

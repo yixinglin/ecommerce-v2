@@ -11,7 +11,8 @@ from core.config2 import settings
 from services.gls.GlsShipmentService import GlsShipmentService
 from services.kaufland.KauflandOrderService import KauflandOrderSerice
 from external.kaufland.base import Storefront
-from services.lingxing.services import OrderService
+from services.woocommerce.woocommerce import OrderService as WooCommerceOrderService
+from services.lingxing.services import OrderService as LingXingOrderService
 from services.odoo import OdooProductService, OdooInventoryService, OdooContactService
 from services.odoo.OdooOrderService import OdooProductPackagingService, OdooOrderService
 
@@ -241,7 +242,7 @@ async def save_lingxing_job():
         await asyncio.sleep(15)
 
     try:
-        async with OrderService(key_index, proxy_index) as svc_order:
+        async with LingXingOrderService(key_index, proxy_index) as svc_order:
             await svc_order.save_orders(days_ago=7)
             await svc_order.save_order_details()
     except Exception as e:
@@ -251,6 +252,24 @@ async def save_lingxing_job():
 
     logger.info("Successfully scheduled LingXing scheduler job...")
 
+@async_hourly_scheduler.scheduled_job('interval', seconds=1 * 3600)
+async def save_woocommerce_job():
+    enabled = settings.scheduler.woocommerce_fetch_enabled
+    if not enabled:
+        logger.info("Scheduled job to save WooCommerce data is disabled in config")
+        return
+
+    key_index = settings.api_keys.wp_access_key_index
+    try:
+        async with WooCommerceOrderService(key_index) as svc:
+            await svc.save_orders(days_ago=14)
+    except Exception as e:
+        logger.error(f"Error in scheduled job to save WooCommerce data: {e}")
+    finally:
+        await asyncio.sleep(15)
+
+    logger.info("Successfully scheduled WooCommerce scheduler job...")
+
 
 # Run the code once when the script is loaded
 next_run_time = datetime.now() + timedelta(seconds=240)
@@ -259,3 +278,7 @@ hourly_scheduler.add_job(common_scheduler_2hrs, 'date', run_date=next_run_time)
 # Run the code once when the script is loaded
 next_run_time = datetime.now() + timedelta(seconds=480)
 async_hourly_scheduler.add_job(save_lingxing_job, 'date', run_date=next_run_time)
+
+# Run the code once when the script is loaded
+next_run_time = datetime.now() + timedelta(seconds=720)
+async_hourly_scheduler.add_job(save_woocommerce_job, 'date', run_date=next_run_time)

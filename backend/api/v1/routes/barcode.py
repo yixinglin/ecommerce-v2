@@ -53,7 +53,6 @@ def update_product_weight(product_id: int, weight: float):
             raise HTTPException(status_code=404, detail=f"Product with id {product_id} not found")
     return product
 
-
 @barcode.put("/pid/{product_id}/image")
 def update_product_image(product_id: int, image: UploadFile = File(...)):
     b64_image = base64.b64encode(image.file.read()).decode('utf-8')

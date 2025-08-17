@@ -72,9 +72,13 @@ class OdooScannerService:
         products_data += self.mdb_product.query_product_by_ids(product_ids)
 
         # Query ordered products
-        if keyword == "%orderline%":
+        if keyword == "%ordered%":
             ordered_products = self.fetch_ordered_products(limit=limit)
             products_data = ordered_products
+
+        if keyword == "%complete%":
+            complete_products = self.fetch_product_to_complete_details(limit=limit)
+            products_data = complete_products
 
         products = []
         for pdata in products_data:
@@ -98,8 +102,21 @@ class OdooScannerService:
         product_data = self.mdb_product.query_product_by_ids(pids)
         product_data = [p for p in product_data if p['data']['active'] == True]
         product_data = random.sample(product_data, limit)
+        # Sort by default_code
+        product_data.sort(key=lambda x: x['data']['default_code'])
         return product_data
 
+    def fetch_product_to_complete_details(self, limit=50):
+        api = self.svc_product.api.login()
+        pids = api.fetch_product_ids_to_complete_details()
+        if not pids:
+            return []
+        product_data = self.mdb_product.query_product_by_ids(pids)
+        product_data = [p for p in product_data if p['data']['active'] == True]
+        product_data = random.sample(product_data, limit)
+        # Sort by default_code
+        product_data.sort(key=lambda x: x['data']['default_code'])
+        return product_data
 
     def query_product_by_id(self, id, update_db=False) -> ProductFullInfo:
         if update_db:

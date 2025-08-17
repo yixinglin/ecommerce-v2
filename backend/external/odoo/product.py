@@ -1,15 +1,17 @@
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field
 
 from core.log import logger
 from .base import OdooAPIKey, OdooAPIBase
 
+
 class ProductUpdate(BaseModel):
     id: int
     weight: Optional[float] = Field(default=None, gt=0)
     barcode: Optional[str] = Field(default=None, min_length=1)
     image_1920: Optional[str] = Field(default=None, min_length=1)
+
 
 class OdooProductAPI(OdooAPIBase):
 
@@ -53,6 +55,16 @@ class OdooProductAPI(OdooAPIBase):
     def fetch_product_write_date(self, ids):
         return self.fetch_write_date("product.product", ids)
 
+    def fetch_product_ids_to_complete_details(self) -> List[int]:
+        logger.info("Fetching product to complete details")
+        domain = ["&", "&", "&", ("qty_available", ">", 0), ("type", "=", "product"), ("default_code", "!=", False), "|", "|", ("barcode", "=", False), ("weight", "=", 0), ("image_1920", "=", False)]
+        fields = {
+            "fields": ['name', "default_code", "qty_available", "barcode", "weight", "product_variant_id"]
+        }
+        products = self.client.search_read('product.template', [domain], fields)
+        product_ids = [p['product_variant_id'][0] for p in products if p['product_variant_id']]
+        return product_ids
+
     def update_product_by_id(self, id: int, data: ProductUpdate):
         values_to_update = {}
         if data.weight:
@@ -69,6 +81,7 @@ class OdooProductAPI(OdooAPIBase):
         else:
             logger.error(f"Failed to update product {id} with data {data}")
         return result
+
 
 class PackagingUpdate(BaseModel):
     id: int

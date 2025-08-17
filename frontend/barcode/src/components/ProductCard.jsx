@@ -85,7 +85,7 @@ const ProductCard = ({ product, index }) => {
           <strong>Barcode:</strong> {product.barcode || "N/A"}
         </p>
         <p style={{ fontSize: "9px", color: "#666", margin: "2px 0" }}>
-          <strong>Weight:</strong> {product.weight} kg
+          <strong>Weight:</strong> {product.weight} kg 
         </p>
         <p
           style={{

@@ -13,6 +13,7 @@ from .routes.common import common_router
 from .routes.llm import parser_router
 from .routes.user import app as user
 from .routes.table_converter import tc_router
+from .routes.woocommerce import order_router as woo_order_router
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -39,6 +40,9 @@ lx.include_router(listing_router)
 lx.include_router(basic_router)
 lx.include_router(fba_schipment_plans)
 lx.include_router(lx_order_router)
+
+woo = APIRouter(prefix="/woocommerce", tags=["WooCommerce Services"])
+woo.include_router(woo_order_router)
 
 bcs = APIRouter(prefix="/scanner", tags=["Barcode Scanner"])
 bcs.include_router(barcode)
@@ -67,6 +71,7 @@ v1.include_router(common)
 v1.include_router(carriers)
 v1.include_router(odoo)
 v1.include_router(lx)
+v1.include_router(woo)
 v1.include_router(bcs)
 v1.include_router(geo)
 v1.include_router(ptask)
