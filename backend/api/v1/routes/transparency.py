@@ -1,6 +1,8 @@
 from io import BytesIO
 from typing import Dict, List, Tuple, Optional
+from urllib.parse import quote
 
+import pandas as pd
 from fastapi import APIRouter, Form
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
@@ -134,6 +136,36 @@ async def get_overall_transparency_code_statistics():
     async with TransparencyCodeService() as service:
         results = await service.get_overall_transparency_code_statistics()
     return results
+
+@transparency_router.get("/transparency/statistics/sku",
+                         response_model=Dict)
+async def get_sku_statistics():
+    """
+    Get SKU statistics.
+    """
+    async with TransparencyCodeService() as service:
+        results = await service.get_sku_statistics()
+    return results
+
+@transparency_router.get(
+    "/transparency/statistics/sku/download",
+    response_class=StreamingResponse
+)
+async def download_sku_statistics():
+    async with TransparencyCodeService() as service:
+        results = await service.get_sku_statistics()
+        df_results = pd.DataFrame([item.dict() for item in results['data']])
+        buff = BytesIO()
+        df_results.to_excel(buff, index=False)
+        buff.seek(0)
+
+    encoded_filename = quote("透明码使用情况汇总")
+    return StreamingResponse(
+        buff,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={encoded_filename}.xlsx"}
+    )
+
 
 @transparency_router.put("/transparency/mark/used",
                          response_model=TransparencyCodeStatusUpdateResponse)

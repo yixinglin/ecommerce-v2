@@ -39,6 +39,12 @@ class OverallStatistics(UTCModel):
     locked: int
     deleted: int
 
+class SkuStatistics(UTCModel):
+    seller_sku: str
+    listing_id: str
+    unused: int
+    history_used: int
+    history_total: int
 
 
 class TransparencyCodeService:
@@ -407,6 +413,42 @@ class TransparencyCodeService:
             "data": statistics,
             "total": 1,
         }
+
+    async def get_sku_statistics(self):
+        sql = """
+            SELECT
+                seller_sku, 
+                MIN(listing_id) as listing_id,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS unused,
+                SUM(CASE WHEN status = %s THEN 1 ELSE 0 END) AS history_used,
+                COUNT(*) AS history_total
+            FROM transparency_code
+            GROUP BY 
+                seller_sku
+            ORDER BY 
+                seller_sku;
+        """
+        try:
+            async with in_transaction() as conn:
+                result = await conn.execute_query_dict(
+                    sql,
+                    [TransparencyCodeStatus.UNUSED.value,
+                     TransparencyCodeStatus.USED.value]
+                )
+                sku_list = []
+                for item in result:
+                    sku_list.append(SkuStatistics(**item))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        return {
+            "data": sku_list,
+            "total": len(sku_list),
+        }
+
+
+
+
+
 
     async def update_transparency_codes_status(self, code_ids: List[int],
                                                status: TransparencyCodeStatus,

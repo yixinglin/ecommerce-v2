@@ -1,5 +1,8 @@
 from datetime import datetime, timedelta
 from typing import List, Dict
+
+from fastapi import HTTPException
+
 from core.log import logger
 from crud.woocommerce import AsyncWoocommerceOrderDB
 from external.woocommerce.extent import OrderClient
@@ -101,8 +104,10 @@ class OrderService:
         results = await self.mdb_order.query_orders(
             filter=query,
         )
-        # print(results)
+
         data = [parse_order(order['data']) for order in results['data']]
+        if not data:
+            raise HTTPException(status_code=404, detail="No orders found.")
 
         records = []
         for order in data:
