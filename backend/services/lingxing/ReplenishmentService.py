@@ -100,9 +100,11 @@ class ReplenishmentBasicService:
             "国家": "country"
         })
 
-        filter_condition = (df_listing['country'] == '德国') \
-                           & (df_listing['status'] == "在售") \
-                           & (df_listing['fulfillment_channel'] == 'FBA')
+        # & (df_listing['status'] == "在售")
+        filter_condition = (
+            df_listing['country'] == '德国') \
+            & (df_listing['fulfillment_channel'] == 'FBA'
+        )
         df_listing = df_listing[filter_condition]
         return df_listing
 
@@ -303,6 +305,7 @@ class WarehouseReplenishmentService(ReplenishmentBasicService):
         # Aggregation
         grouped_df_listing = df_listing.groupby('sku', as_index=False).agg({
             'seller': lambda x: ', '.join(sorted(set(x))),
+            'status': lambda x: ', '.join(sorted(set(x))),
             'seven_days_volume': "sum",
             'fourteen_days_volume': "sum",
             'thirty_days_volume': "sum",
@@ -354,6 +357,7 @@ class WarehouseReplenishmentService(ReplenishmentBasicService):
             'seller': "店铺",
             'brand_name': '品牌',
             'fnsku': 'FNSKU',
+            'status': '状态',
             'product_name': '产品名称',
             'total_quantity': '总库存',
             'afn_fulfillable_quantity': 'FBA可售',
@@ -419,6 +423,7 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
 
         # Aggregation
         grouped_df_listing = df_listing.groupby(['fnsku', 'seller'], as_index=False).agg({
+            'status': lambda x: ', '.join(sorted(set(x))),
             'seven_days_volume': "sum",
             'fourteen_days_volume': "sum",
             'thirty_days_volume': "sum",
@@ -473,6 +478,7 @@ class AmazonWarehouseReplenishmentService(ReplenishmentBasicService):
             'seller': "店铺",
             'brand_name': '品牌',
             'fnsku': 'FNSKU',
+            'status': "状态",
             'product_name': '产品名称',
             'total_quantity': 'FBA总库存',
             'afn_fulfillable_quantity': 'FBA可售',
