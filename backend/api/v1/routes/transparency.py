@@ -196,8 +196,10 @@ class GenerateTransparencyPdfRequest(BaseModel):
     crop_box: Optional[Tuple[float, float, float, float]] = None
     inline: bool = False
 
+from fastapi.responses import Response
+
 @transparency_router.post("/transparency/generate/pdf",
-                          response_class=StreamingResponse,)
+                          response_class=Response,)
 async def generate_transparency_pdf_by_ids(body: GenerateTransparencyPdfRequest):
     """
     Generate a PDF file for the given transparency codes.
@@ -213,12 +215,17 @@ async def generate_transparency_pdf_by_ids(body: GenerateTransparencyPdfRequest)
 
     filename = "transparency"
     if inline:
-        headers = {"Content-Disposition": f"inline; filename={filename}.pdf"}
+        disposition = f"inline; filename={filename}.pdf"
     else:
-        headers = {"Content-Disposition": f"attachment; filename={filename}.pdf"}
+        disposition = f"attachment; filename={filename}.pdf"
 
-    return StreamingResponse(
-        BytesIO(pdf_bytes),
+    headers = {
+        "Content-Disposition": disposition,
+        "Content-Length": str(len(pdf_bytes))
+    }
+
+    return Response(
+        content=pdf_bytes,
         media_type="application/pdf",
         headers=headers
     )

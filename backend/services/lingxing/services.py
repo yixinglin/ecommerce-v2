@@ -525,6 +525,7 @@ class GeneralService:
         if seller_id is not None:
             filter_['data.sid'] = seller_id
 
+        # TODO: 实现真正的分页查询
 
         listings = await self.listing_service.find_all_listings(offset=offset, limit=limit, filter_=filter_, *args, **kwargs)
 

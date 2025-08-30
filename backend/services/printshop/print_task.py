@@ -100,8 +100,9 @@ class PrintTaskService:
 
     async def query_print_logs(self, task_id: int):
         try:
+            # sort by date desc
             task_obj = await PrintTaskModel.get(id=task_id)
-            logs = task_obj.logs.all()
+            logs = task_obj.logs.all().order_by("-created_at")
         except DoesNotExist:
             raise HTTPException(status_code=404, detail="Task not found")
         logs_pydantic = await PrintLog_Pydantic.from_queryset(logs)

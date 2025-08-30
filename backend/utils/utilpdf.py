@@ -228,7 +228,7 @@ def add_page_numbers(input_bytes: bytes,
     return output_stream.getvalue()
 
 if __name__ == '__main__':
-    with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMD-77580_04260715492736.pdf', 'rb') as f:
+    with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMMD-25070_04260715494105_202504211801.pdf', 'rb') as f:
         pdf_bytes = f.read()
         count = count_pages(pdf_bytes)
         print(count)
@@ -239,14 +239,16 @@ if __name__ == '__main__':
 
     # extracted_pdf_bytes = extract_pdf_pages(pdf_bytes, 1, 2201)
     extra_info = "This is an 55你哈 extröa info\nThis is an extra info\nThis is an extra info"
-    extracted_pdf_bytes = extract_pdf_pages(pdf_bytes, [5, 6, 10], extra_info)
+    page_list = list(range(1, 1900, 2))
+    print(page_list)
+    extracted_pdf_bytes = extract_pdf_pages(pdf_bytes, page_list, extra_info)
 
     # crop_box = mm(0, 0, 35, 35)
     crop_box = mm(0, 0, 38, 38)
     # extracted_pdf_bytes = crop_pdf_area(extracted_pdf_bytes, crop_box)
-    extracted_pdf_bytes = add_page_numbers(extracted_pdf_bytes,
-                                           position=mm(15.0, 2.0),
-                                           page_list=[2] * 4)
+    # extracted_pdf_bytes = add_page_numbers(extracted_pdf_bytes,
+    #                                        position=mm(15.0, 2.0),
+    #                                        page_list=page_list + [-1])
 
     with open("extracted.pdf", "wb") as f:
         f.write(extracted_pdf_bytes)
