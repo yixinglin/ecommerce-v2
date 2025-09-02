@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import HTTPException
 from tortoise.exceptions import DoesNotExist
+from tortoise.expressions import Q
 
 from models import PrintTaskModel, PrintLogModel
 from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic
@@ -47,8 +48,11 @@ class PrintTaskService:
             raise HTTPException(status_code=404, detail="Task not found")
         return await PrintTask_Pydantic.from_tortoise_orm(task_obj)
 
-    async def get_print_tasks(self, offset, limit, **kwargs):
-        qs = PrintTaskModel.filter(**kwargs)
+    async def get_print_tasks(self, offset, limit, keyword, **kwargs):
+        query = Q()
+        if keyword:
+            query &= Q(task_name__icontains=keyword)
+        qs = PrintTaskModel.filter(query, **kwargs)
         total = await qs.count()
         tasks = qs.order_by("-id").offset(offset).limit(limit)
         ans = await PrintTask_Pydantic.from_queryset(tasks)

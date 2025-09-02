@@ -646,6 +646,8 @@ class LingxingOrderDetail(BaseModel):
     address_line1: str
     address_line2: str
     address_line3: str
+    sku_content: str
+    asin_content: str
     content: str
 
 class OrderService:
@@ -761,8 +763,13 @@ class OrderService:
 
     def to_order_detail(self, order_detail) -> LingxingOrderDetail:
         order_detail = order_detail["data"]
-        content = [item['seller_sku'] for item in order_detail['item_list']]
-        content = ';'.join(content)
+        sku_content = [item['seller_sku'] for item in order_detail['item_list']]
+        sku_content = ' | '.join(sku_content)
+        asin_content = [item['asin'] for item in order_detail['item_list']]
+        asin_content = ' | '.join(asin_content)
+        content = [item['title'] for item in order_detail['item_list']]
+        content = ' | '.join(content)
+
         data = {
             "amazon_order_id": order_detail["amazon_order_id"],
             "purchase_date": order_detail["purchase_date_local"],
@@ -782,6 +789,8 @@ class OrderService:
             "address_line1": order_detail['address_line1'],
             "address_line2": order_detail['address_line2'],
             "address_line3": order_detail['address_line3'],
+            "sku_content": sku_content,
+            "asin_content": asin_content,
             "content": content
         }
         detail = LingxingOrderDetail(**data)

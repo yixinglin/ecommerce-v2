@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from fastapi import APIRouter, Form, File, UploadFile
 from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic
 from services.printshop.print_task import PrintTaskService
@@ -23,9 +23,17 @@ async def get_print_task(task_id: int):
     return task
 
 @print_task_router.get("/task/query", response_model=Dict)
-async def get_print_tasks(offset: int = 0, limit: int = 10):
+async def get_print_tasks(
+    offset: int = 0,
+    limit: int = 10,
+    keyword: Optional[str] = None,
+):
     service = PrintTaskService()
-    tasks = await service.get_print_tasks(offset, limit)
+    tasks = await service.get_print_tasks(
+        offset=offset,
+        limit=limit,
+        keyword=keyword
+    )
     return tasks
 
 @print_task_router.put("/task/update/{task_id}",
