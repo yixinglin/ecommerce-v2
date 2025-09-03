@@ -3,7 +3,7 @@ import AmazonOrderList from './app/AmazonOrderList.js';
 import AmazonOrderDetails from './app/AmazonOrderDetails.js';
 import EbayOrderDetails from './app/EbayOrderDetails.js';
 import VipOrderDetails from './app/VipOrderDetails.js';
-
+import VipCustomerAccount from './app/VipCustomerAccount.js';
 
 function applications() {
     console.log("Welcome to TPMonkey");
@@ -21,6 +21,8 @@ function applications() {
 
     var vd = new VipOrderDetails(base_url);
     vd.mount();
+
+    VipCustomerAccount();
     
 }
 

@@ -17,6 +17,17 @@ export function create_order_from_vip(order_data) {
     return tm.post(url, data, headers)
 }
 
+export function fetch_odoo_contact_by_id(id) {
+    const token = calc_basic_auth_token(username, password);
+    const headers = {
+        'Authorization': `Basic ${token}`,
+        'Content-Type': 'application/json'      
+    }
+    const url = `${base_url}/api/v1/odoo/contact/${id}/vip`;
+    return tm.get(url, headers)
+}
+
+
 export function fetch_odoo_quants() {
     const token = calc_basic_auth_token(username, password);
     const headers = {

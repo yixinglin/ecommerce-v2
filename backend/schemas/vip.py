@@ -16,3 +16,15 @@ class VipOrder(BaseModel):
     buyerId: Optional[int] = None
     orderLines: list[VipOrderLine] = Field(..., min_items=1)
     shipAddress: Address
+
+class VipCustomer(BaseModel):
+    companyName: str
+    contact: Optional[str] = None
+    address: str
+    addressLine2: Optional[str] = None
+    email: Optional[str] = None
+    zip: Optional[str] = None
+    phone: Optional[str] = None
+    mobile: Optional[str] = None
+
+

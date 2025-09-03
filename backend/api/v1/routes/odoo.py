@@ -5,7 +5,7 @@ from starlette.responses import StreamingResponse, HTMLResponse
 from core.config2 import settings
 from core.log import logger
 from schemas import ResponseSuccess, BasicResponse
-from schemas.vip import VipOrder
+from schemas.vip import VipOrder, VipCustomer
 from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
 from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService
@@ -23,6 +23,44 @@ def get_odoo_contact_list():
     with OdooContactService(key_index=odoo_access_key_index, login=False) as svc:
         data = svc.query_all_contact_shipping_addresses(offset=0, limit=10000)
     return ResponseSuccess(data=data)
+
+@odoo_contact.get(
+    '/{id}/vip',
+    response_model=BasicResponse[VipCustomer])
+def get_vip_customer_from_odoo_contact_by_id(id: int):
+    #  Odoo Contact
+    with OdooContactService(key_index=odoo_access_key_index, login=False) as svc:
+        data = svc.query_contact_by_id(id)
+
+    false_to_str = lambda x: x if x else ""
+    is_company = data.get("is_company", False)
+    if is_company:
+        company_name = false_to_str(data.get("name", ""))
+        contact = ""
+    else:
+        company_name = ""
+        contact = false_to_str(data.get("name", ""))
+    street = false_to_str(data.get("street", ""))
+    street2 = false_to_str(data.get("street2", ""))
+    zip = false_to_str(data.get("zip", ""))
+    city = false_to_str(data.get("city", ""))
+    country_id = data.get("country_id", None)
+    country = country_id[1] if country_id else ""
+    country = country.replace("Germany", "Deutschland")
+
+    vip_customer = VipCustomer(
+        companyName=company_name,
+        contact=contact,
+        address=f"{street}, {zip} {city}, {country}",
+        addressLine2=street2,
+        zip=false_to_str(data.get("zip", "")),
+        phone=false_to_str(data.get("phone", "")),
+        mobile=false_to_str(data.get("mobile", "")),
+        email=false_to_str(data.get("email", "")),
+    )
+
+    return ResponseSuccess(data=vip_customer)
+
 
 @odoo_sales.post('/orders', summary="Create an Odoo sales order",
                  response_model=BasicResponse[dict])

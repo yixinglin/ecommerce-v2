@@ -17,5 +17,8 @@
     "html-loader": "^5.1.0",
     "webpack": "^5.91.0",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.6"
   }
 }
