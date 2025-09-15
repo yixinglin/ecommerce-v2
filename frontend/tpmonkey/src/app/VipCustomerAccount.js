@@ -7,10 +7,13 @@ const VipCustomerAccount = () => {
     const base_url = BASE_URL;
     
     const fillInputByLabel = (forAttr, value) => {
-        $('label[for="' + forAttr + '"]')
-            .siblings('.el-form-item__content') // 找兄弟节点
-            .find('input')                      // 找输入框            
-            .val(value);                        // 设置值
+        const inputs = $('label[for="' + forAttr + '"]')
+            .siblings('.el-form-item__content')
+            .find('input');                
+        const input = inputs[inputs.length-1];        
+        input.value = value;        
+        const event = new Event('input', { bubbles: true });
+        input.dispatchEvent(event); // 通知 Vue v-model 更新  
     }
 
     const getInputValueByLabel = (forAttr) => {
@@ -24,6 +27,7 @@ const VipCustomerAccount = () => {
         console.log(contact);
         const zip = contact.zip || '';
         const password = `0${zip}01`;
+
         fillInputByLabel('name', contact.companyName);
         fillInputByLabel('contact', contact.contact);
         fillInputByLabel('phone', contact.phone);
@@ -106,7 +110,7 @@ const buildEmailTemplate = ({
 }) => {
     const subject = encodeURIComponent(`Ihre Zugangsdaten | HansaGT Medical GmbH`);
     const bodyText = `
-Sehr geehrte Frau ${contact},
+Sehr geehrte ${contact},
 
 herzlich willkommen bei HansaGT Medical GmbH, Ihrem Partner für die Versorgung mit Pflege- und Hygiene Artikeln!
 
@@ -120,12 +124,6 @@ Ihr Passwort: ${password}
 
 Haben Sie Fragen? Dann schreiben Sie uns einfach eine E-Mail an bestellung@hansagt24.com.
 
-
-Viele Grüße
-
- 
-Ihr Team von
-HansaGT Medical GmbH
 
 `;
     const body = encodeURIComponent(bodyText.trim());

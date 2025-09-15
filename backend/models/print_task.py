@@ -12,7 +12,9 @@ class PrintStatus(IntEnum):
 class PrintTaskModel(models.Model):
     id = fields.IntField(primary_key=True)
     task_name = fields.CharField(max_length=200, description="Name of the print task")
+    description = fields.TextField(default="", description="Description of the print task")
     file_paths = fields.CharField(max_length=1000, default="", description="Semicolon separated file paths")
+    skip = fields.IntField(default=0, description="Number of files to skip")
     created_at = fields.DatetimeField(auto_now_add=True, null=True, description="Date and time when the task was created")
     created_by = fields.CharField(max_length=50, description="User who created the task")
     printed_at = fields.DatetimeField(null=True, description="Date and time when the task was printed")

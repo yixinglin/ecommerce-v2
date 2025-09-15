@@ -45,6 +45,7 @@ async def update_print_task(
         created_by: str = Form(None),
         status: PrintStatus = Form(PrintStatus.NOT_PRINTED),
         file_paths: List[str] = Form(None),  # 支持多文件上传
+        skip: int = Form(None),
         signature: str = Form(None)):
     services = PrintTaskService()
     task_obj = await services.update_print_task(task_id=task_id,
@@ -53,6 +54,7 @@ async def update_print_task(
                                printed_by=printed_by,
                                status=status,
                                file_paths=file_paths,
+                               skip=skip,
                                signature=signature)
     return task_obj
 

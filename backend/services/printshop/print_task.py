@@ -66,6 +66,7 @@ class PrintTaskService:
                                 created_by: str,
                                 printed_by: str, status: str,
                                 file_paths: List[str],
+                                skip: int,
                                 signature: str,
                                 **kwargs):
         task_obj = await PrintTaskModel.get_or_none(id=task_id)
@@ -93,6 +94,9 @@ class PrintTaskService:
             elif status == PrintStatus.NOT_PRINTED:
                 task_obj.printed_at = None
                 new_log = await self.create_print_log(task_id, f"Task updated to pending")
+        if skip is not None and task_obj.skip != skip:
+            task_obj.skip = skip
+            new_log = await self.create_print_log(task_id, f"Task skip updated to {skip}")
         if isinstance(file_paths, list):
             file_paths_ = ";".join(file_paths)
             if task_obj.file_paths != file_paths_:
