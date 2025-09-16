@@ -130,7 +130,7 @@ def extract_pdf_pages(file: Union[bytes, str], page_list: List[int],
 
     pdf_writer = PyPDF2.PdfWriter()
     for i in page_list:
-        if i < len(pdf_reader.pages):
+        if 1 <= i <= len(pdf_reader.pages):
             pdf_writer.add_page(pdf_reader.pages[i - 1])
         else:
             break
