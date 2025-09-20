@@ -6,9 +6,10 @@ from urllib.parse import quote
 import pandas as pd
 from fastapi import APIRouter
 from pydantic import BaseModel
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, Response
 
 from core.config2 import settings
+from core.log import logger
 from external.lingxing.base import FbaShipmentPlanStatus, OrderClient
 from schemas import ResponseSuccess, BasicResponse
 from services.lingxing import (ListingService, BasicDataService,
@@ -93,25 +94,42 @@ async def get_printshop_listing_view(offset: int = 0, limit: int = 100,
     return ResponseSuccess(data=data)
 
 
-@listing_router.get("/download/fnsku-label/{listing_id}")
-async def get_fnsku_label_by_listing_id(listing_id: str):
+@listing_router.get(
+    "/download/fnsku-label/{listing_id}",
+    response_class=Response,
+)
+async def get_fnsku_label_by_listing_id(
+        listing_id: str,
+        quantity: Optional[int] = 1
+):
     async with ListingService(key_index, proxy_index) as listing_service:
         async with GeneralService(key_index, proxy_index) as general_service:
             listing = await listing_service.find_listing_by_listing_id(listing_id)
-            b64 = await general_service.generate_fnsku_label_by_listing_id(listing_id)
+            b64 = await general_service.generate_fnsku_label_by_listing_id(
+                listing_id,
+                quantity=quantity
+            )
     label = base64.b64decode(b64)
     sku = listing.local_sku
-    pdf_stream = io.BytesIO(label)
     filename = f"{sku}.pdf"
     encoded_filename = quote(filename)
 
-    embedded = True
-    content_disposition = "inline" if embedded else "attachment"
+    inline = True
+    if inline:
+        disposition = f"inline; filename={encoded_filename}.pdf"
+    else:
+        disposition = f"attachment; filename={encoded_filename}.pdf"
+
     headers = {
-        "Content-Disposition": f"{content_disposition}; filename*=UTF-8\'\'{encoded_filename}",
+        "Content-Disposition": disposition,
         "Content-Length": str(len(label)),
     }
-    return StreamingResponse(pdf_stream, media_type="application/pdf", headers=headers)
+    logger.info(f"filename: {filename}, disposition: {disposition}")
+    return Response(
+        content=label,
+        media_type="application/pdf",
+        headers=headers
+    )
 
 
 @basic_router.get("/sellers",

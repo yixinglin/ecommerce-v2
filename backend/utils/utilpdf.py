@@ -59,6 +59,16 @@ def create_watermark_text(watermark_text: str,
     packet.seek(0)
     return packet.read()
 
+def extract_pdf_size(file: Union[bytes, str]) -> Tuple[float, float]:
+    if isinstance(file, str):
+        pdf_reader = PyPDF2.PdfReader(file)
+    elif isinstance(file, bytes):
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file))
+    else:
+        raise TypeError("File must be a string or bytes object.")
+    return (float(pdf_reader.pages[0].mediabox.width),
+            float(pdf_reader.pages[0].mediabox.height))
+
 
 def concat_pdfs(pdf_bytes_list: List[bytes]) -> bytes:
     """
@@ -227,7 +237,8 @@ def add_page_numbers(input_bytes: bytes,
     writer.write(output_stream)
     return output_stream.getvalue()
 
-if __name__ == '__main__':
+
+def demo1():
     with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMMD-25070_04260715494105_202504211801.pdf', 'rb') as f:
         pdf_bytes = f.read()
         count = count_pages(pdf_bytes)
@@ -252,3 +263,30 @@ if __name__ == '__main__':
 
     with open("extracted.pdf", "wb") as f:
         f.write(extracted_pdf_bytes)
+
+def demo2():
+    # FN Code
+    with open(r'G:\hansagt\ecommerce\backend\.temp\01230.pdf', 'rb') as f:
+        pdf_bytes = f.read()
+
+    w, h = extract_pdf_size(pdf_bytes)
+    print(w, h)
+
+    total_pages = 700
+    page_list = list(range(1, total_pages+1))
+    print(f"Total pages: {total_pages}")
+    pdf_list = [pdf_bytes] * total_pages
+    merged_pdf_bytes = concat_pdfs(pdf_list)
+    print(f"Merged PDF size: {len(merged_pdf_bytes)} bytes")
+    pdf_with_page_numbers = add_page_numbers(
+        merged_pdf_bytes,
+        page_list=None,
+        position=(w / 2 + 50, h - 10),
+    )
+    print(f"PDF with page numbers size: {len(pdf_with_page_numbers)} bytes")
+    with open("merged.pdf", "wb") as f:
+        f.write(pdf_with_page_numbers)
+
+
+if __name__ == '__main__':
+    demo2()

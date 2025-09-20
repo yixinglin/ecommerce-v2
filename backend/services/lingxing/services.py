@@ -25,6 +25,7 @@ from schemas import Seller, Listing, Inventory
 from schemas.lingxing import PrintShopListingVO, Marketplace, FbaShipmentPlan, PrintShopFbaShipmentPlanVO
 from utils.stringutils import chinese_to_pinyin
 from utils.utils_barcodes import generate_barcode_fnsku
+import utils.utilpdf as utilpdf
 
 UPLOAD_DIR = settings.static.upload_dir
 
@@ -487,7 +488,7 @@ class GeneralService:
         await self.listing_service.__aexit__(exc_type, exc_val, exc_tb)
         await self.fba_shipment_plan_service.__aexit__(exc_type, exc_val, exc_tb)
 
-    async def generate_fnsku_label_by_listing_id(self, listing_id: str) -> Listing:
+    async def generate_fnsku_label_by_listing_id(self, listing_id: str, quantity: int=1) -> Listing:
         dtime = datetime.now().strftime("%Y-%m-%d")
         listing = await self.listing_service.find_listing_by_listing_id(listing_id)
         if listing:
@@ -510,8 +511,21 @@ class GeneralService:
         title = f"[{listing.seller_sku}] {listing.item_name}"
         title = title[:200]
         sku = f"{listing.local_sku} | {seller.name}"
-        b64 = generate_barcode_fnsku(fnsku, sku, title, note)
-        listing.label = b64
+        b64_str = generate_barcode_fnsku(fnsku, sku, title, note)
+
+        # Duplicate code according to the quantity
+        label_bytes = utilpdf.str_to_pdf(b64_str)
+        w, h = utilpdf.extract_pdf_size(label_bytes)
+        label_list = [label_bytes] * quantity
+        merged_pdf_bytes = utilpdf.concat_pdfs(label_list)
+        pdf_with_page_numbers = utilpdf.add_page_numbers(
+            merged_pdf_bytes,
+            page_list=None,
+            position=(w / 2 + 50, h - 10),
+        )
+        b64_str = utilpdf.pdf_to_str(pdf_with_page_numbers)
+
+        listing.label = b64_str
         return listing.label
 
     async def get_printshop_listing_view(self, offset=0, limit=100, has_fnsku=True, is_unique_fnsku=False,
