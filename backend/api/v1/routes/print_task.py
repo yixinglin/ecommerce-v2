@@ -1,7 +1,8 @@
 from typing import List, Dict, Optional
-from fastapi import APIRouter, Form, File, UploadFile
-from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic
-from services.printshop.print_task import PrintTaskService
+from fastapi import APIRouter, Form
+from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic, PrintFile_Pydantic
+from services.printshop.print_task import PrintTaskService, PrintFileAddRequest, PrintFileService, \
+    PrintFileUpdateRequest
 
 print_task_router = APIRouter()
 
@@ -64,3 +65,70 @@ async def query_print_logs(task_id: int):
     services = PrintTaskService()
     logs = await services.query_print_logs(task_id)
     return logs
+
+
+# --------------- Print File ---------------------
+print_file_router = APIRouter()
+
+@print_file_router.post(
+    "/file/create",
+    response_model=PrintFile_Pydantic,
+)
+async def add_print_file(file: PrintFileAddRequest):
+    service = PrintFileService()
+    new_file = await service.add_print_file(file)
+    return new_file
+
+@print_file_router.post(
+    "/files/create/bulk",
+    response_model=Dict,
+)
+async def add_print_files(body: List[PrintFileAddRequest]):
+    service = PrintFileService()
+    results = await service.add_print_files(body)
+    return results
+
+@print_file_router.put(
+    "/file/update/{file_id}",
+    response_model=PrintFile_Pydantic,
+)
+async def update_print_file(file_id: int, file: PrintFileUpdateRequest):
+    service = PrintFileService()
+    updated_file = await service.update_print_file(file_id, file)
+    return updated_file
+
+@print_file_router.get(
+    "/file/query/{file_id}",
+    response_model=PrintFile_Pydantic
+)
+async def get_print_file(file_id: int):
+    service = PrintFileService()
+    file = await service.get_print_file_by_id(file_id)
+    return file
+
+@print_file_router.get(
+    "/file/query",
+    response_model=Dict,
+)
+async def get_print_files(
+    offset: int = 0,
+    limit: int = 10,
+    keyword: Optional[str] = None,
+):
+    service = PrintFileService()
+    results = await service.get_print_files(
+        offset=offset,
+        limit=limit,
+        keyword=keyword
+    )
+    return results
+
+
+@print_file_router.delete(
+    "/file/delete/{file_id}",
+    response_model=Dict,
+)
+async def delete_print_file(file_id: int):
+    service = PrintFileService()
+    results = await service.delete_print_file(file_id)
+    return results

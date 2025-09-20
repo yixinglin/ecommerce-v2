@@ -3,6 +3,7 @@ import io
 from typing import List, Union, Tuple, Optional
 
 import PyPDF2
+from PyPDF2.errors import PdfReadError
 from PyPDF2.generic import RectangleObject
 from reportlab.lib.units import inch, mm
 from reportlab.pdfgen import canvas
@@ -122,6 +123,22 @@ def count_pages(file: Union[bytes, str]) -> int:
     else:
         raise TypeError("File must be a string or bytes object.")
     return len(pdf_reader.pages)
+
+def is_pdf(file: Union[bytes, str]):
+    if isinstance(file, str):
+        try:
+            PyPDF2.PdfReader(file)
+            return True
+        except PdfReadError:
+            return False
+    elif isinstance(file, bytes):
+        try:
+            PyPDF2.PdfReader(io.BytesIO(file))
+            return True
+        except PdfReadError:
+            return False
+    else:
+        raise TypeError("File must be a string or bytes object.")
 
 def extract_pdf_pages(file: Union[bytes, str], page_list: List[int],
                       extra_info: str = None):

@@ -7,7 +7,7 @@ from .routes.carriers import gls
 from .routes.pickpack import pp_amazon, pp_common
 from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact, odoo_dashboard
 from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans, order_router as lx_order_router
-from .routes.print_task import print_task_router
+from .routes.print_task import print_task_router, print_file_router
 from .routes.barcode import barcode
 from .routes.common import common_router
 from .routes.llm import parser_router
@@ -53,6 +53,9 @@ geo.include_router(crm_geo)
 ptask = APIRouter(prefix="/print_task", tags=["Print Task"])
 ptask.include_router(print_task_router)
 
+pfile = APIRouter(prefix="/print_file", tags=["Print File"])
+pfile.include_router(print_file_router)
+
 amazon_print = APIRouter(prefix="/amazon/print", tags=["Transparency Services"])
 amazon_print.include_router(transparency_router)
 
@@ -75,6 +78,7 @@ v1.include_router(woo)
 v1.include_router(bcs)
 v1.include_router(geo)
 v1.include_router(ptask)
+v1.include_router(pfile)
 v1.include_router(amazon_print)
 v1.include_router(amz)
 v1.include_router(kfld)

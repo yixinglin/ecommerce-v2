@@ -2,6 +2,8 @@ from enum import  IntEnum
 from tortoise import models, fields
 from tortoise.contrib.pydantic import pydantic_model_creator
 
+from models.base import TortoiseBasicModel
+
 
 class PrintStatus(IntEnum):
     NOT_PRINTED = 0
@@ -44,38 +46,26 @@ class PrintLogModel(models.Model):
 # 用于响应返回的 Pydantic 模型（包含只读字段）
 PrintLog_Pydantic = pydantic_model_creator(PrintLogModel, name="PrintLog")
 
-"""
-api示例
 
-# 创建任务 —— 增（Create）
-@app.post("/print-tasks", response_model=PrintTask_Pydantic)
-async def create_print_task(task: PrintTaskIn_Pydantic):
-    task_obj = await PrintTaskModel.create(**task.dict())
-    return await PrintTask_Pydantic.from_tortoise_orm(task_obj)
+# -------------- Print File Model ---------------
+class PrintFileModel(TortoiseBasicModel):
+    id = fields.IntField(pk=True)
+    file_name = fields.CharField(max_length=200, description="Name of the file")
+    file_path = fields.CharField(max_length=350, description="Path of the file")
+    file_hash = fields.CharField(max_length=32, description="Hash of the file")
+    file_size = fields.IntField(description="Size of the file in bytes")
+    file_pages = fields.IntField(description="Number of pages in the file")
+    file_type = fields.CharField(max_length=20, description="Type of the file")
+    file_extension = fields.CharField(max_length=10, description="Extension of the file")
+    owner = fields.CharField(default="unknown", max_length=50, description="Owner of the file")
+    description = fields.TextField(default="", description="Description of the file")
+    archived = fields.BooleanField(default=False, description="Whether the file is archived or not")
+    print_count = fields.IntField(default=0, description="Number of times the file was printed")
+    last_printed_at = fields.DatetimeField(null=True, description="Date and time when the file was last printed")
+    last_printed_by = fields.CharField(max_length=50, default="", description="User who last printed the file")
 
-# 查询任务 —— 查（Retrieve）
-@app.get("/print-tasks/{task_id}", response_model=PrintTask_Pydantic)
-async def get_print_task(task_id: int):
-    try:
-        task_obj = await PrintTaskModel.get(id=task_id)
-    except DoesNotExist:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return await PrintTask_Pydantic.from_tortoise_orm(task_obj)
+    class Meta:
+        table = "print_file"
 
-# 更新任务 —— 更新（Update）
-@app.put("/print-tasks/{task_id}", response_model=PrintTask_Pydantic)
-async def update_print_task(task_id: int, task: PrintTaskIn_Pydantic):
-    try:
-        task_obj = await PrintTaskModel.get(id=task_id)
-    except DoesNotExist:
-        raise HTTPException(status_code=404, detail="Task not found")
-    task_data = task.dict(exclude_unset=True)
-    for key, value in task_data.items():
-        setattr(task_obj, key, value)
-    await task_obj.save()
-    return await PrintTask_Pydantic.from_tortoise_orm(task_obj)
+PrintFile_Pydantic = pydantic_model_creator(PrintFileModel, name="PrintFile")
 
-# 查询某个打印任务的所有日志
-print_task = await PrintTaskModel.get(id=1)
-logs = await print_task.logs.all()
-"""
