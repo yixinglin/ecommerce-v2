@@ -6,6 +6,7 @@ from urllib.parse import quote
 import pandas as pd
 from fastapi import APIRouter
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException
 from starlette.responses import StreamingResponse, Response
 
 from core.config2 import settings
@@ -102,6 +103,9 @@ async def get_fnsku_label_by_listing_id(
         listing_id: str,
         quantity: Optional[int] = 1
 ):
+    if quantity > 1024:
+        raise HTTPException(status_code=400, detail="Quantity should be less than or equal to 1024")
+
     async with ListingService(key_index, proxy_index) as listing_service:
         async with GeneralService(key_index, proxy_index) as general_service:
             listing = await listing_service.find_listing_by_listing_id(listing_id)

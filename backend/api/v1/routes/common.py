@@ -39,7 +39,11 @@ async def file_upload(file: UploadFile):
         f.write(content)
     file_size = os.path.getsize(file_location)
     new_filename = f"/{month}/{new_filename}"
-    return {"filename": new_filename, "file_size": file_size}
+    return {
+        "filename": new_filename,
+        "file_size": file_size,
+        "original_name": original_filename
+    }
 
 @common_router.post("/files-upload", response_model=List[dict])
 async def files_upload(files: List[UploadFile]):
@@ -69,7 +73,11 @@ async def files_upload(files: List[UploadFile]):
             f.write(content)
         file_size = os.path.getsize(file_location)
         new_filename = f"/{month}/{new_filename}"
-        result.append({"filename": new_filename, "file_size": file_size})
+        result.append({
+            "filename": new_filename,
+            "file_size": file_size,
+            "original_name": original_filename
+        })
     return result
 
 

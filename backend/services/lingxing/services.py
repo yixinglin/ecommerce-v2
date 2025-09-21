@@ -517,16 +517,31 @@ class GeneralService:
         label_bytes = utilpdf.str_to_pdf(b64_str)
         w, h = utilpdf.extract_pdf_size(label_bytes)
         label_list = [label_bytes] * quantity
-        merged_pdf_bytes = utilpdf.concat_pdfs(label_list)
-        pdf_with_page_numbers = utilpdf.add_page_numbers(
+        merged_pdf_bytes = await self.__concat_pdf(label_list)
+        pdf_with_page_numbers = await self.__add_page_numbers(
             merged_pdf_bytes,
             page_list=None,
-            position=(w / 2 + 50, h - 10),
+            position=(w / 2 + 50, 10),
         )
+        pdf_with_page_numbers = utilpdf.compress_vector_pdf_fiz(pdf_with_page_numbers)
         b64_str = utilpdf.pdf_to_str(pdf_with_page_numbers)
 
         listing.label = b64_str
         return listing.label
+
+    async def __add_page_numbers(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.add_page_numbers_fitz,
+            *args,
+            **kwargs
+        )
+
+    async def __concat_pdf(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.concat_pdfs_fitz,
+            *args,
+            **kwargs
+        )
 
     async def get_printshop_listing_view(self, offset=0, limit=100, has_fnsku=True, is_unique_fnsku=False,
                                          include_off_sale = False, wids = None, seller_id = None,

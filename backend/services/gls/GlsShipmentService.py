@@ -173,7 +173,7 @@ class GlsShipmentService:
             pdfData = self.__decorate_shipment(shipment, pdfData)
             bulkPdfDataList.append(pdfData)
             logger.info(f"Appended shipment [{shipment.shipment_id()}] to PDF.")
-        mergedPdfData = utilpdf.concat_pdfs(bulkPdfDataList)
+        mergedPdfData = utilpdf.concat_pdfs_fitz(bulkPdfDataList)
         return mergedPdfData
 
     def __decorate_shipment(self, shipment: StandardShipment, pdfData: bytes) -> bytes:

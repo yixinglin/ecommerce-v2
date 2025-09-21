@@ -1,14 +1,25 @@
 import base64
 import io
+import os
 from typing import List, Union, Tuple, Optional
-
+import sys
 import PyPDF2
 from PyPDF2.errors import PdfReadError
 from PyPDF2.generic import RectangleObject
 from reportlab.lib.units import inch, mm
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+import fitz  # PyMuPDF
 
 
+# sudo apt-get install fonts-wqy-zenhei
+if sys.platform == 'linux':
+    pdfmetrics.registerFont(TTFont('noto', '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc'))
+    FONT = 'noto'
+elif sys.platform == 'win32':
+    pdfmetrics.registerFont(TTFont('simsun', 'C:/Windows/Fonts/SimSun.ttc'))
+    FONT ='simsun'
 
 PARCEL_LABEL = (4.126 * inch, 5.835 * inch)
 GLS_TEXT_POS = (8 * mm, 65 * mm)
@@ -46,13 +57,14 @@ def create_watermark_text(watermark_text: str,
     :param position:  The position of the watermark text on the page.
     :return:  The watermark text as a PDF file as bytes.
     """
+    font = FONT
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=page_size, bottomup=0)
-    can.setFont("Helvetica", font_size)
+    can.setFont(font, font_size )
     can.setFillColorRGB(*font_color)
     x, y = position
     textObj = can.beginText(x, y)
-    textObj.setFont("Helvetica", font_size)
+    textObj.setFont(font, font_size)
     for line in watermark_text.split('\n'):
         textObj.textLine(line.strip())
     can.drawText(textObj)
@@ -86,6 +98,16 @@ def concat_pdfs(pdf_bytes_list: List[bytes]) -> bytes:
     concat_pdf_bytes = io.BytesIO()
     pdf_writer.write(concat_pdf_bytes)
     return concat_pdf_bytes.getvalue()
+
+def concat_pdfs_fitz(pdf_bytes_list: List[bytes]) -> bytes:
+    with fitz.open() as merged_doc:  # 自动 close
+        for pdf_bytes in pdf_bytes_list:
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as src_doc:  # 自动 close
+                merged_doc.insert_pdf(src_doc)
+
+        output = io.BytesIO()
+        output.write(merged_doc.write())
+        return output.getvalue()
 
 
 def add_watermark(pdf_bytes: bytes,
@@ -212,48 +234,138 @@ def crop_pdf_area(
     return output_buffer.getvalue()
 
 
-def add_page_numbers(input_bytes: bytes,
-                     font_size: int = 6,
-                     position: Tuple[float, float] = (5, 5),
-                     page_list: Optional[List[int]] = None
-                     ) -> bytes:
-    input_pdf = io.BytesIO(input_bytes)
-    reader = PyPDF2.PdfReader(input_pdf)
-    writer = PyPDF2.PdfWriter()
+# def add_page_numbers(input_bytes: bytes,
+#                      font_size: int = 6,
+#                      position: Tuple[float, float] = (5, 5),
+#                      page_list: Optional[List[int]] = None
+#                      ) -> bytes:
+#     input_pdf = io.BytesIO(input_bytes)
+#     reader = PyPDF2.PdfReader(input_pdf)
+#     writer = PyPDF2.PdfWriter()
+#     total_pages = len(reader.pages)
+#     font = FONT
+#     if isinstance(page_list, (list, tuple)) and len(page_list) != total_pages:
+#         raise ValueError('The length of page_list must be equal to the total number of pages in the PDF file.')
+#
+#     for i in range(total_pages):
+#         original_page = reader.pages[i]
+#         width = float(original_page.mediabox.width)
+#         height = float(original_page.mediabox.height)
+#
+#         # 创建与原页面相同尺寸的PDF页，写上页码
+#         packet = io.BytesIO()
+#         can = canvas.Canvas(packet, pagesize=(width, height))
+#
+#         if page_list:
+#             page_num_text = f"{page_list[i]}"
+#         else:
+#             page_num_text = f"{i + 1} / {total_pages}"
+#         textObj = can.beginText(*position)
+#         textObj.setFont(font, font_size)
+#         textObj.textLine(page_num_text)
+#         can.drawText(textObj)
+#         can.save()
+#         packet.seek(0)
+#
+#         overlay_pdf = PyPDF2.PdfReader(packet)
+#         overlay_page = overlay_pdf.pages[0]
+#
+#         original_page.merge_page(overlay_page)
+#         writer.add_page(original_page)
+#
+#     output_stream = io.BytesIO()
+#     writer.write(output_stream)
+#     return output_stream.getvalue()
+
+def add_page_numbers(
+    input_bytes: bytes,
+    font_size: int = 6,
+    position: Tuple[float, float] = (5, 5),
+    page_list: Optional[List[int]] = None
+) -> bytes:
+    # 读取原 PDF
+    reader = PyPDF2.PdfReader(io.BytesIO(input_bytes))
     total_pages = len(reader.pages)
+
     if isinstance(page_list, (list, tuple)) and len(page_list) != total_pages:
-        raise ValueError('The length of page_list must be equal to the total number of pages in the PDF file.')
+        raise ValueError("The length of page_list must be equal to the total number of pages in the PDF file.")
 
+    # === 一次性生成页码 PDF ===
+    packet = io.BytesIO()
+    can = canvas.Canvas(packet)
     for i in range(total_pages):
-        original_page = reader.pages[i]
-        width = float(original_page.mediabox.width)
-        height = float(original_page.mediabox.height)
+        width = float(reader.pages[i].mediabox.width)
+        height = float(reader.pages[i].mediabox.height)
 
-        # 创建与原页面相同尺寸的PDF页，写上页码
-        packet = io.BytesIO()
-        can = canvas.Canvas(packet, pagesize=(width, height))
-
-        if page_list:
-            page_num_text = f"{page_list[i]}"
-        else:
-            page_num_text = f"{i + 1} / {total_pages}"
+        can.setPageSize((width, height))
+        text = str(page_list[i]) if page_list else f"{i+1} / {total_pages}"
         textObj = can.beginText(*position)
-        textObj.setFont("Helvetica", font_size)
-        textObj.textLine(page_num_text)
+        textObj.setFont(FONT, font_size)
+        textObj.textLine(text)
         can.drawText(textObj)
-        can.save()
-        packet.seek(0)
+        can.showPage()
+    can.save()
+    packet.seek(0)
 
-        overlay_pdf = PyPDF2.PdfReader(packet)
-        overlay_page = overlay_pdf.pages[0]
+    overlay_pdf = PyPDF2.PdfReader(packet)
 
-        original_page.merge_page(overlay_page)
-        writer.add_page(original_page)
+    # === 合并 ===
+    writer = PyPDF2.PdfWriter()
+    for i in range(total_pages):
+        page = reader.pages[i]
+        page.merge_page(overlay_pdf.pages[i])
+        writer.add_page(page)
 
+    # 输出
     output_stream = io.BytesIO()
     writer.write(output_stream)
     return output_stream.getvalue()
 
+
+def add_page_numbers_fitz(
+    input_bytes: bytes,
+    font_size: int = 6,
+    position: Tuple[float, float] = (5, 5),
+    page_list: Optional[List[int]] = None,
+    fontname: str = "helv",
+) -> bytes:
+    with fitz.open(stream=input_bytes, filetype="pdf") as doc:
+        total_pages = len(doc)
+
+        if isinstance(page_list, (list, tuple)) and len(page_list) != total_pages:
+            raise ValueError("The length of page_list must equal total number of pages")
+
+        for i, page in enumerate(doc):
+            text = str(page_list[i]) if page_list else f"{i+1} / {total_pages}"
+            page.insert_text(
+                position,
+                text,
+                fontsize=font_size,
+                fontname=fontname,
+                fill=(0, 0, 0),
+            )
+
+        output_stream = io.BytesIO()
+        output_stream.write(doc.write())
+        return output_stream.getvalue()
+
+def compress_vector_pdf_fiz(input_bytes: bytes) -> bytes:
+    doc = fitz.open(stream=input_bytes, filetype="pdf")
+    output_bytes = doc.write(
+        deflate=True,   # 重新压缩内容流
+        clean=True,     # 清理未引用的对象
+        garbage=4,      # 最彻底的垃圾回收（1-4）
+        # linear=True     # 生成“线性化 PDF”，支持快速网页浏览
+    )
+    doc.close()
+    return output_bytes
+
+
+# ============ 压测逻辑 ============
+
+def memory_usage_mb():
+    process = psutil.Process(os.getpid())
+    return process.memory_info().rss / 1024 / 1024
 
 def demo1():
     with open(r'G:\hansagt\ecommerce\backend\.temp\T-Code透明码4.16-Drucken\TCodes_PID4890922130103254976_FBA-HMMD-25070_04260715494105_202504211801.pdf', 'rb') as f:
@@ -281,6 +393,8 @@ def demo1():
     with open("extracted.pdf", "wb") as f:
         f.write(extracted_pdf_bytes)
 
+import time
+
 def demo2():
     # FN Code
     with open(r'G:\hansagt\ecommerce\backend\.temp\01230.pdf', 'rb') as f:
@@ -289,21 +403,53 @@ def demo2():
     w, h = extract_pdf_size(pdf_bytes)
     print(w, h)
 
-    total_pages = 700
+    total_pages = 1700
     page_list = list(range(1, total_pages+1))
+    start_time = time.time()
     print(f"Total pages: {total_pages}")
     pdf_list = [pdf_bytes] * total_pages
-    merged_pdf_bytes = concat_pdfs(pdf_list)
+    merged_pdf_bytes = concat_pdfs_fitz(pdf_list)
+    cost_time = time.time() - start_time
+    print(f"Concatenate PDFs cost time: {cost_time:.2f} seconds")
+
     print(f"Merged PDF size: {len(merged_pdf_bytes)} bytes")
-    pdf_with_page_numbers = add_page_numbers(
+    start_time = time.time()
+    # pdf_with_page_numbers = add_page_numbers(
+    #     merged_pdf_bytes,
+    #     page_list=None,
+    #     position=(w / 2 + 50, h - 10),
+    # )
+    pdf_with_page_numbers = add_page_numbers_fitz(
         merged_pdf_bytes,
         page_list=None,
-        position=(w / 2 + 50, h - 10),
+        position=(w / 2 + 50, 10),
     )
+    cost_time = time.time() - start_time
+    print(f"Add page numbers cost time: {cost_time:.2f} seconds")
     print(f"PDF with page numbers size: {len(pdf_with_page_numbers)} bytes")
-    with open("merged.pdf", "wb") as f:
-        f.write(pdf_with_page_numbers)
 
+    pdf_compressed_bytes = compress_vector_pdf_fiz(pdf_with_page_numbers)
+    print(f"Compressed PDF size: {len(pdf_compressed_bytes)} bytes")
+    with open("merged.pdf", "wb") as f:
+        f.write(pdf_compressed_bytes)
+
+def tes3():
+    import psutil
+    # 准备一个测试 PDF
+    with open(r"G:\hansagt\ecommerce\backend\.temp\01230.pdf", "rb") as f:
+        pdf_bytes = f.read()
+
+    total_pages = 700
+    page_list = list(range(1, total_pages + 1))
+    print(f"Total pages: {total_pages}")
+    pdf_list = [pdf_bytes] * total_pages
+    for i in range(1, 501):  # 连续处理 500 次
+        merged_pdf_bytes = concat_pdfs_fitz(pdf_list)
+        _ = add_page_numbers_fitz(
+            merged_pdf_bytes,
+        )
+        if i % 2 == 0:
+            print(f"迭代 {i} 次后内存使用: {memory_usage_mb():.2f} MB")
 
 if __name__ == '__main__':
     demo2()

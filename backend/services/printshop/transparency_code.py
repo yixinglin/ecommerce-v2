@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import hashlib
 import os.path
@@ -577,17 +578,31 @@ class TransparencyCodeService:
                 content=f"{len(page_list)} Transparency codes were generated (pages: {page_ranges}) . ",
             )
 
-        final_pdf = utilpdf.concat_pdfs(pdf_list)
+        final_pdf = await self.__concat_pdf(pdf_list)
 
         if isinstance(crop_box, tuple) and len(crop_box) == 4:
             crop_box = utilpdf.mm(*crop_box)  # convert mm to pt
             final_pdf = utilpdf.crop_pdf_area(final_pdf, crop_box)
-            final_pdf = utilpdf.add_page_numbers(final_pdf,
+            final_pdf = await self.__add_page_numbers(final_pdf,
                                                  font_size=7,
-                                                 position=utilpdf.mm(15.0, 3.0),
+                                                 position=utilpdf.mm(15.0, 5.0),
                                                  page_list=final_page_list)
 
         return final_pdf
+
+    async def __add_page_numbers(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.add_page_numbers_fitz,
+            *args,
+            **kwargs
+        )
+
+    async def __concat_pdf(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.concat_pdfs_fitz,
+            *args,
+            **kwargs
+        )
 
     async def delete_transparency_code_by_hash(self, hash_):
         # Query

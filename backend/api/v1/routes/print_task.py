@@ -1,8 +1,14 @@
+import datetime
 from typing import List, Dict, Optional
-from fastapi import APIRouter, Form
+from urllib.parse import quote
+
+from fastapi import APIRouter, Form, HTTPException
+from starlette.responses import Response
+from utils import utilpdf
 from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic, PrintFile_Pydantic
-from services.printshop.print_task import PrintTaskService, PrintFileAddRequest, PrintFileService, \
-    PrintFileUpdateRequest
+from schemas.print_task import PrintFileAddRequest, PrintFileUpdateRequest
+from services.printshop.print_task import PrintTaskService, PrintFileService
+
 
 print_task_router = APIRouter()
 
@@ -80,13 +86,49 @@ async def add_print_file(file: PrintFileAddRequest):
     return new_file
 
 @print_file_router.post(
-    "/files/create/bulk",
+    "/file/create/bulk",
     response_model=Dict,
 )
 async def add_print_files(body: List[PrintFileAddRequest]):
     service = PrintFileService()
     results = await service.add_print_files(body)
     return results
+
+
+
+@print_file_router.get(
+    "/file/print/{file_id}",
+    response_class=Response,
+)
+async def request_printing(file_id: int, copies: int = 1):
+    service = PrintFileService()
+    if copies > 1024:
+        raise HTTPException(status_code=400, detail="Copies should be less than 1024")
+
+    results = await service.request_printing(file_id, copies)
+    file = results.get("file")
+    pdf = results.get("pdf")
+    if not file or not pdf:
+        raise HTTPException(status_code=400, detail="Failed to print file")
+    file_name = quote(file.file_name)
+    pdf_bytes = utilpdf.str_to_pdf(pdf)
+    inline = True
+    if inline:
+        disposition = f"inline; filename={file_name}.pdf"
+    else:
+        disposition = f"attachment; filename={file_name}.pdf"
+
+    headers = {
+        "Content-Disposition": disposition,
+        "Content-Length": str(len(pdf_bytes))
+    }
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers=headers
+    )
+
 
 @print_file_router.put(
     "/file/update/{file_id}",
@@ -114,12 +156,14 @@ async def get_print_files(
     offset: int = 0,
     limit: int = 10,
     keyword: Optional[str] = None,
+    include_archived: Optional[bool] = False,
 ):
     service = PrintFileService()
     results = await service.get_print_files(
         offset=offset,
         limit=limit,
-        keyword=keyword
+        keyword=keyword,
+        include_archived=include_archived
     )
     return results
 

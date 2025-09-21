@@ -1,10 +1,10 @@
+import asyncio
 import datetime
 import hashlib
 import os
-from typing import List, Optional
+from typing import List
 
 from fastapi import HTTPException
-from pydantic import BaseModel
 from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
@@ -13,7 +13,9 @@ from core.config2 import settings
 from core.log import logger
 from models import PrintTaskModel, PrintLogModel
 from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic, PrintFileModel, PrintFile_Pydantic
+from schemas.print_task import PrintFileAddRequest, PrintFileUpdateRequest
 from utils import utilpdf
+import utils.time as time_utils
 
 UPLOAD_DIR = settings.static.upload_dir
 
@@ -124,20 +126,6 @@ class PrintTaskService:
         logs_pydantic = await PrintLog_Pydantic.from_queryset(logs)
         return logs_pydantic
 
-
-
-class PrintFileAddRequest(BaseModel):
-    file_name: str
-    file_path: str
-
-class PrintFileUpdateRequest(BaseModel):
-    file_name: Optional[str] = None
-    file_path: Optional[str] = None
-    owner: Optional[str] = None
-    description: Optional[str] = None
-    archived: Optional[bool] = None
-    print_count: Optional[int] = None
-
 class PrintFileService:
 
     def __init__(self):
@@ -151,11 +139,17 @@ class PrintFileService:
         return print_file
 
 
-    async def get_print_files(self, offset, limit, keyword, **kwargs):
+    async def get_print_files(
+            self, offset, limit,
+            keyword,
+            include_archived=False,
+            **kwargs
+    ):
         query = Q()
         if keyword:
-            query &= Q(file_name__icontains=keyword)
-            query |= Q(description__icontains=keyword)
+            query &= Q(file_name__icontains=keyword) | Q(description__icontains=keyword)
+        if not include_archived:
+            query &= Q(archived=False)
         qs = PrintFileModel.filter(query, **kwargs)
         total = await qs.count()
         files = qs.order_by("-id").offset(offset).limit(limit)
@@ -165,6 +159,65 @@ class PrintFileService:
             "data": ans
         }
 
+    async def request_printing(self, id: int, copies: int):
+        pr_file = await self.get_print_file_by_id(id)
+        if not pr_file:
+            raise HTTPException(status_code=404, detail="Print file not found")
+        if pr_file.archived:
+            raise HTTPException(status_code=400, detail="Print file is archived")
+        # Copy file
+        file_path = UPLOAD_DIR + pr_file.file_path
+        with open(file_path, "rb") as fp:
+            pdf_bytes = fp.read()
+
+        if not utilpdf.is_pdf(pdf_bytes):
+            raise HTTPException(status_code=400, detail="Non-PDF file is not allowed")
+
+        total_pages = utilpdf.count_pages(pdf_bytes)
+        if copies > 1 and total_pages > 1:
+            raise HTTPException(
+                status_code=400,
+                detail="PDF files with more than one page cannot be copied"
+            )
+
+        try:
+            w, h = utilpdf.extract_pdf_size(pdf_bytes)
+            # Add file name
+            pattern = "%Y-%m-%d_%H:%M"
+            watermark_text = f"{pr_file.file_name} | {time_utils.now(pattern)} | <{pr_file.file_hash[:5]}>"
+            watermark_bytes = await self.__add_watermark_to_pdf(pdf_bytes=pdf_bytes,
+                                        watermark_text=watermark_text,
+                                        font_size=8,
+                                        page_size=(w, h),
+                                        position=(15, h - 12))
+
+            pdf_bytes_list = [watermark_bytes] * copies
+            merged_pdf_bytes = await self.__concat_pdf(pdf_bytes_list)
+            # Add page numbers
+            pdf_with_page_numbers = await self.__add_page_numbers(
+                merged_pdf_bytes,
+                page_list=None,
+                position=(w / 2 + 50, 10),
+            )
+            pdf_with_page_numbers = utilpdf.compress_vector_pdf_fiz(pdf_with_page_numbers)
+            b64_str = utilpdf.pdf_to_str(pdf_with_page_numbers)
+        except Exception as e:
+            logger.error(f"Failed to initial printing: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+        # Update print count
+        pr_file.print_count += 1
+        pr_file.last_printed_at = datetime.datetime.now()
+        pr_file.last_printed_by = "unknown"
+        await pr_file.save()
+        updated_file = await self.get_print_file_by_id(id)
+        updated_file = await PrintFile_Pydantic.from_tortoise_orm(updated_file)
+        results = {
+            "file": updated_file,
+            "pdf": b64_str
+        }
+        return results
+
     def __bytes_to_hash(self, content: bytes) -> str:
         md5_hash = hashlib.md5(content).hexdigest()
         return md5_hash
@@ -172,6 +225,7 @@ class PrintFileService:
     async def add_print_file(self, body: PrintFileAddRequest):
         logger.info(f"add_print_file: {body}")
         file_path = UPLOAD_DIR + body.file_path
+        related_path = body.file_path
         file_name = body.file_name
         file_type = "application/pdf"
         now_ = datetime.datetime.now()
@@ -200,7 +254,8 @@ class PrintFileService:
         if print_file:
             await PrintFileModel.filter(file_hash=md5_hash).update(
                 **body.dict(exclude_unset=True),
-                updated_at=now_
+                updated_at=now_,
+                archived=False,
             )
             logger.info(f"File already exists: id={print_file.id}")
             logger.info(f"File updated: body={body.dict(exclude_unset=True)}")
@@ -209,7 +264,7 @@ class PrintFileService:
         # Add file to database
         print_file = await PrintFileModel.create(
             file_name=file_name,
-            file_path=file_path,
+            file_path=related_path,
             file_hash=md5_hash,
             file_size=len(content),
             file_pages=total_pages,
@@ -267,6 +322,26 @@ class PrintFileService:
         }
 
 
+    async def __add_watermark_to_pdf(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.add_watermark,
+            *args,
+            **kwargs
+        )
+
+    async def __concat_pdf(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.concat_pdfs_fitz,
+            *args,
+            **kwargs
+        )
+
+    async def __add_page_numbers(self, *args, **kwargs):
+        return await asyncio.to_thread(
+            utilpdf.add_page_numbers_fitz,
+            *args,
+            **kwargs
+        )
 
 
 

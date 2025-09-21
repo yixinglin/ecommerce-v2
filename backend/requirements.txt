@@ -69,6 +69,7 @@ pydantic==2.8.2
 pydantic-settings==2.4.0
 pydantic_core==2.20.1
 pymongo==4.9
+PyMuPDF==1.26.4
 PyMySQL==1.1.1
 PyPDF2==3.0.1
 pypika-tortoise==0.1.6

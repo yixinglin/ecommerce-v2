@@ -2,6 +2,8 @@ import traceback
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.gzip import GZipMiddleware
+
 from core.config2 import settings
 from core.db import init_db_mysql_for_app
 from core.log import logger
@@ -32,6 +34,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],   # Allows all headers
 )
+
+# 压缩所有超过 1 MB 的响应
+app.add_middleware(GZipMiddleware, minimum_size=1024 * 1024)
 
 # http://127.0.0.1:8000/static/images/logo.png
 os.makedirs(settings.static.static_dir, exist_ok=True)
