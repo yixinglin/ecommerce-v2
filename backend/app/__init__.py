@@ -1,0 +1,1 @@
+from .app_versions.models import AppVersion

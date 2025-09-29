@@ -37,7 +37,7 @@ def init_db_mysql_for_app(app: FastAPI):
     register_tortoise(
         app,
         db_url=db_url,
-        modules={"models": ["models"]},
+        modules={"models": ["models", "app"]},
         generate_schemas=True,
         add_exception_handlers=True,
     )
@@ -45,7 +45,7 @@ def init_db_mysql_for_app(app: FastAPI):
 async def init_db_mysql_async():
     await Tortoise.init(
         db_url=f"mysql://{settings.mysql.user}:{settings.mysql.password}@{settings.mysql.host}:{settings.mysql.port}/{settings.mysql.database}",
-        modules={"models": ["models"]},
+        modules={"models": ["models", "app"]},
     )
 
 

@@ -10,14 +10,18 @@ from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
 from core.config2 import settings
+
 from core.log import logger
 from models import PrintTaskModel, PrintLogModel
 from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic, PrintFileModel, PrintFile_Pydantic
 from schemas.print_task import PrintFileAddRequest, PrintFileUpdateRequest
 from utils import utilpdf
 import utils.time as time_utils
+from core.worker import executor
 
 UPLOAD_DIR = settings.static.upload_dir
+
+
 
 class PrintTaskService:
     def __init__(self):
@@ -181,25 +185,18 @@ class PrintFileService:
             )
 
         try:
-            w, h = utilpdf.extract_pdf_size(pdf_bytes)
+            # w, h = utilpdf.extract_pdf_size(pdf_bytes)
             # Add file name
             pattern = "%Y-%m-%d_%H:%M"
             watermark_text = f"{pr_file.file_name} | {time_utils.now(pattern)} | <{pr_file.file_hash[:5]}>"
-            watermark_bytes = await self.__add_watermark_to_pdf(pdf_bytes=pdf_bytes,
-                                        watermark_text=watermark_text,
-                                        font_size=8,
-                                        page_size=(w, h),
-                                        position=(15, h - 12))
-
-            pdf_bytes_list = [watermark_bytes] * copies
-            merged_pdf_bytes = await self.__concat_pdf(pdf_bytes_list)
-            # Add page numbers
-            pdf_with_page_numbers = await self.__add_page_numbers(
-                merged_pdf_bytes,
-                page_list=None,
-                position=(w / 2 + 50, 10),
+            loop = asyncio.get_running_loop()
+            pdf_with_page_numbers = await loop.run_in_executor(
+                executor, self._render_pdf,
+                pdf_bytes,
+                watermark_text,
+                copies
             )
-            pdf_with_page_numbers = utilpdf.compress_vector_pdf_fiz(pdf_with_page_numbers)
+
             b64_str = utilpdf.pdf_to_str(pdf_with_page_numbers)
         except Exception as e:
             logger.error(f"Failed to initial printing: {e}")
@@ -321,32 +318,23 @@ class PrintFileService:
             "file_path": print_file.file_path,
         }
 
+    def _render_pdf(self, pdf_bytes, watermark_text, copies) -> bytes:
+        # Rendering pdf with watermark
+        w, h = utilpdf.extract_pdf_size(pdf_bytes)
+        watermark_bytes = utilpdf.add_watermark(pdf_bytes=pdf_bytes,
+                                                            watermark_text=watermark_text,
+                                                            font_size=8,
+                                                            page_size=(w, h),
+                                                            position=(15, h - 12))
 
-    async def __add_watermark_to_pdf(self, *args, **kwargs):
-        return await asyncio.to_thread(
-            utilpdf.add_watermark,
-            *args,
-            **kwargs
+        pdf_bytes_list = [watermark_bytes] * copies
+        merged_pdf_bytes = utilpdf.concat_pdfs_fitz(pdf_bytes_list)
+        # Add page numbers
+        pdf_with_page_numbers = utilpdf.add_page_numbers_fitz(
+            merged_pdf_bytes,
+            page_list=None,
+            font_size=10,
+            position=(w / 2 + 50, 10),
         )
-
-    async def __concat_pdf(self, *args, **kwargs):
-        return await asyncio.to_thread(
-            utilpdf.concat_pdfs_fitz,
-            *args,
-            **kwargs
-        )
-
-    async def __add_page_numbers(self, *args, **kwargs):
-        return await asyncio.to_thread(
-            utilpdf.add_page_numbers_fitz,
-            *args,
-            **kwargs
-        )
-
-
-
-
-
-
-
-
+        pdf_with_page_numbers = utilpdf.compress_vector_pdf_fiz(pdf_with_page_numbers)
+        return pdf_with_page_numbers

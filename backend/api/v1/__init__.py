@@ -14,6 +14,10 @@ from .routes.llm import parser_router
 from .routes.user import app as user
 from .routes.table_converter import tc_router
 from .routes.woocommerce import order_router as woo_order_router
+from .routes.app_version import app_version_router
+
+app_ver = APIRouter(prefix="/app_version", tags=["App Version Management"])
+app_ver.include_router(app_version_router)
 
 amz = APIRouter(prefix="/amazon")
 amz.include_router(amz_order)
@@ -71,17 +75,19 @@ tc.include_router(tc_router)
 v1 = APIRouter(prefix='/v1')
 v1.include_router(user)
 v1.include_router(common)
+v1.include_router(app_ver)
 v1.include_router(carriers)
 v1.include_router(odoo)
 v1.include_router(lx)
-v1.include_router(woo)
+v1.include_router(tc)
 v1.include_router(bcs)
-v1.include_router(geo)
 v1.include_router(ptask)
 v1.include_router(pfile)
 v1.include_router(amazon_print)
+v1.include_router(woo)
+v1.include_router(geo)
 v1.include_router(amz)
 v1.include_router(kfld)
 v1.include_router(pickpack)
 v1.include_router(llm)
-v1.include_router(tc)
+

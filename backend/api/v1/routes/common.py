@@ -10,7 +10,9 @@ from core.config2 import settings
 
 common_router = APIRouter()
 
-valid_extensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx", ".txt", ".csv", ".jpg", ".jpeg", ".png", ".gif"]
+valid_extensions = [".pdf", ".xls", ".xlsx", ".doc", ".docx",
+                    ".txt", ".csv", ".jpg", ".jpeg", ".png", ".gif",
+                    ".zip"]
 UPLOAD_DIR = settings.static.upload_dir
 
 @common_router.post("/file-upload", response_model=dict)
