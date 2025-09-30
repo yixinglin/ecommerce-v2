@@ -44,6 +44,10 @@ class AppVersionService:
             raise HTTPException(status_code=400, detail="Upload package not found")
 
         # ===== Verify version =====
+        # Check if version format is valid
+        if not self.is_version(update_data.version):
+            raise HTTPException(status_code=400, detail="Version format error. Must be like 1.0.0")
+
         latest = await AppVersion.filter(app_name=update_data.app_name, is_latest=True).first()
         if latest:
             try:
@@ -72,6 +76,10 @@ class AppVersionService:
             )
         return await AppVersion_Pydantic.from_tortoise_orm(new_version)
 
-
+    def is_version(self, s: str) -> bool:
+        parts = s.split(".")
+        if len(parts) != 3:
+            return False
+        return all(p.isdigit() for p in parts)
 
 
