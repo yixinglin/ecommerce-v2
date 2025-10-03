@@ -3,6 +3,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.gzip import GZipMiddleware
+
+from app.order_fulfillment import init_register_logistics, init_register_channels
 from core.config2 import settings
 from core.db import init_db_mysql_for_app
 from core.log import logger
@@ -58,6 +60,9 @@ app.mount("/pic", StaticFiles(directory=f"{ASSETS}/pic"), name="pic")
 
 # init_db_sqlite(app)
 init_db_mysql_for_app(app)
+
+init_register_logistics()
+init_register_channels()
 
 from schedule import hourly_scheduler, daily_scheduler, async_hourly_scheduler
 

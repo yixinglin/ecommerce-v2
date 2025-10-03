@@ -160,6 +160,11 @@ class WC_Product_V3(WCAPI_V3):
         pl = payload.model_dump(exclude_unset=True)
         response = self.put(f"products/{id}", pl)
         return response
+class TrackInfoUpdate(BaseModel):
+    order_id: int
+    tracking_number: Optional[str] = None
+    tracking_url: Optional[str] = None
+    carrier: Optional[str] = None
 
 class OrderClient(WooClient):
 
@@ -182,6 +187,30 @@ class OrderClient(WooClient):
         response = self.get(f"orders/{order_id}")
         if response.status_code != 200:
             raise HTTPException(f"Failed to get order: {response.text}")
+        return response.json()
+
+    def update_track_info(self, info: TrackInfoUpdate):
+        """Update tracking information for an order and change status to complete"""
+        tracking_payload = {
+            "status": "completed",
+            "meta_data": [
+                {
+                    "key": "tracking_number",
+                    "value": info.tracking_number
+                },
+                {
+                    "key": "tracking_url",
+                    "value": info.tracking_url
+                },
+                {
+                    "key": "carrier",
+                    "value": info.carrier
+                }
+            ]
+        }
+        response = self.put(f"orders/{info.order_id}", tracking_payload)
+        if response.status_code != 200:
+            raise HTTPException(f"Failed to update tracking info: {response.text}")
         return response.json()
 
 

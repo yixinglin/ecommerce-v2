@@ -42,6 +42,3 @@ class ExternalService(str, Enum):
     Kaufland = "kaufland",
     Gls = "gls",
     Ebay = "ebay"
-
-
-
