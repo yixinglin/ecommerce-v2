@@ -6,10 +6,11 @@ from fastapi import HTTPException
 from tortoise.exceptions import IntegrityError, DoesNotExist
 from tortoise.transactions import in_transaction
 
-from models import TemplateModel
-from models.table_converter import Template_Pydantic, TemplateFieldModel, MappingModel, MappingPairModel, DataType, \
-    TemplateChannel, TemplateType
-from schemas.table_converter import TemplateAddRequest, TemplateFieldAddRequest, MappingAddRequest, \
+
+from app import Template_Pydantic, TemplateFieldModel, MappingModel, MappingPairModel, \
+    DataType, \
+    TemplateChannel, TemplateType, TemplateModel
+from app.printshop.schames.table_converter import TemplateAddRequest, TemplateFieldAddRequest, MappingAddRequest, \
     TemplateUpdateRequest, TemplateFieldUpdateRequest
 from utils.FormulaUtils import apply_formula_to_column, apply_formula_to_row
 from utils.stringutils import split_seller_sku

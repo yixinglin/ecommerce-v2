@@ -7,8 +7,8 @@ from fastapi import APIRouter, Form
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
-from models.amazon_print import TransparencyCode_Pydantic, TransparencyCodeStatus, TransparencyCodePrintLog_Pydantic
-from services.printshop.transparency_code import TransparencyCodeService, BatchInformation
+from app.printshop.models.amazon_print import TransparencyCode_Pydantic, TransparencyCodeStatus, TransparencyCodePrintLog_Pydantic
+from app.printshop.services.transparency_code import TransparencyCodeService, BatchInformation
 
 transparency_router = APIRouter()
 

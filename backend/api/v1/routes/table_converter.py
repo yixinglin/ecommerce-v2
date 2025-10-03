@@ -6,11 +6,11 @@ from fastapi import APIRouter, Body, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
-from models.table_converter import Template_Pydantic, TemplateField_Pydantic, \
+from app.printshop.models.table_converter import Template_Pydantic, TemplateField_Pydantic, \
     Mapping_Pydantic, MappingPair_Pydantic
-from schemas.table_converter import TemplateAddRequest, MappingAddRequest, TemplateFieldAddRequest, \
+from app.printshop.schames.table_converter import TemplateAddRequest, MappingAddRequest, TemplateFieldAddRequest, \
     TemplateUpdateRequest, TemplateFieldUpdateRequest
-from services.printshop.table_converter import TableConvertService
+from app.printshop.services.table_converter import TableConvertService
 
 tc_router = APIRouter()
 

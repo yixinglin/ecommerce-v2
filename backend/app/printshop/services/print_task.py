@@ -9,12 +9,15 @@ from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
+from app import (
+    PrintTaskModel, PrintLogModel, PrintLog_Pydantic,
+    PrintTask_Pydantic, PrintFileModel,PrintFile_Pydantic
+)
+from app.printshop.models.print_task import PrintStatus
 from core.config2 import settings
 
 from core.log import logger
-from models import PrintTaskModel, PrintLogModel
-from models.print_task import PrintTask_Pydantic, PrintStatus, PrintLog_Pydantic, PrintFileModel, PrintFile_Pydantic
-from schemas.print_task import PrintFileAddRequest, PrintFileUpdateRequest
+from app.printshop.schames.print_task import PrintFileAddRequest, PrintFileUpdateRequest
 from utils import utilpdf
 import utils.time as time_utils
 from core.worker import executor

@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from models.table_converter import DataType
+from app.printshop.models.table_converter import DataType
 
 
 class TemplateAddRequest(BaseModel):

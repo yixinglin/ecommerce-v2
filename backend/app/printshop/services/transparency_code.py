@@ -8,44 +8,24 @@ from fastapi import HTTPException
 from tortoise.exceptions import DoesNotExist
 from tortoise.transactions import in_transaction
 
+from app.printshop.schames.amazon_print import BatchInformation, OverallStatistics, SkuStatistics
 from core.config2 import settings
 from core.log import logger
 from crud.lingxing import AsyncLingxingListingDB, AsyncLingxingBasicDataDB, AsyncLingxingInventoryDB
-from models import TransparencyCodeModel, TransparencyCodePrintLogModel
-from models.amazon_print import (TransparencyCodePrintLog_Pydantic,
-                                 TransparencyCode_Pydantic,
-                                 TransparencyCodeStatus, ActionType)
+
+from app import (
+   TransparencyCodePrintLog_Pydantic,
+   TransparencyCode_Pydantic,
+   TransparencyCodeModel,
+   TransparencyCodePrintLogModel
+)
+from app.printshop.models.amazon_print import TransparencyCodeStatus, ActionType
+
 import utils.utilpdf as utilpdf
-from schemas.common import UTCModel
 from utils.stringutils import format_ranges
 
 UPLOAD_DIR = settings.static.upload_dir
 
-class BatchInformation(UTCModel):
-    batch_id: str
-    listing_id: str
-    seller_sku: str
-    created_at: datetime.datetime
-    hash: str
-    filename: str
-    total: int
-    used: int
-    locked: int
-    deleted: int
-
-class OverallStatistics(UTCModel):
-    total: int
-    unused: int
-    used: int
-    locked: int
-    deleted: int
-
-class SkuStatistics(UTCModel):
-    seller_sku: str
-    listing_id: str
-    unused: int
-    history_used: int
-    history_total: int
 
 
 class TransparencyCodeService:
@@ -168,13 +148,11 @@ class TransparencyCodeService:
             "total": total_pages,
         }
 
-
     async def smart_save_transparency_batch(self, filenames: str, created_by: str) -> Dict:
         """
         Save a transparency code batch to the database
         :param filenames: file names of the transparency code batch (Format: TCodes_PID\d{19}_(.+?)_\d{14}_\d{12}\.pdf)
         :param created_by: user who created the transparency code batch
-        :return:
         """
         # 正则表达式检验, 提取seller_sku
         pattern = r"TCodes_PID\d{19}_(.+?)_\d{14}_\d{12}\.pdf"
