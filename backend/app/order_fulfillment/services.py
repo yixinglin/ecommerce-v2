@@ -170,8 +170,6 @@ class BatchService:
         下载一个批次的打包文件。
         """
         batch = await OrderBatchModel.get_or_none(batch_id=batch_id)
-        if not batch:
-            raise HTTPException(status_code=404, detail="Batch not found")
         logger.info(f"Downloading batch {batch_id} as ZIP file")
         zip_bytes = await ZipBuilder.build_batch_zip(batch_id)
         return zip_bytes
@@ -193,7 +191,7 @@ class PDFGenerator:
                 order_id=order.id, channel=order.channel
             ).order_by("-created_at").first()
             if not label or not label.label_file_base64:
-                logger.error(f"Missing label for order {order.id}")
+                logger.error(f"Missing label for order {order.order_number}")
                 continue  # 记录缺失日志或异常
 
             try:
@@ -201,7 +199,7 @@ class PDFGenerator:
                 if pdf_bytes:
                     bytes_list.append(pdf_bytes)
             except Exception as e:
-                logger.error(f"Failed to process label for order {order.id}: {e}")
+                logger.error(f"Failed to process label for order {order.order_number}: {e}")
                 continue
 
         if not bytes_list:
@@ -461,12 +459,10 @@ class LabelService:
         pass
 
     async def generate_label(self, order_id, external_logistic_id) -> bool:
-        order = await OrderModel.get_or_none(id=order_id)
-        if not order:
-            raise ValueError("Order not found")
+        order = await OrderModel.get(id=order_id)
 
         carrier_code = order.carrier_code
-        logistic_cred = await IntegrationCredentialModel.get_or_none(
+        logistic_cred = await IntegrationCredentialModel.get(
             type=IntegrationType.LOGISTICS,
             provider_code=carrier_code,
             external_id=external_logistic_id,
@@ -481,20 +477,26 @@ class LabelService:
             await LoggingService.log_transition(
                 order,
                 OrderStatus.LABEL_CREATED,
-                f"Label created for order {order.id}"
+                f"Label created for order {order.order_number}"
             )
             order.tracking_number = label.tracking_number
             order.tracking_url = label.tracking_url
             order.status = OrderStatus.LABEL_CREATED
             await order.save()
-            logger.info(f"Label created for order {order.id}")
+            logger.info(f"Label created for order {order.order_number}")
             return True
         except Exception as e:
-            logger.error(f"Failed to create label for order {order.id}: {e}")
+            logger.error(f"Failed to create label for order {order.order_number}: {e}")
             await LoggingService.log_transition(
                 order,
                 OrderStatus.LABEL_FAILED,
-                f"Failed to create label for order {order.id}: {e}"
+                f"Failed to create label for order {order.order_number}: {e}"
+            )
+            await LoggingService.log_error(
+                order,
+                OperationType.LABEL_GEN,
+                f"Failed to create label for order {order.order_number}: {e}",
+                order.label_retry_count
             )
             order.status = OrderStatus.LABEL_FAILED
             await order.save()

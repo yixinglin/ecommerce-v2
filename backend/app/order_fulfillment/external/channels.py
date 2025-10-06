@@ -216,6 +216,7 @@ class WooCommerceChannel(IOrderChannel):
             "buyer_address": buyer_address,
             "country_code": billing_address.get("country_code", ""),
             "carrier_code": default_carrier,
+            "customer_note": data.get("customer_note", ""),
             "raw_data": data
         }
         order_items = []

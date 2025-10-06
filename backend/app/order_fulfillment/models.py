@@ -23,6 +23,8 @@ class OrderModel(TortoiseBasicModel):
     shipping_address_id = fields.BigIntField(null=True, description="Reference to shipping address ID")
     billing_address_id = fields.BigIntField(description="Reference to billing address ID")
 
+    customer_note = fields.CharField(max_length=255, null=True, description="Customer note (e.g., special request, etc.)")
+
     # 冗余字段
     buyer_name = fields.CharField(max_length=64, null=True, description="Redundant field for buyer's name")
     buyer_address = fields.CharField(max_length=255, null=True, description="Redundant field for buyer address")

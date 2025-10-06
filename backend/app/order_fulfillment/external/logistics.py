@@ -1,7 +1,9 @@
+import re
 from typing import Optional
 import utils.auth as auth
 from .clients import GlsEuApiClient
 from ..common.enums import CarrierCode, AddressType
+from ..common.exceptions import ShipmentRouteError
 from ..interfaces import (
     ILogisticsProvider, Order
 )
@@ -11,7 +13,7 @@ from ..common.builders import build_gls_delivery_from_address, build_gls_single_
 from utils.stringutils import jsonpath
 
 
-class DHLProvider(ILogisticsProvider):
+class DhlEuProvider(ILogisticsProvider):
     def __init__(self):
         self.credential: Optional[IntegrationCredentialModel] = None
 
@@ -30,6 +32,30 @@ class DHLProvider(ILogisticsProvider):
 
         raise NotImplementedError()
 
+    @staticmethod
+    def is_ship_to_station(address_content: str):
+
+        if not address_content or not isinstance(address_content, str):
+            return False
+
+        text = address_content.lower()
+
+        # DHL 关键词模式（
+        kw_patterns = [
+            r"\bdhl(?:[\s-]\w+)?",  # 匹配 "DHL" 或 "DHL-Packstation" / "DHL Postfiliale"
+            r"\bpack[\s-]?station\b",  # "Packstation" / "Pack Station" / "Pack-Station"
+            r"\bpostfiliale\b"  # "Postfiliale"
+        ]
+        # 检查是否含有 DHL 相关关键词
+        if not any(re.search(p, text, re.IGNORECASE) for p in kw_patterns):
+            return False
+
+        # 1. 检查是否包含九位数字
+        if not re.search(r"\d{9}", address_content):
+            return False
+
+        # 两项都满足则返回 True
+        return True
 
 class GlsEuProvider(ILogisticsProvider):
 
@@ -69,6 +95,16 @@ class GlsEuProvider(ILogisticsProvider):
             id=order.shipping_address_id,
             address_type=AddressType.SHIPPING
         )
+
+        address_content = [
+            shipping_address.name, shipping_address.company,
+            shipping_address.address1, shipping_address.address2,
+            order.customer_note
+        ]
+        text = ";".join(filter(None, address_content))
+        if not self._check_address_validity(text):
+            raise ShipmentRouteError("This address is not valid for GLS shipment. Please check the order again.")
+
         delivery_dict = build_gls_delivery_from_address(
             shipping_address
         )
@@ -87,7 +123,11 @@ class GlsEuProvider(ILogisticsProvider):
         data = await client.create_shipment(body)
 
         parcel_numbers = jsonpath(data, '$.parcels[*].parcelNumber')
+        if isinstance(parcel_numbers, str):
+            parcel_numbers = [parcel_numbers]
         track_ids = jsonpath(data, '$.parcels[*].trackId')
+        if isinstance(track_ids, str):
+            track_ids = [track_ids]
         # locations = jsonpath(data, '$.parcels[*].location')
 
         location = data['location']
@@ -104,3 +144,11 @@ class GlsEuProvider(ILogisticsProvider):
             external_id=self.credential.external_id
         )
         return await ShippingLabelModel_Pydantic.from_tortoise_orm(lab)
+
+    def _check_address_validity(self, address_content: str) -> bool:
+        valid = not DhlEuProvider.is_ship_to_station(address_content)
+        return valid
+
+    def _add_order_item_to_label(self):
+        # TODO: 增加订单项信息到 label 中
+        pass

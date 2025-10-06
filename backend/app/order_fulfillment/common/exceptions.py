@@ -7,3 +7,6 @@ class TrackingInfoSyncError(OrderFulfillmentException):
 
 class ShippingLabelCreationError(OrderFulfillmentException):
     pass
+
+class ShipmentRouteError(OrderFulfillmentException):
+    pass

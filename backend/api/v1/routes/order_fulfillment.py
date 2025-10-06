@@ -83,6 +83,8 @@ async def generate_labels(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
     except Exception as e:
         logger.error(f"Error generating label for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -122,7 +124,7 @@ async def sync_tracking_info(order_id: int) -> dict:
     try:
         success = await OrderService.sync_tracking_info(order_id)
     except DoesNotExist as e:
-        raise HTTPException(status_code=404, detail=f"{order_id} not found")
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
     except TrackingInfoSyncError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except ValueError as e:
@@ -202,6 +204,8 @@ async def download_batch(batch_id: str) -> StreamingResponse:
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{batch_id} not found: {str(e)}")
     except Exception as e:
         logger.error(f"Error downloading batch {batch_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -214,7 +218,7 @@ async def complete_batch(batch_id: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except DoesNotExist as e:
-        raise HTTPException(status_code=404, detail=f"{batch_id} not found")
+        raise HTTPException(status_code=404, detail=f"{batch_id} not found: {str(e)}")
     except Exception as e:
         logger.error(f"Error completing batch {batch_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -241,7 +245,7 @@ async def update_credential(credential_id: int, update: IntegrationCredentialUpd
             update_request=update
         )
     except DoesNotExist as e:
-        raise HTTPException(status_code=404, detail=f"{credential_id} not found")
+        raise HTTPException(status_code=404, detail=f"{credential_id} not found: {str(e)}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
