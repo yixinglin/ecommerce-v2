@@ -1,10 +1,10 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import {type ReactNode, useEffect, useState} from 'react'
 import Cookies from 'js-cookie'
-import { getUserInfo } from '@/api/user'
-import { AuthContext, type User } from '@/context/AuthContext'
+import {getUserInfo} from '@/api/user'
+import {AuthContext, type User} from '@/context/AuthContext'
 
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
+export const AuthProvider = ({children}: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null)
 
     useEffect(() => {
@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, setUser }}>
+        <AuthContext.Provider value={{user, setUser}}>
             {children}
         </AuthContext.Provider>
     )

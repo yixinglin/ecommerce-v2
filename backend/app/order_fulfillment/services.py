@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from starlette.exceptions import HTTPException
+from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
@@ -14,12 +15,12 @@ import utils.utilpdf as pdf_utils
 from app import OrderBatchModel
 from core.log import logger
 from core.response import ListResponse
-from .common.enums import OrderStatus, OrderBatchStatus, IntegrationType, OperationType
+from .common.enums import OrderStatus, OrderBatchStatus, IntegrationType, OperationType, AddressType
 from .common.exceptions import TrackingInfoSyncError
 from .models import OrderModel, ShippingLabelModel, AddressModel, OrderItemModel, OrderStatusLogModel, \
     IntegrationCredentialModel, OrderModel_Pydantic, OrderErrorLogModel, OrderBatchModel_Pydantic, \
     IntegrationCredentialModel_Pydantic, OrderErrorLogModel_Pydantic, OrderStatusLogModel_Pydantic, \
-    OrderItemModel_Pydantic
+    OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic
 from .registry import Registry
 from .schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, IntegrationCredentialResponse, \
     IntegrationCredentialUpdateRequest, OrderItemResponse
@@ -453,6 +454,23 @@ class OrderService:
             offset=0
         )
 
+    @staticmethod
+    async def get_address(order_id: int, address_type: AddressType) -> AddressModel_Pydantic:
+        order = await OrderModel.get(id=order_id)
+        if address_type == AddressType.SHIPPING:
+            address_id = order.shipping_address_id
+        elif address_type == AddressType.BILLING:
+            address_id = order.billing_address_id
+        else:
+            raise ValueError(f"Invalid address type: {address_type}")
+
+        if not address_id:
+            raise DoesNotExist(f"Address not found for order {order.order_number}")
+
+        address = await AddressModel.get(id=address_id)
+        return await AddressModel_Pydantic.from_tortoise_orm(address)
+
+
 class LabelService:
 
     def __init__(self):
@@ -501,6 +519,24 @@ class LabelService:
             order.status = OrderStatus.LABEL_FAILED
             await order.save()
             return False
+
+    @staticmethod
+    async def get_labels(order_id) -> ListResponse[ShippingLabelModel_Pydantic]:
+        order = await OrderModel.get(id=order_id)
+        labels = await ShippingLabelModel.filter(
+            order_id=order_id,
+            carrier_code=order.carrier_code
+        ).order_by("-created_at")
+        results = [
+            await ShippingLabelModel_Pydantic.from_tortoise_orm(label)
+            for label in labels
+        ]
+        return ListResponse(
+            total=len(results),
+            data=results,
+            limit=len(results),
+            offset=0
+        )
 
 
 class CredentialService:

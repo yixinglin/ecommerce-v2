@@ -1,0 +1,30 @@
+.wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.card {
+    width: 100%;
+}
+
+.content {
+    display: flex;
+    gap: 12px;
+}
+
+.image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+.info {
+    flex: 1;
+}
+
+.name {
+    font-weight: bold;
+    margin-bottom: 6px;
+}

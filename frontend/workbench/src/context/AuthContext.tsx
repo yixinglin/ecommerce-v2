@@ -1,7 +1,6 @@
-
 // 用户上下文管理
 
-import { createContext } from "react"
+import {createContext} from "react"
 
 export interface User {
     id: number
@@ -19,7 +18,8 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
     user: null,
-    setUser: () => {},
+    setUser: () => {
+    },
 })
 
 

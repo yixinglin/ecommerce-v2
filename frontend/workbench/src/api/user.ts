@@ -1,4 +1,4 @@
-import { postForm, get } from '@/utils/http'
+import {postForm, get} from '@/utils/http'
 
 interface LoginParams {
     username: string
@@ -10,6 +10,6 @@ export const login = (data: LoginParams) => {
 }
 
 export const getUserInfo = () =>
-     get('/api/v1/userinfo')
+    get('/api/v1/userinfo')
 
 

@@ -29,10 +29,12 @@ class OrderModel(TortoiseBasicModel):
     buyer_name = fields.CharField(max_length=64, null=True, description="Redundant field for buyer's name")
     buyer_address = fields.CharField(max_length=255, null=True, description="Redundant field for buyer address")
     country_code = fields.CharField(max_length=4, null=True, description="Redundant field for ISO country code (e.g., US, CN)")
-
+    # 冗余字段
     tracking_number = fields.CharField(max_length=64, null=True, description="Generated logistics tracking number")
     tracking_url = fields.CharField(max_length=255, null=True, description="Logistics tracking URL")
     carrier_code = fields.CharEnumField(CarrierCode, max_length=32, null=True, description="Logistics provider code (e.g., SF, UPS)")
+    # 冗余字段
+    thumbnails = fields.TextField(null=True, description="Thumbnail URLs of the order")
 
     label_retry_count = fields.IntField(default=0, description="Retry count for shipping label generation")
     sync_retry_count = fields.IntField(default=0, description="Retry count for syncing to platform")

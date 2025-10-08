@@ -6,7 +6,8 @@ from starlette.responses import StreamingResponse
 from tortoise.exceptions import DoesNotExist
 
 from app import OrderBatchModel_Pydantic, OrderErrorLogModel_Pydantic, OrderStatusLogModel_Pydantic, \
-    OrderItemModel_Pydantic
+    OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic
+from app.order_fulfillment import AddressType
 from app.order_fulfillment.common.exceptions import TrackingInfoSyncError
 from app.order_fulfillment.schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, PullOrdersRequest, \
     CreateBatchRequest, IntegrationCredentialResponse, IntegrationCredentialUpdateRequest, OrderItemResponse
@@ -90,6 +91,25 @@ async def generate_labels(
         raise HTTPException(status_code=500, detail=str(e))
     return {"success": success}
 
+@ofa_router.get("/orders/{order_id}/labels")
+async def get_labels(order_id: int) -> ListResponse[ShippingLabelModel_Pydantic]:
+    try:
+        labels = await LabelService.get_labels(order_id)
+    except Exception as e:
+        logger.error(f"Error getting labels for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return labels
+
+@ofa_router.get("/orders/{order_id}/address/{address_type}")
+async def get_address_from_order(order_id: int, address_type: AddressType) -> AddressModel_Pydantic:
+    try:
+        address = await OrderService.get_address(order_id, address_type)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"Address for order {order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error getting address for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return address
 
 @ofa_router.put(
     "/orders/{order_id}/update",

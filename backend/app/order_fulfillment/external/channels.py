@@ -207,18 +207,7 @@ class WooCommerceChannel(IOrderChannel):
             }
 
         buyer_address = f"{billing_address.get("address1", "")}, {billing_address.get("postal_code", "")} {billing_address.get("city", "")}"
-        order = {
-            "order_number": str(data['id']),
-            "channel": self.get_channel_code(),
-            "account_id": self.credential.external_id,
-            "status": OrderStatus.NEW,
-            "buyer_name": billing_address.get("name", "") or billing_address.get("company", ""),
-            "buyer_address": buyer_address,
-            "country_code": billing_address.get("country_code", ""),
-            "carrier_code": default_carrier,
-            "customer_note": data.get("customer_note", ""),
-            "raw_data": data
-        }
+
         order_items = []
         try:
             for item in data.get("line_items", []):
@@ -237,6 +226,22 @@ class WooCommerceChannel(IOrderChannel):
                 })
         except Exception as e:
             logger.error(f"Failed to parse order data {e}")
+
+        thumbnail_urls = [item.get("image_url", "") for item in order_items if item.get("image_url", "")]
+
+        order = {
+            "order_number": str(data['id']),
+            "channel": self.get_channel_code(),
+            "account_id": self.credential.external_id,
+            "status": OrderStatus.NEW,
+            "buyer_name": billing_address.get("name", "") or billing_address.get("company", ""),
+            "buyer_address": buyer_address,
+            "country_code": billing_address.get("country_code", ""),
+            "carrier_code": default_carrier,
+            "customer_note": data.get("customer_note", ""),
+            "thumbnails": ",".join(thumbnail_urls),
+            "raw_data": data
+        }
 
         return dict(
             order=order,

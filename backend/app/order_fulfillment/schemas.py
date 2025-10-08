@@ -12,11 +12,6 @@ class PullOrdersRequest(BaseModel):
     channel_code: str
     account_id: str
 
-# class SyncOrderRequest(BaseModel):
-#     channel_code: str
-#     account_id: str
-
-
 class OrderQueryRequest(BaseModel):
     status: Optional[OrderStatus] = Query(None, description="Order status")
     channel_code: Optional[ChannelCode] = Query(None, description="Channel code, e.g. Woocommerce")
@@ -47,6 +42,8 @@ class OrderResponse(BaseModel):
     tracking_number: Optional[str]
     tracking_url: Optional[str]
     carrier_code: Optional[CarrierCode]
+
+    thumbnails: Optional[str]
 
     label_retry_count: Optional[int]
     sync_retry_count: Optional[int]
