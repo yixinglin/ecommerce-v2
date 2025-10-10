@@ -28,7 +28,7 @@ export default function Login() {
                 }
 
                 console.log("登录成功")
-                messageApi.info('登录成功！')
+                messageApi.success('登录成功！')
 
                 const user = await getUserInfo()
                 setUser(user)

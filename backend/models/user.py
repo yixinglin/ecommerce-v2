@@ -45,6 +45,7 @@ class UserOut(BaseModel):
     phone: Optional[str]
     avatar: Optional[str]
     birthdate: Optional[datetime.datetime]
+    address: Optional[str]
     city: Optional[str]
     country_code: Optional[str]
     signature: Optional[str]

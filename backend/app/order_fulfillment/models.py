@@ -6,11 +6,6 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 from .common.enums import *
 from models.base import TortoiseBasicModel
 
-
-# Order Fulfillment Automation Models
-
-# TODO: 持久化客户购买内容OrderItemModel
-
 class OrderModel(TortoiseBasicModel):
     id = fields.BigIntField(pk=True)
     order_number = fields.CharField(max_length=64, description="Unique order ID from the channel")
@@ -30,7 +25,7 @@ class OrderModel(TortoiseBasicModel):
     buyer_address = fields.CharField(max_length=255, null=True, description="Redundant field for buyer address")
     country_code = fields.CharField(max_length=4, null=True, description="Redundant field for ISO country code (e.g., US, CN)")
     # 冗余字段
-    tracking_number = fields.CharField(max_length=64, null=True, description="Generated logistics tracking number")
+    tracking_number = fields.CharField(max_length=255, null=True, description="Generated logistics tracking number")
     tracking_url = fields.CharField(max_length=255, null=True, description="Logistics tracking URL")
     carrier_code = fields.CharEnumField(CarrierCode, max_length=32, null=True, description="Logistics provider code (e.g., SF, UPS)")
     # 冗余字段
@@ -41,6 +36,7 @@ class OrderModel(TortoiseBasicModel):
     printshop_retry_count = fields.IntField(default=0, description="Retry count for printshop upload")
 
     batch_id = fields.CharField(max_length=64, null=True, description="Batch number after sync to platform")
+    sort_key = fields.CharField(max_length=64, null=True, description="Sort key for sorting orders in a batch")
 
     synced_at = fields.DatetimeField(null=True, description="Time when tracking info was synced to platform")
     uploaded_at = fields.DatetimeField(null=True, description="Time when order was uploaded to printshop")
@@ -107,6 +103,7 @@ class OrderBatchModel(TortoiseBasicModel):
     id = fields.BigIntField(pk=True)
     batch_id = fields.CharField(unique=True, max_length=64, description="Unique batch ID")
     order_count = fields.IntField(default=0, description="Number of orders in this batch")
+    download_count = fields.IntField(default=0, description="Number of times this batch was downloaded")
     status = fields.CharEnumField(
         OrderBatchStatus,
         max_length=32,

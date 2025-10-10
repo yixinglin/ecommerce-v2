@@ -22,6 +22,15 @@ class OrderRepository:
             order_data: dict, shipping_data: dict, billing_data:
             dict, order_items: List[dict]
     ) -> OrderModel_Pydantic:
+
+        # Sort by quantity
+        order_items = list(sorted(order_items, key=lambda x: x['quantity'], reverse=True))
+
+        # Build sort key for orders
+        item = order_items[0]
+        sort_key = f"{item['sku']}x{item['quantity']}"
+        order_data['sort_key'] = sort_key
+
         async with in_transaction():
             shipping_addr = await AddressModel.create(**shipping_data)
             billing_addr = await AddressModel.create(**billing_data)
@@ -206,7 +215,7 @@ class WooCommerceChannel(IOrderChannel):
                 "email": billing_address.get("email", ""),
             }
 
-        buyer_address = f"{billing_address.get("address1", "")}, {billing_address.get("postal_code", "")} {billing_address.get("city", "")}"
+        buyer_address = f"{shipping_address.get("address1", "")}, {shipping_address.get("postal_code", "")} {shipping_address.get("city", "")}"
 
         order_items = []
         try:

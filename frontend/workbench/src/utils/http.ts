@@ -1,5 +1,4 @@
 import axios, {type AxiosRequestConfig} from 'axios'
-import { message } from 'antd'
 import Cookies from 'js-cookie'
 
 const http = axios.create({
@@ -24,12 +23,12 @@ http.interceptors.response.use(
     (res) => res.data,
     (error) => {
         if (error.response?.status === 401) {
-            message.error('登录已过期，请重新登录')
+            console.error('登录已过期，请重新登录')
             Cookies.remove('token')
             localStorage.removeItem('token')
             window.location.href = '/login'
         } else {
-            message.error(error.response?.data?.message || '请求失败')
+            console.error(error.response?.data?.message || '请求失败')
         }
         return Promise.reject(error)
     }
@@ -52,6 +51,16 @@ export function post<T = any>(
 ): Promise<T> {
     return http.post<any, T>(url, data, config)
 }
+
+export function put<T = any>(
+    url: string,
+    data?: any,
+    config?: AxiosRequestConfig
+): Promise<T> {
+    return http.put<any, T>(url, data, config)
+}
+
+
 
 // 提交 form-data 的方法
 export const postForm = (url: string, data: Record<string, any>) => {

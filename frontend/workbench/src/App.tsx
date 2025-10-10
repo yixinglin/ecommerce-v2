@@ -5,7 +5,8 @@ import './App.css'
 
 import {PrivateRoute} from "@/components/PrivateRoute.tsx";
 import NavigationBar from "@/components/NavigationBar.tsx";
-import OrderFulfillment from "@/pages/order_fulfillment/OrderFulfillment.tsx";
+import OrderFulfillment from "@/pages/order_fulfillment/OrderListPage.tsx";
+import BatchListPage from "@/pages/order_fulfillment/BatchListPage.tsx";
 
 function App() {
     console.log('当前环境:', import.meta.env.MODE);
@@ -17,7 +18,12 @@ function App() {
             <Routes>
                 <Route path="/login" element={<Login/>}/>
                 <Route path="/about" element={<HomePage/>}/>
-                <Route path="/orders" element={<OrderFulfillment/>}/>
+                <Route path="/batches" element={<BatchListPage/>} />
+                <Route path="/orders" element={
+                    <PrivateRoute>
+                        <OrderFulfillment/>
+                    </PrivateRoute>
+                }/>
 
                 <Route
                     path="/"

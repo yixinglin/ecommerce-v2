@@ -2,7 +2,7 @@ import { Table, Modal, Tag } from 'antd'
 import type { OrderStatusLog } from '@/api/orders.ts'
 import dayjs from 'dayjs'
 import {useOrderStatusLogs} from "@/hooks/Order.ts";
-import {OrderStatus} from "@/api/enums.ts";
+import {STATUS_COLORS, STATUS_LABELS} from "@/pages/order_fulfillment/components/enums.ts";
 
 interface Props {
     orderId: number
@@ -22,23 +22,38 @@ export default function OrderStatusLogsModal({ orderId, open, onClose }: Props) 
         {
             title: '原状态',
             dataIndex: 'from_status',
-            render: (status: string | null) =>
-                status ? (
-                    <Tag color={getOrderStatusColor(status)}>
-                         {status}
-                    </Tag>
-                ) : (
-                    <Tag>无</Tag>
-                ),
+            render: (status: string) => {
+                const color = STATUS_COLORS[status] || 'default'
+                const label = STATUS_LABELS[status] || status
+                return   <Tag
+                    color={color}
+                    style={{
+                        fontWeight: 500,
+                        borderRadius: 6,
+                        padding: '2px 10px',
+                    }}
+                >
+                    {label}
+                </Tag>
+            }
         },
         {
             title: '变更后状态',
             dataIndex: 'to_status',
-            render: (status: string) => (
-                <Tag color={getOrderStatusColor(status)}>
-                     {status}
+            render: (status: string) => {
+                const color = STATUS_COLORS[status] || 'default'
+                const label = STATUS_LABELS[status] || status
+                return  <Tag
+                    color={color}
+                    style={{
+                        fontWeight: 500,
+                        borderRadius: 6,
+                        padding: '2px 10px',
+                    }}
+                >
+                    {label}
                 </Tag>
-            ),
+            },
         },
         {
             title: '备注',
@@ -67,25 +82,3 @@ export default function OrderStatusLogsModal({ orderId, open, onClose }: Props) 
     )
 }
 
-export function getOrderStatusColor(status: string): string {
-    switch (status) {
-        case OrderStatus.New:
-            return 'gold'
-        case OrderStatus.WaitingLabel:
-        case OrderStatus.LabelCreated:
-        case OrderStatus.Uploaded:
-            return 'processing'
-        case OrderStatus.Synced:
-        case OrderStatus.Completed:
-            return 'green'
-        case OrderStatus.LabelFailed:
-        case OrderStatus.SyncFailed:
-        case OrderStatus.UploadFailed:
-        case OrderStatus.Exception:
-            return 'red'
-        case OrderStatus.Cancelled:
-            return 'default'
-        default:
-            return 'blue'
-    }
-}

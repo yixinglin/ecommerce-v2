@@ -13,7 +13,7 @@ from models import User
 
 SECRET_KEY = "497d5ce2-327b-41f8-99f3-e7a076bec0ca"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 8  # 8 hours
 # OAuth2 认证
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 # 密码上下文
@@ -41,7 +41,7 @@ def generate_code(length=6):
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

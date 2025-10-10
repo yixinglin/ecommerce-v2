@@ -39,6 +39,8 @@ class OrderResponse(BaseModel):
     buyer_address: Optional[str]
     country_code:  Optional[str]
 
+    customer_note: Optional[str]
+
     tracking_number: Optional[str]
     tracking_url: Optional[str]
     carrier_code: Optional[CarrierCode]
@@ -61,6 +63,10 @@ class OrderItemResponse(BaseModel):
     subtotal_excl_tax: float
     total_incl_tax: float
     tax_rate_percent: float
+    weight: float
+    height: float
+    width: float
+    length: float
     image_url: Optional[str]
     created_at: datetime.datetime
     updated_at: datetime.datetime

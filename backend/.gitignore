@@ -26,3 +26,5 @@ static2
 /build
 /dist
 *.spec
+
+docs

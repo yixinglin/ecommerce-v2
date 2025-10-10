@@ -7,7 +7,7 @@ from typing import Optional, List
 
 from starlette.exceptions import HTTPException
 from tortoise.exceptions import DoesNotExist
-from tortoise.expressions import Q
+from tortoise.expressions import Q, RawSQL
 from tortoise.transactions import in_transaction
 
 import utils.SlipBuilder as sb
@@ -170,17 +170,65 @@ class BatchService:
         """
         下载一个批次的打包文件。
         """
-        batch = await OrderBatchModel.get_or_none(batch_id=batch_id)
-        logger.info(f"Downloading batch {batch_id} as ZIP file")
-        zip_bytes = await ZipBuilder.build_batch_zip(batch_id)
+        async with in_transaction():
+            batch = await OrderBatchModel.get_or_none(batch_id=batch_id)
+            logger.info(f"Downloading batch {batch_id} as ZIP file")
+            zip_bytes = await ZipBuilder.build_batch_zip(batch_id)
+            batch.download_count = (batch.download_count or 0) + 1
+            await batch.save()
+            logger.info(f"Batch {batch_id} downloaded")
         return zip_bytes
 
 
 class PDFGenerator:
     @staticmethod
     async def generate_picking_list(orders: List[OrderModel]) -> io.BytesIO:
-        # 👉 拣货单：按 SKU 汇总
-        return io.BytesIO()  # 返回空文件
+        # 拣货单：按 SKU 汇总
+        MIN_ORDER_COUNT = 10  # 最少订单数量
+
+        order_ids = [o.id for o in orders]
+        if not order_ids:
+            raise ValueError("No orders provided")
+        if len(order_ids) < MIN_ORDER_COUNT:
+            logger.info(f"Too few orders for picking list: {len(order_ids)}.")
+            return io.BytesIO()  # 返回空文件
+
+        rows = (
+            await OrderItemModel.filter(order_id__in=order_ids)
+            .annotate(total_qty=RawSQL("SUM(quantity)"))
+            .annotate(price=RawSQL("MIN(unit_price_excl_tax)"))
+            .group_by("sku", "name")
+            .values("sku", "name", "total_qty", "price")
+        )
+
+        if not rows:
+            raise ValueError("No items found for provided orders")
+
+        items = []
+        # 转换为 Item 对象
+        for r in rows:
+            items.append(sb.Item(
+                sku=r["sku"],
+                name=r["name"],
+                qty=int(r["total_qty"]),
+                price=float(r["price"] or 0.0),
+            ))
+        # Sort items by SKU
+        items = list(sorted(items, key=lambda x: x.sku))
+
+        # 生成批次对象
+        batch = sb.Batch(
+            batch_id=f"{orders[0].batch_id}",
+            items=items,
+            shipper_info=None,  # 可选：填统一发货方
+            created_at=datetime.now(),
+        )
+        pdf_bytes = sb.SlipBuilder.generate_picking_slip(batch)
+        output_stream = io.BytesIO(pdf_bytes)
+        output_stream.seek(0)
+        logger.info(f"Generated picking list for batch {orders[0].batch_id}")
+        return output_stream
+
 
     @staticmethod
     async def generate_shipping_labels(orders: List[OrderModel]) -> io.BytesIO:
@@ -218,15 +266,6 @@ class PDFGenerator:
         # 装箱单：每个订单生成后合并为一个 PDF
         bytes_list = []
 
-        slip_shipper = sb.ShipperInfo(
-            name="Hansa GmbH",
-            street="Musterstrasse 123",
-            city="Hamburg",
-            zip="22113",
-            country='Deutschland',
-            website="https://www.hansa.com"
-        )
-
         for order in orders:
             ship_address = await AddressModel.get_or_none(id=order.shipping_address_id)
             slip_addr = sb.BuyerAddress(
@@ -245,7 +284,7 @@ class PDFGenerator:
                 buyer_name=order.buyer_name,
                 buyer_address=slip_addr,
                 items=slip_items,
-                shipper_info=slip_shipper,
+                shipper_info=None,
             )
 
             slip_pdf = sb.SlipBuilder.generate_packing_slip(slip_order)
@@ -274,7 +313,7 @@ class ZipBuilder:
             batch_id=batch_id
         ).exclude(
             status__in=BatchService.except_status_list
-        ).order_by("id")
+        ).order_by("sort_key")
 
         if not orders:
             raise ValueError(f"No orders found for batch_id: {batch_id}")
@@ -287,9 +326,11 @@ class ZipBuilder:
         # 在内存中创建 ZIP 文件
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            # zip_file.writestr(f"Picking List-{batch_id}.pdf", picking_list_pdf.getvalue())
-            zip_file.writestr(f"Shipping Labels-{batch_id}.pdf", labels_pdf.getvalue())
             zip_file.writestr(f"Packing Slips-{batch_id}.pdf", packing_slips_pdf.getvalue())
+            zip_file.writestr(f"Shipping Labels-{batch_id}.pdf", labels_pdf.getvalue())
+            picklist_bytes = picking_list_pdf.getvalue()
+            if picklist_bytes:
+                zip_file.writestr(f"Picking List-{batch_id}.pdf", picklist_bytes)
 
         zip_buffer.seek(0)
         return zip_buffer.read()
@@ -367,11 +408,19 @@ class OrderService:
         if not order_id:
             raise ValueError("Order ID not provided")
 
-        order = await OrderModel.get(id=order_id)
-        logger.info(f"Updating order {order.order_number}")
-        for key, value in update_data.items():
-            setattr(order, key, value)
-        await order.save()
+        async with in_transaction():
+            order = await OrderModel.get(id=order_id)
+            logger.info(f"Updating order {order.order_number}")
+            if update_request.status:
+                await LoggingService.log_transition(
+                    order,
+                    update_request.status,
+                    f"Order status updated to {update_request.status}"
+                )
+            for key, value in update_data.items():
+                setattr(order, key, value)
+            await order.save()
+
         result = await OrderModel_Pydantic.from_tortoise_orm(order)
         return OrderResponse(**result.dict())
 
@@ -428,7 +477,8 @@ class OrderService:
 
     @staticmethod
     async def get_order_errors(order_id: int) -> ListResponse[OrderErrorLogModel_Pydantic]:
-        logs = await OrderErrorLogModel.filter(order_id=order_id).order_by("-created_at")
+        limit = 10
+        logs = await OrderErrorLogModel.filter(order_id=order_id).limit(limit).order_by("-created_at")
         results = [
             await OrderErrorLogModel_Pydantic.from_tortoise_orm(log)
             for log in logs
@@ -442,7 +492,8 @@ class OrderService:
 
     @staticmethod
     async def get_order_status_logs(order_id: int) -> ListResponse[OrderStatusLogModel_Pydantic]:
-        logs = await OrderStatusLogModel.filter(order_id=order_id).order_by("-created_at")
+        limit = 10
+        logs = await OrderStatusLogModel.filter(order_id=order_id).limit(limit).order_by("-created_at")
         results = [
             await OrderStatusLogModel_Pydantic.from_tortoise_orm(log)
             for log in logs
@@ -477,7 +528,11 @@ class LabelService:
         pass
 
     async def generate_label(self, order_id, external_logistic_id) -> bool:
+        # 首次建立快递单，生成快递标签。会覆盖之前的记录
         order = await OrderModel.get(id=order_id)
+        if order.status not in [OrderStatus.NEW, OrderStatus.LABEL_FAILED]:
+            logger.error(f"Cannot generate label for order {order.order_number} in status {order.status}")
+            raise ValueError("Please create order before generating label")
 
         carrier_code = order.carrier_code
         logistic_cred = await IntegrationCredentialModel.get(
@@ -486,7 +541,6 @@ class LabelService:
             external_id=external_logistic_id,
             is_active=True
         )
-
 
         logistics = Registry.get_logistics(logistic_cred.provider_code)
         logistics.set_credential(logistic_cred)
@@ -514,6 +568,54 @@ class LabelService:
                 order,
                 OperationType.LABEL_GEN,
                 f"Failed to create label for order {order.order_number}: {e}",
+                order.label_retry_count
+            )
+            order.status = OrderStatus.LABEL_FAILED
+            await order.save()
+            return False
+
+    async def generate_further_label(self, order_id, external_logistic_id) -> bool:
+        # 追加快递单，生成快递标签。会追加到之前的记录。
+        order = await OrderModel.get(id=order_id)
+        if order.status not in [OrderStatus.LABEL_CREATED]:
+            logger.error(f"Cannot generate further label for order {order.order_number} in status {order.status}")
+            raise ValueError("Please create label before generating further label")
+        carrier_code = order.carrier_code
+        logistic_cred = await IntegrationCredentialModel.get(
+            type=IntegrationType.LOGISTICS,
+            provider_code=carrier_code,
+            external_id=external_logistic_id,
+            is_active=True
+        )
+
+        logistics = Registry.get_logistics(logistic_cred.provider_code)
+        logistics.set_credential(logistic_cred)
+        try:
+            label = await logistics.create_shipping_label(order)
+            await LoggingService.log_transition(
+                order,
+                OrderStatus.LABEL_CREATED,
+                f"Further label created for order {order.order_number}"
+            )
+            # TODO: 保存包裹的之后查询出tracking_numbers和tracking_urls然后拼接成一个新的tracking_url
+            res = await self.get_labels(order_id)
+            order.tracking_number = ",".join([label.tracking_number for label in res.data])
+            order.tracking_url = label.tracking_url
+            order.status = OrderStatus.LABEL_CREATED
+            await order.save()
+            logger.info(f"Further label created for order {order.order_number}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create further label for order {order.order_number}: {e}")
+            await LoggingService.log_transition(
+                order,
+                OrderStatus.LABEL_FAILED,
+                f"Failed to create further label for order {order.order_number}: {e}"
+            )
+            await LoggingService.log_error(
+                order,
+                OperationType.LABEL_GEN,
+                f"Failed to create further label for order {order.order_number}: {e}",
                 order.label_retry_count
             )
             order.status = OrderStatus.LABEL_FAILED

@@ -8,6 +8,12 @@ export interface User {
     email: string
     alias: string
     avatar: string
+    phone: string
+    gender: number
+    signature: string
+    birthday: string
+    address: string
+    country_code: string
     is_active: boolean
 }
 

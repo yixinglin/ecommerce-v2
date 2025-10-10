@@ -26,7 +26,7 @@ export function AddressCard({ title, address }: CardProps) {
         ].filter(Boolean)
         const fullText = lines.join('\n')
         navigator.clipboard.writeText(fullText)
-            .then(() => messageApi.info('Copied to clipboard'))
+            .then(() => messageApi.success('Copied to clipboard'))
             .catch(() => messageApi.error('复制失败'))
     }
 

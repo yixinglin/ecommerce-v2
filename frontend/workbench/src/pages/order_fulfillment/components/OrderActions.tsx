@@ -1,47 +1,100 @@
 import {Button, Dropdown, type MenuProps, Tooltip} from "antd";
-import {MoreOutlined, PlayCircleOutlined} from "@ant-design/icons";
-import type {OrderStatus} from "@/api/enums.ts";
+import {EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
+import {type OrderResponse} from "@/api/orders.ts";
+import SyncTrackingButton from "@/pages/order_fulfillment/components/SyncTrackingButton.tsx";
+import GenerateLabelButton from "@/pages/order_fulfillment/components/GenerateLabelButton.tsx";
+import {OrderStatus} from "@/api/enums.ts";
+import UpdateOrderModal from "@/pages/order_fulfillment/components/UpdateOrderModal.tsx";
+import {useState} from "react";
 
-type OrderActionsProps = {
-    orderId: number,
-    status: OrderStatus
-}
+// const external_logistic_id = import.meta.env.VITE_GLS_EXTERNAL_ID
 
-const OrderActions = ({orderId, status}: OrderActionsProps) => {
+const OrderActions = ({order, onSuccess, onFailure}: {
+    order: OrderResponse,
+    onSuccess?: () => void,
+    onFailure?: (err: any) => void
+}) => {
+
+    // const [ contextHolder] = message.useMessage()
+    const [editOrderModalOpen, setOrderModalOpen] = useState(false)
+
+    const ENABLED_GENERATE_LABEL_STATUSES: OrderStatus[] = [
+        OrderStatus.New,
+        OrderStatus.LabelFailed,
+        OrderStatus.Exception,
+    ];
+
+    const ENABLED_SYNC_TRACKING_STATUSES: OrderStatus[] = [
+        OrderStatus.LabelCreated,
+    ];
+
+    // const handleOrderChange = () => {
+    //     cancelOrder(order.id).then(() => {
+    //         onSuccess?.();
+    //         messageApi.success("订单取消成功");
+    //     }).catch((err) => {
+    //         onFailure?.(err);
+    //         messageApi.error("订单取消失败");
+    //     })
+    // }
+
     const items: MenuProps['items'] = [
         {
-            key: '1',
-            label: "查看订单项",
-            icon: <PlayCircleOutlined />,
+            key: '3',
+            label: "修改订单信息",
+            icon: <EditOutlined/>,
             onClick: () => {
-                // console.log("查看订单项")
-                alert("查看订单项")
+                setOrderModalOpen(true)
             }
         }
     ]
 
     return (
         <div>
-            <Tooltip title="处理订单">
-                <Button type="primary">
-                    <PlayCircleOutlined />
-                </Button>
-            </Tooltip>
+            {/*{contextHolder}*/}
             <Tooltip title="生成快递单">
-                <Button type="default">
-                    生成快递单
-                </Button>
+                {<GenerateLabelButton
+                    orderId={order.id}
+                    type="primary"
+                    tooltip={"生成面单"}
+                    disabled={!ENABLED_GENERATE_LABEL_STATUSES.includes(order.status)}
+                    onSuccess={onSuccess}
+                    onFailure={onFailure}
+                >
+                    <FileAddOutlined/>
+                </GenerateLabelButton>
+                }
             </Tooltip>
-            <Tooltip title="确认发货">
-                <Button type="default">
-                    确认发货
-                </Button>
-            </Tooltip>
-            <Dropdown
-                menu={{items }}
+            <SyncTrackingButton
+                orderId={order.id}
+                tooltip={"确认发货并上传跟踪号"}
+                disabled={!ENABLED_SYNC_TRACKING_STATUSES.includes(order.status)}
+                onSuccess={onSuccess}
+                onFailure={onFailure}
             >
-                <Button><MoreOutlined /></Button>
-            </Dropdown >
+                <RocketOutlined/>
+            </SyncTrackingButton>
+            <Dropdown
+                menu={{items}}
+            >
+                <Button><MoreOutlined/></Button>
+            </Dropdown>
+
+
+            <UpdateOrderModal
+                open={editOrderModalOpen}
+                onClose={() => setOrderModalOpen(false)}
+                orderId={order.id}
+                initialValues={{
+                    status: order.status,
+                    carrier_code: order.carrier_code,
+                }}
+                onSuccess={() => {
+                    onSuccess?.()
+                }}
+            >
+            </UpdateOrderModal>
+
         </div>
     )
 

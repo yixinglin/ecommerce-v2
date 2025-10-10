@@ -24,3 +24,12 @@ export const ChannelCode = {
 } as const
 
 export type ChannelCode = (typeof ChannelCode)[keyof typeof ChannelCode]
+
+export const BatchStatus = {
+    Pending: 'pending',
+    Uploaded: 'uploaded',
+    UploadFailed: 'upload_failed',
+    Completed: 'completed',
+}
+
+export type BatchStatus = (typeof BatchStatus)[keyof typeof BatchStatus]

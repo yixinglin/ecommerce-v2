@@ -1,13 +1,17 @@
 import io
+from typing import Optional
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException
-from starlette.responses import StreamingResponse
+from starlette.responses import StreamingResponse, Response
 from tortoise.exceptions import DoesNotExist
 
 from app import OrderBatchModel_Pydantic, OrderErrorLogModel_Pydantic, OrderStatusLogModel_Pydantic, \
     OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic
-from app.order_fulfillment import AddressType
+from app.order_fulfillment.common.enums import (
+    IntegrationType, OrderStatus, OrderBatchStatus, AddressType, ChannelCode, OperationType, CarrierCode
+)
 from app.order_fulfillment.common.exceptions import TrackingInfoSyncError
 from app.order_fulfillment.schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, PullOrdersRequest, \
     CreateBatchRequest, IntegrationCredentialResponse, IntegrationCredentialUpdateRequest, OrderItemResponse
@@ -16,6 +20,18 @@ from core.log import logger
 from core.response import ListResponse
 
 ofa_router = APIRouter()
+
+@ofa_router.get("/enums")
+def get_all_enums():
+    return {
+        "channel_codes": [{"value": e.value, "label": e.name.title()} for e in ChannelCode],
+        "order_status": [{"value": e.value, "label": e.name.title()} for e in OrderStatus],
+        "address_type": [{"value": e.value, "label": e.name.title()} for e in AddressType],
+        "carrier_code": [{"value": e.value, "label": e.name.title()} for e in CarrierCode],
+        "operation_type": [{"value": e.value, "label": e.name.title()} for e in OperationType],
+        "integration_type": [{"value": e.value, "label": e.name.title()} for e in IntegrationType],
+        "order_batch_status": [{"value": e.value, "label": e.name.title()} for e in OrderBatchStatus],
+    }
 
 
 @ofa_router.post(
@@ -67,21 +83,30 @@ async def list_orders(query: OrderQueryRequest = Depends(), ):
     return results
 
 
-# /generate_labels
+class GenerateLabelRequest(BaseModel):
+    external_logistic_id: str
+    more_labels: Optional[bool] = False
+
 @ofa_router.post(
     "/orders/{order_id}/generate_label",
     summary="Generate shipping label for order",
 )
 async def generate_labels(
         order_id: int,
-        external_logistic_id: str
+        payload: GenerateLabelRequest,
 ) -> dict:
     service = LabelService()
     try:
-        success = await service.generate_label(
-            order_id,
-            external_logistic_id
-        )
+        if not payload.more_labels:
+            success = await service.generate_label(
+                order_id,
+                payload.external_logistic_id
+            )
+        else:
+            success = await service.generate_further_label(
+                order_id,
+                payload.external_logistic_id
+            )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except DoesNotExist as e:
@@ -208,19 +233,21 @@ async def list_batches(page: int = 1, limit: int = 10) -> ListResponse[OrderBatc
 @ofa_router.get(
     "/batches/{batch_id}/download",
     summary="Download batch as a zip file",
-    response_class=StreamingResponse
+    response_class=Response
 )
-async def download_batch(batch_id: str) -> StreamingResponse:
+async def download_batch(batch_id: str) -> Response:
     try:
         zip_file = await BatchService.download_batch_zip(batch_id)
-        buffer = io.BytesIO(zip_file)
         filename = f"{batch_id}.zip"
-        return StreamingResponse(
-            buffer,
+        disposition = f'attachment; filename="{filename}"'
+        headers = {
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(zip_file))
+        }
+        return Response(
+            content=zip_file,
             media_type="application/zip",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"'
-            }
+            headers=headers
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
