@@ -2,3 +2,4 @@
 frontend/tpmonkey/webpack.config.prod.js
 .idea
 admin
+scripts/*.ipynb
