@@ -34,3 +34,19 @@ export const batchStatusColors: Record<string, string> = {
     completed: 'green',
     failed: 'red',
 }
+
+export const EMAIL_CATEGORY_COLORS: Record<string, string> = {
+    invalid_email: "red",
+    unsubscribe_request: "gold",
+    keep_subscription: "orange",
+    email_change: "blue",
+    other: "default",
+}
+
+export const EMAIL_CATEGORY_LABELS: Record<string, string> = {
+    invalid_email: "邮箱失效",
+    unsubscribe_request: "请求退订",
+    keep_subscription: "保持订阅",
+    email_change: "邮箱变更",
+    other: "其他",
+}

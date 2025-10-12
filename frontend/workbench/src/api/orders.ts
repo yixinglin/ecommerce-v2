@@ -47,9 +47,7 @@ export const getOrder = (orderId: number) => {
 export interface OrderQuery {
     status?: string
     channel_code?: string
-    account_id?: string
-    order_id?: string
-    batch_id?: string
+    keyword?: string
     page?: number
     limit?: number
 }

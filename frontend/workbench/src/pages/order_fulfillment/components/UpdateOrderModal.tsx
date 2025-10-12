@@ -1,7 +1,7 @@
 import {Form, message, Modal, Select} from 'antd'
 import {useState} from 'react'
 import {type OrderUpdatePayload, updateOrder} from "@/api/orders.ts";
-import {useEnums} from "@/hooks/Order.ts";
+import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
 
 interface Props {
     open: boolean
@@ -62,40 +62,3 @@ export default function UpdateOrderModal({
     )
 }
 
-// interface  PropsButton {
-//     order: OrderResponse,
-//     children?: ReactNode,
-//     tooltip?: string,
-//     size?: 'small' | 'middle' | 'large'
-//     type?: 'primary' | 'default' | 'link' | 'text',
-//     onSuccess?: () => void,
-//     onFailure?: () => void,
-// }
-
-// export function UpdateOrderButton({
-//     order, children, tooltip, size, type, onSuccess
-// }: PropsButton) {
-//     const [editOpen, setEditOpen] = useState(false)
-//     return <>
-//         <Tooltip title={tooltip}>
-//             <Button
-//                 type={type}
-//                 size={size}
-//                 onClick={() => setEditOpen(true)}>
-//                 {children || '编辑订单'}
-//             </Button>
-//         </Tooltip>
-//
-//         <UpdateOrderModal
-//             open={editOpen}
-//             onClose={() => setEditOpen(false)}
-//             orderId={order.id}
-//             initialValues={{
-//                 status: order.status,
-//                 carrier_code: order.carrier_code,
-//             }}
-//             onSuccess={() => {onSuccess?.()}}
-//         >
-//         </UpdateOrderModal>
-//     </>
-// }

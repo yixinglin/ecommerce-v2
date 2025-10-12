@@ -35,15 +35,15 @@ class StaticConfig(BaseModel):
     log_dir: str
     backup_dir: str
 
-class SmtpConfig(BaseModel):
-    server: str
-    port: int
-    username: str
-    password: str
-    from_email: str
-    from_name: str
-    ssl_tls: bool
-    starttls: bool
+# class SmtpConfig(BaseModel):
+#     server: str
+#     port: int
+#     username: str
+#     password: str
+#     from_email: str
+#     from_name: str
+#     ssl_tls: bool
+#     starttls: bool
 
 class MongoDBConfig(BaseModel):
     host: str
@@ -85,6 +85,9 @@ class ApiKeysConfig(BaseModel):
     route_machine_model: str
     route_machine_provider: str
 
+class EmailConfig(BaseModel):
+    smtp_keys: str
+    imap_keys: str
 
 class HttpProxyConfig(BaseModel):
     config_file: str
@@ -108,6 +111,7 @@ class Config(BaseModel):
     redis: RedisConfig
     ssl: SSLConfig
     api_keys: ApiKeysConfig
+    email: EmailConfig
     http_proxy: HttpProxyConfig
     scheduler: SchedulerConfig
 
@@ -132,7 +136,7 @@ settings.static.upload_dir = os.path.join(settings.static.static_dir, 'uploads')
 settings.static.image_dir = os.path.join(settings.static.static_dir, 'images')
 
 if __name__ == '__main__':
-    with open('../conf/dev.toml', 'rb') as f:
+    with open('conf/dev.toml', 'rb') as f:
         config_dict = tomllib.load(f)
         config = Config.parse_obj(config_dict)
         print(config)

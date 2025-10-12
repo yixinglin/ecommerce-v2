@@ -2,9 +2,10 @@ import {Modal, Form, Select, Input, message, Button, Tooltip} from 'antd'
 import {type ReactNode, useState} from 'react'
 
 import {useAuth} from "@/hooks/useAuth.ts";
-import {useEnums} from "@/hooks/Order.ts";
+import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
 import {createBatch} from "@/api/orders.ts";
 import {useNavigate} from "react-router-dom";
+import {PaperClipOutlined} from "@ant-design/icons";
 
 interface Props {
     open: boolean
@@ -43,7 +44,7 @@ export default function CreateBatchModal({ open, onClose, onSuccess }: Props) {
                 onCancel={onClose}
                 onOk={handleOk}
                 confirmLoading={loading}
-                title="创建订单批次"
+                title="生成订单批次"
                 okText="创建"
             >
                 <p style={{ color: 'orange' }}> 注意：确认【发货】之后才能创建订单发货【批次】  </p>
@@ -94,6 +95,7 @@ export function CreateBatchButton({
             <Tooltip title={tooltip}>
                 <Button
                     type={type}
+                    icon={<PaperClipOutlined/>}
                     onClick={() => setOpen(true)}
                     size={size}
                 >
@@ -106,6 +108,7 @@ export function CreateBatchButton({
                 onClose={() => setOpen(false)}
                 onSuccess={(batchId) => {
                     console.log('创建成功，批次号：', batchId)
+                    alert(`创建成功，批次号：${batchId}. 即将跳转到下载页。`)
                     // 可以在这里刷新批次列表，或跳转到详情页
                     navigate('/batches')
                 }}

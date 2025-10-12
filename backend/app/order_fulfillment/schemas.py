@@ -15,9 +15,10 @@ class PullOrdersRequest(BaseModel):
 class OrderQueryRequest(BaseModel):
     status: Optional[OrderStatus] = Query(None, description="Order status")
     channel_code: Optional[ChannelCode] = Query(None, description="Channel code, e.g. Woocommerce")
-    account_id: Optional[str] = Query(None, description="Account ID")
-    order_id: Optional[str] = Query(None, description="Order ID")
-    batch_id: Optional[str] = Query(None, description="Batch ID")
+    # account_id: Optional[str] = Query(None, description="Account ID")
+    # order_id: Optional[str] = Query(None, description="Order ID")
+    # batch_id: Optional[str] = Query(None, description="Batch ID")
+    keyword: Optional[str] = Query(None, description="Keyword to search for order")
     page: int = Query(1, ge=1, description="Page number")
     limit: int = Query(10, ge=1, description="Page size")
 

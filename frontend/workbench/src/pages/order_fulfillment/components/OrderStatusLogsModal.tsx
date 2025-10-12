@@ -1,7 +1,7 @@
 import { Table, Modal, Tag } from 'antd'
 import type { OrderStatusLog } from '@/api/orders.ts'
 import dayjs from 'dayjs'
-import {useOrderStatusLogs} from "@/hooks/Order.ts";
+import {useOrderStatusLogs} from "@/pages/order_fulfillment/hooks.ts";
 import {STATUS_COLORS, STATUS_LABELS} from "@/pages/order_fulfillment/components/enums.ts";
 
 interface Props {

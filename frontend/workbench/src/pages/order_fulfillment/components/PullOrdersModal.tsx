@@ -1,7 +1,7 @@
 import { Modal, Form, Select, Input, message } from 'antd'
 import { useState } from 'react'
 import { pullOrders, type PullOrdersPayload } from '@/api/orders'
-import {useEnums} from "@/hooks/Order.ts";
+import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
 
 const { Option } = Select
 

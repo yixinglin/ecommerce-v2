@@ -7,6 +7,7 @@ import {PrivateRoute} from "@/components/PrivateRoute.tsx";
 import NavigationBar from "@/components/NavigationBar.tsx";
 import OrderFulfillment from "@/pages/order_fulfillment/OrderListPage.tsx";
 import BatchListPage from "@/pages/order_fulfillment/BatchListPage.tsx";
+import EmailListPage from "@/pages/reply_handler/EmailListPage.tsx";
 
 function App() {
     console.log('当前环境:', import.meta.env.MODE);
@@ -22,6 +23,11 @@ function App() {
                 <Route path="/orders" element={
                     <PrivateRoute>
                         <OrderFulfillment/>
+                    </PrivateRoute>
+                }/>
+                <Route path="/reply_handler" element={
+                    <PrivateRoute>
+                        <EmailListPage/>
                     </PrivateRoute>
                 }/>
 

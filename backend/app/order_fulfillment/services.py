@@ -375,12 +375,19 @@ class OrderService:
             filters &= Q(status=request.status)
         if request.channel_code:
             filters &= Q(channel=request.channel_code)
-        if request.account_id:
-            filters &= Q(account_id=request.account_id)
-        if request.order_id:
-            filters &= Q(order_number=request.order_id)
-        if request.batch_id:
-            filters &= Q(batch_id=request.batch_id)
+        if request.keyword:
+            filters &= (
+                Q(order_number__icontains=request.keyword) |
+                Q(buyer_name__icontains=request.keyword) |
+                Q(account_id__icontains=request.keyword) |
+                Q(channel__icontains=request.keyword) |
+                Q(customer_note__icontains=request.keyword) |
+                Q(buyer_name__icontains=request.keyword) |
+                Q(buyer_address__icontains=request.keyword) |
+                Q(tracking_number__icontains=request.keyword) |
+                Q(carrier_code__icontains=request.keyword) |
+                Q(batch_id__icontains=request.keyword)
+            )
 
         total = await OrderModel.filter(filters).count()
         offset = (request.page - 1) * request.limit

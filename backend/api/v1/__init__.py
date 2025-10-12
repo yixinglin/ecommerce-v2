@@ -16,6 +16,7 @@ from .routes.table_converter import tc_router
 from .routes.woocommerce import order_router as woo_order_router
 from .routes.app_version import app_version_router
 from .routes.order_fulfillment import ofa_router
+from .routes.reply_handler import rh_router
 
 app_ver = APIRouter(prefix="/app_version", tags=["App Version Management"])
 app_ver.include_router(app_version_router)
@@ -73,6 +74,9 @@ common.include_router(common_router)
 llm = APIRouter(prefix="/llm", tags=["LLM Services"])
 llm.include_router(parser_router)
 
+rh = APIRouter(prefix="/reply_handler", tags=["Newsletter Reply Handler"])
+rh.include_router(rh_router)
+
 tc = APIRouter(prefix="/table_convert", tags=["Table Converter"])
 tc.include_router(tc_router)
 
@@ -95,5 +99,6 @@ v1.include_router(amz)
 v1.include_router(kfld)
 v1.include_router(pickpack)
 v1.include_router(llm)
+v1.include_router(rh)
 
 

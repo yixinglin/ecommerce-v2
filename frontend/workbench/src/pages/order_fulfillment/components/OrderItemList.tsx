@@ -1,7 +1,7 @@
 import { Card, Row, Col } from 'antd'
 import { type OrderItemResponse } from '@/api/orders.ts'
 import './OrderItemList.css'
-import { useOrderItems } from "@/hooks/Order.ts"
+import { useOrderItems } from "@/pages/order_fulfillment/hooks.ts"
 
 export default function OrderItemList({ orderId }: { orderId: number }) {
     const { items, loading } = useOrderItems(orderId)

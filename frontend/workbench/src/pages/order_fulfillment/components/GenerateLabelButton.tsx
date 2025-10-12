@@ -1,6 +1,6 @@
 import { Button, Tooltip, message } from 'antd'
 import {type ReactNode} from 'react'
-import {useGenerateLabel} from "@/hooks/Order.ts";
+import {useGenerateLabel} from "@/pages/order_fulfillment/hooks.ts";
 
 const external_logistic_id = import.meta.env.VITE_GLS_EXTERNAL_ID
 

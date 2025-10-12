@@ -1,4 +1,4 @@
-import {Button, Dropdown, type MenuProps, Tooltip} from "antd";
+import {Button, Dropdown, type MenuProps, Space, Tooltip} from "antd";
 import {EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
 import {type OrderResponse} from "@/api/orders.ts";
 import SyncTrackingButton from "@/pages/order_fulfillment/components/SyncTrackingButton.tsx";
@@ -52,33 +52,35 @@ const OrderActions = ({order, onSuccess, onFailure}: {
     return (
         <div>
             {/*{contextHolder}*/}
-            <Tooltip title="生成快递单">
-                {<GenerateLabelButton
+            <Space>
+                <Tooltip title="生成快递单">
+                    {<GenerateLabelButton
+                        orderId={order.id}
+                        type="primary"
+                        tooltip={"生成面单"}
+                        disabled={!ENABLED_GENERATE_LABEL_STATUSES.includes(order.status)}
+                        onSuccess={onSuccess}
+                        onFailure={onFailure}
+                    >
+                        <FileAddOutlined/>
+                    </GenerateLabelButton>
+                    }
+                </Tooltip>
+                <SyncTrackingButton
                     orderId={order.id}
-                    type="primary"
-                    tooltip={"生成面单"}
-                    disabled={!ENABLED_GENERATE_LABEL_STATUSES.includes(order.status)}
+                    tooltip={"确认发货并上传跟踪号"}
+                    disabled={!ENABLED_SYNC_TRACKING_STATUSES.includes(order.status)}
                     onSuccess={onSuccess}
                     onFailure={onFailure}
                 >
-                    <FileAddOutlined/>
-                </GenerateLabelButton>
-                }
-            </Tooltip>
-            <SyncTrackingButton
-                orderId={order.id}
-                tooltip={"确认发货并上传跟踪号"}
-                disabled={!ENABLED_SYNC_TRACKING_STATUSES.includes(order.status)}
-                onSuccess={onSuccess}
-                onFailure={onFailure}
-            >
-                <RocketOutlined/>
-            </SyncTrackingButton>
-            <Dropdown
-                menu={{items}}
-            >
-                <Button><MoreOutlined/></Button>
-            </Dropdown>
+                    <RocketOutlined/>
+                </SyncTrackingButton>
+                <Dropdown
+                    menu={{items}}
+                >
+                    <Button><MoreOutlined/></Button>
+                </Dropdown>
+            </Space>
 
 
             <UpdateOrderModal

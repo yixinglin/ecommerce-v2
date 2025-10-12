@@ -1,11 +1,11 @@
-import {Table, Tag, Card, Button} from 'antd'
+import {Table, Tag, Card, Button, Space} from 'antd'
 import { EyeOutlined } from '@ant-design/icons'
 import { useRequest } from '@/hooks/useRequest'
 import { useEffect } from 'react'
 import {type BatchResponse, listBatches, type ListResponse} from "@/api/orders.ts";
 import {batchStatusColors} from "@/pages/order_fulfillment/components/enums.ts";
 import {formatTime} from "@/utils/time.ts";
-import CompleteBatchButton from "@/pages/order_fulfillment/components/CompletBatchButton.tsx";
+import CompleteBatchButton from "@/pages/order_fulfillment/components/CompleteBatchButton.tsx";
 import {BatchStatus} from "@/api/enums.ts";
 import DownloadBatchButton from "@/pages/order_fulfillment/components/DownloadBatchButton.tsx";
 
@@ -62,7 +62,7 @@ export default function BatchListPage() {
             title: '操作',
             key: 'action',
             render: (_: any, record: BatchResponse) => (
-                <>
+                <Space>
                     <DownloadBatchButton
                         batchId={record.batch_id}
                         tooltip={'下载批次'}
@@ -82,13 +82,13 @@ export default function BatchListPage() {
                     >
                         <EyeOutlined />
                     </Button>
-                </>
+                </Space>
             ),
         },
     ]
 
     return (
-        <Card title="订单批次列表" style={{ margin: 24 }}>
+        <Card title="📦 订单批次列表" style={{ margin: 24 }}>
             <Table
                 rowKey="id"
                 loading={loading}

@@ -1,14 +1,14 @@
-import {Button, Form, Input, Modal, Select, Table, Tag, Tooltip} from 'antd'
+import {Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Tooltip, Typography} from 'antd'
 import {useEffect, useRef, useState} from 'react'
 import {type OrderResponse} from '@/api/orders.ts'
 import {ChannelCode, OrderStatus} from '@/api/enums.ts'
 import OrderItemList from "@/pages/order_fulfillment/components/OrderItemList.tsx";
 import OrderStatusLogsModal from "@/pages/order_fulfillment/components/OrderStatusLogsModal.tsx";
 import {getMapUrl} from "@/utils/maps.ts";
-import {EnvironmentOutlined, CopyOutlined} from '@ant-design/icons'
+import {EnvironmentOutlined, CopyOutlined, ReloadOutlined, SearchOutlined, ClearOutlined} from '@ant-design/icons'
 import {OrderAddressModal} from "@/pages/order_fulfillment/components/OrderAddressModal.tsx";
 import OrderActions from "@/pages/order_fulfillment/components/OrderActions.tsx";
-import {useOrders} from "@/hooks/Order.ts";
+import {useOrders} from "@/pages/order_fulfillment/hooks.ts";
 import {STATUS_COLORS, STATUS_LABELS} from "@/pages/order_fulfillment/components/enums.ts";
 import PullOrdersModal from "@/pages/order_fulfillment/components/PullOrdersModal.tsx";
 import useMessage from "antd/es/message/useMessage";
@@ -16,6 +16,10 @@ import ReactCountryFlag from "react-country-flag"
 import {formatTime} from "@/utils/time.ts";
 import {useNavigate} from "react-router-dom";
 import {CreateBatchButton} from "@/pages/order_fulfillment/components/CreateBatchModal.tsx";
+import OrderGuideModalButton from "@/pages/order_fulfillment/components/OrderGuideButton.tsx";
+
+
+const {Title} = Typography;
 
 const {Option} = Select
 
@@ -40,9 +44,9 @@ export default function OrderListPage() {
     }, [])
 
 
-    const onSearch = () => {
+    const onSearch = async () => {
         const values = form.getFieldsValue()
-        fetchOrders(values, true)
+        await fetchOrders(values, true)
     }
 
     const handleReset = async () => {
@@ -62,15 +66,15 @@ export default function OrderListPage() {
     }
 
     const columns = [
-        {title: 'ID', dataIndex: 'id', width: 70},
+        {title: '序号', dataIndex: 'id', width: 70},
         {
             title: '创建时间',
             dataIndex: 'created_at',
-            width: 150,
+            width: 130,
             render: (value: string) => formatTime(value),
         },
         {
-            title: '订单号 / 批次号',
+            title: '订单号',
             width: 120,
             dataIndex: 'order_number',
         },
@@ -98,7 +102,7 @@ export default function OrderListPage() {
         {
             title: '处理状态',
             dataIndex: 'status',
-            width: 140,
+            width: 110,
             render: (status: string, record: OrderResponse) => {
                 const color = STATUS_COLORS[status] || 'default'
                 const label = STATUS_LABELS[status] || status
@@ -231,7 +235,25 @@ export default function OrderListPage() {
     return (
         <div style={{padding: 24}}>
             {contextHolder}
-            <h2 style={{fontSize: 34, marginBottom: 30}}>订单处理</h2>
+
+            <Row justify="space-between" align="middle" style={{marginBottom: 16}}>
+                <Col>
+                    <Title level={4}>📋 订单处理系统</Title>
+                </Col>
+                <Col>
+                    <Space>
+                        <Button icon={<ReloadOutlined/>} type="primary" onClick={() => setPullOrdersModalVisible(true)}>拉取订单</Button>
+                        <CreateBatchButton
+                            tooltip={'注意：所有【已确认发货】的订单将会被合并到同一个批次中，供集中下载。'}
+                        >
+                            生成订单批次
+                        </CreateBatchButton>
+
+                    </Space>
+                </Col>
+            </Row>
+
+
             <Form
                 form={form}
                 layout="inline"
@@ -241,35 +263,27 @@ export default function OrderListPage() {
                 <Form.Item name="status" label="状态">
                     <Select allowClear style={{width: 120}}>
                         {Object.values(OrderStatus).map((key) => (
-                            <Option key={key} value={key}>{key}</Option>
+                            <Option key={key} value={key}>{STATUS_LABELS[key] || key}</Option>
                         ))}
                     </Select>
                 </Form.Item>
                 <Form.Item name="channel_code" label="渠道">
                     <Select allowClear style={{width: 140}}>
-                        {Object.values(ChannelCode).map((code) => (
-                            <Option key={code} value={code}>{code}</Option>
-                        ))}
+                        <Option value={ChannelCode.WooCommerce}>WooCommerce</Option>
+                        <Option value={ChannelCode.Amazon}>Amazon</Option>
                     </Select>
                 </Form.Item>
-                <Form.Item name="account_id" label="账号">
-                    <Input placeholder="请输入账号"/>
+                <Form.Item name="keyword" label="搜索词">
+                    <Input placeholder="请输入搜索词"/>
                 </Form.Item>
                 <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loading}>查询</Button>
+                    <Button icon={<SearchOutlined/>} type="primary" htmlType="submit" loading={loading}>查询</Button>
                 </Form.Item>
                 <Form.Item>
-                    <Button onClick={handleReset}>重置</Button>
+                    <Button icon={<ClearOutlined/>} onClick={handleReset}>重置</Button>
                 </Form.Item>
                 <Form.Item>
-                    <Button onClick={() => setPullOrdersModalVisible(true)}>拉取订单</Button>
-                </Form.Item>
-                <Form.Item>
-                    <CreateBatchButton
-                        tooltip={'注意：所有【已确认发货】的订单将会被合并到同一个批次中，供集中下载。'}
-                    >
-                        创建发货批次
-                    </CreateBatchButton>
+                    <OrderGuideModalButton />
                 </Form.Item>
             </Form>
 
@@ -326,4 +340,6 @@ export default function OrderListPage() {
         </div>
     )
 }
+
+
 

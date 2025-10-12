@@ -1,3 +1,5 @@
+// -------------Order Fulfillment Enums----------
+
 export  const  OrderStatus = {
     New: 'new',
     WaitingLabel: 'waiting_label',
@@ -33,3 +35,32 @@ export const BatchStatus = {
 }
 
 export type BatchStatus = (typeof BatchStatus)[keyof typeof BatchStatus]
+
+
+// ----Reply Handler----------
+export const EmailStatus = {
+    Processed: 'processed',
+    Unprocessed: 'unprocessed',
+}
+export type EmailStatus = (typeof EmailStatus)[keyof typeof EmailStatus]
+
+
+export const EmailCategory = {
+    InvalidEmail: 'invalid_email',
+    UnsubscribeRequest: 'unsubscribe_request',
+    KeepSubscription: 'keep_subscription',
+    EmailChange: 'email_change',
+    Other: 'other',
+}
+export type EmailCategory = (typeof EmailCategory)[keyof typeof EmailCategory]
+
+export const EmailActionType = {
+    MarkInvalid:'mark_invalid',
+    Unsubscribe: 'unsubscribe',
+    EmailUpdate: 'email_update',
+    NoAction: 'no_action',
+    Other: 'other',
+}
+export type EmailActionType = (typeof EmailActionType)[keyof typeof EmailActionType]
+
+

@@ -123,7 +123,7 @@ Guidelines:
 class OpenaiAddressParser:
 
     def __init__(self, model_name: str = DEFAULT_GPT_MODEL):
-        self.client: LLMKeys = load_openai_client()
+        self.client: OpenAI = load_openai_client()
         self.model_name = model_name
 
     def parse(self, raw_address: str) -> Dict:

@@ -29,3 +29,5 @@ from .order_fulfillment.models import (
     IntegrationCredentialModel, IntegrationCredentialModel_Pydantic,
     OrderItemModel, OrderItemModel_Pydantic,
 )
+
+from .reply_handler.models import EmailInboxModel, EmailActionModel, ProcessedAddressModel
