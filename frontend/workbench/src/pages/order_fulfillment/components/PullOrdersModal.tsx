@@ -1,7 +1,8 @@
 import { Modal, Form, Select, Input, message } from 'antd'
 import { useState } from 'react'
 import { pullOrders, type PullOrdersPayload } from '@/api/orders'
-import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
+import {useOrderEnums} from "@/pages/order_fulfillment/context.tsx";
+
 
 const { Option } = Select
 
@@ -15,7 +16,7 @@ export default function PullOrdersModal({ open, onClose, onSuccess }: Props) {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
     const [messageApi, contextHolder] = message.useMessage()
-    const { enums } = useEnums()
+    const { enums} = useOrderEnums()
 
     const handleOk = async () => {
         try {

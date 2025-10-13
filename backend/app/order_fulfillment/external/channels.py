@@ -239,7 +239,7 @@ class WooCommerceChannel(IOrderChannel):
         thumbnail_urls = [item.get("image_url", "") for item in order_items if item.get("image_url", "")]
 
         order = {
-            "order_number": str(data['id']),
+            "order_number": str(data['number']),
             "channel": self.get_channel_code(),
             "account_id": self.credential.external_id,
             "status": OrderStatus.NEW,

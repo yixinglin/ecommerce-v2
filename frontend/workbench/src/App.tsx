@@ -8,6 +8,7 @@ import NavigationBar from "@/components/NavigationBar.tsx";
 import OrderFulfillment from "@/pages/order_fulfillment/OrderListPage.tsx";
 import BatchListPage from "@/pages/order_fulfillment/BatchListPage.tsx";
 import EmailListPage from "@/pages/reply_handler/EmailListPage.tsx";
+import {OrderEnumsProvider} from "@/pages/order_fulfillment/context.tsx";
 
 function App() {
     console.log('当前环境:', import.meta.env.MODE);
@@ -22,7 +23,9 @@ function App() {
                 <Route path="/batches" element={<BatchListPage/>} />
                 <Route path="/orders" element={
                     <PrivateRoute>
-                        <OrderFulfillment/>
+                        <OrderEnumsProvider>
+                            <OrderFulfillment/>
+                        </OrderEnumsProvider>
                     </PrivateRoute>
                 }/>
                 <Route path="/reply_handler" element={

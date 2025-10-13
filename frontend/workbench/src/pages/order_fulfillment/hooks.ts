@@ -1,7 +1,6 @@
 import {useEffect, useState} from 'react'
 import {useRequest} from '../../hooks/useRequest.ts'
 import {
-    type EnumResponse, fetchEnums,
     generateLabel, getOrder,
     listOrderItems, listOrders,
     listStatusLogs,
@@ -12,31 +11,6 @@ import {
 import type {OrderItemResponse} from '@/api/orders.ts'
 import { getOrderAddress, type OrderAddress, type AddressType } from '@/api/orders.ts'
 import type {MessageInstance} from "antd/es/message/interface";
-
-let cachedEnums: EnumResponse | null = null;
-
-export function useEnums() {
-    const [data, setData] = useState<EnumResponse | null>(null)
-    const [loading, setLoading] = useState(false)
-
-    useEffect(() => {
-        if (cachedEnums) return; // 已缓存则不再请求
-        setLoading(true)
-        fetchEnums()
-            .then((res) => {
-                cachedEnums = res
-                setData(res)
-            })
-            .catch((e) => console.error('枚举加载失败', e))
-            .finally(() => setLoading(false))
-    }, [])
-
-    return {
-        enums: data,
-        loading,
-    }
-}
-
 
 
 interface ListResponse<T> {

@@ -1,7 +1,8 @@
 import {Form, message, Modal, Select} from 'antd'
 import {useState} from 'react'
 import {type OrderUpdatePayload, updateOrder} from "@/api/orders.ts";
-import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
+import {useOrderEnums} from "@/pages/order_fulfillment/context.tsx";
+
 
 interface Props {
     open: boolean
@@ -21,7 +22,7 @@ export default function UpdateOrderModal({
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
     const [messageApi, contextHolder] = message.useMessage()
-    const {enums} = useEnums()
+    const { enums } = useOrderEnums()
 
     const handleOk = async () => {
         try {

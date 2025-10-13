@@ -2,10 +2,11 @@ import {Modal, Form, Select, Input, message, Button, Tooltip} from 'antd'
 import {type ReactNode, useState} from 'react'
 
 import {useAuth} from "@/hooks/useAuth.ts";
-import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
+// import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
 import {createBatch} from "@/api/orders.ts";
 import {useNavigate} from "react-router-dom";
 import {PaperClipOutlined} from "@ant-design/icons";
+import {useOrderEnums} from "@/pages/order_fulfillment/context.tsx"
 
 interface Props {
     open: boolean
@@ -18,7 +19,7 @@ export default function CreateBatchModal({ open, onClose, onSuccess }: Props) {
     const [form] = Form.useForm()
     const [loading, setLoading] = useState(false)
     const [messageApi, contextHolder] = message.useMessage()
-    const { enums, loading: enumsLoading } = useEnums()
+    const { enums, loading: enumsLoading } = useOrderEnums()
 
     const handleOk = async () => {
         try {
