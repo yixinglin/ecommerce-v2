@@ -131,6 +131,7 @@ class GlsEuProvider(ILogisticsProvider):
         # locations = jsonpath(data, '$.parcels[*].location')
 
         location = data['location']
+        tracking_url = f"{location}?postCode={shipping_address.postal_code}"
         label_file_base64 = data['labels'][0]
 
         lab = await ShippingLabelModel.create(
@@ -138,7 +139,7 @@ class GlsEuProvider(ILogisticsProvider):
             tracking_id=",".join(parcel_numbers),
             label_file_base64=label_file_base64,
             carrier_code=CarrierCode.GLS_EU,
-            tracking_url=location,
+            tracking_url=tracking_url,
             order_id=order.id,
             channel=order.channel,
             external_id=self.credential.external_id

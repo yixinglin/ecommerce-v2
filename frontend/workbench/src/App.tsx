@@ -19,7 +19,7 @@ function App() {
 
             <Routes>
                 <Route path="/login" element={<Login/>}/>
-                <Route path="/about" element={<HomePage/>}/>
+                <Route path="/about" element={<p><h1>About</h1></p>}/>
                 <Route path="/batches" element={<BatchListPage/>} />
                 <Route path="/orders" element={
                     <PrivateRoute>

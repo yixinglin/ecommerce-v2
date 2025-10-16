@@ -185,7 +185,9 @@ export default function OrderListPage() {
             ellipsis: true,
             render: (text: string, record: OrderResponse) => (
                 <div>
-                    <span> {text} </span> <br/>
+                    <span>
+                    <a href={record?.tracking_url || ''} target="_blank" rel="noopener noreferrer"> {text} </a>
+                    </span> <br/>
                     {record.batch_id && (
                             <span
                                 style={{color: 'gray', fontSize: 9, cursor: 'pointer'}}

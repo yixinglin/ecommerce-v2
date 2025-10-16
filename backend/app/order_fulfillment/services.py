@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import io
+import tempfile
 import zipfile
 from datetime import datetime
 from typing import Optional, List
@@ -15,6 +16,7 @@ import utils.utilpdf as pdf_utils
 from app import OrderBatchModel
 from core.log import logger
 from core.response import ListResponse
+from utils.shop_document import fmt_date, fmt_euro_price, generate_delivery_note
 from .common.enums import OrderStatus, OrderBatchStatus, IntegrationType, OperationType, AddressType
 from .common.exceptions import TrackingInfoSyncError
 from .models import OrderModel, ShippingLabelModel, AddressModel, OrderItemModel, OrderStatusLogModel, \
@@ -263,32 +265,37 @@ class PDFGenerator:
 
     @staticmethod
     async def generate_packing_slips(orders: List[OrderModel]) -> io.BytesIO:
-        # 装箱单：每个订单生成后合并为一个 PDF
+        # TODO: 装箱单：每个订单生成后合并为一个 PDF
         bytes_list = []
 
         for order in orders:
             ship_address = await AddressModel.get_or_none(id=order.shipping_address_id)
-            slip_addr = sb.BuyerAddress(
-                street=f"{ship_address.address1}, {ship_address.address2}",
-                city=ship_address.city,
-                zip=ship_address.postal_code,
-                country=ship_address.country
-            )
             items = await OrderItemModel.filter(order_id=order.id).all()
-            slip_items = [
-                sb.Item(sku=_item.sku, name=_item.name, qty=_item.quantity, price=_item.unit_price_excl_tax)
-                for _item in items
-            ]
-            slip_order = sb.Order(
-                order_id=order.order_number,
-                buyer_name=order.buyer_name,
-                buyer_address=slip_addr,
-                items=slip_items,
-                shipper_info=None,
-            )
+            context = {
+                "company": ship_address.company,
+                "name": ship_address.name,
+                "address1": ship_address.address1,
+                "address2": ship_address.address2,
+                "postal_code": ship_address.postal_code,
+                "city": ship_address.city,
+                "country_code": ship_address.country_code,
+                "order_number": order.order_number,
+                "created_at": fmt_date(datetime.now()),
+                "items": [
+                    {
+                        "sku": _item.sku,
+                        "quantity": _item.quantity,
+                        "name": _item.name,
+                        "unit_price_excl_tax": fmt_euro_price( _item.unit_price_excl_tax)
+                    }
+                    for _item in items
+                ]
+            }
 
-            slip_pdf = sb.SlipBuilder.generate_packing_slip(slip_order)
-            bytes_list.append(slip_pdf)
+            pdf_bytes = generate_delivery_note(
+                context=context,
+            )
+            bytes_list.append(pdf_bytes)
 
         if not bytes_list:
             logger.error("No valid packing slips found")
@@ -299,7 +306,6 @@ class PDFGenerator:
         output_stream.seek(0)
         logger.info(f"Generated packing slips for batch {orders[0].batch_id}")
         return output_stream
-
 
 class ZipBuilder:
     @staticmethod

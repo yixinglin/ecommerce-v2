@@ -12,6 +12,7 @@ attrs==24.3.0
 bcrypt==4.3.0
 beautifulsoup4==4.12.3
 blinker==1.8.2
+Brotli==1.1.0
 cachetools==5.5.0
 certifi==2024.8.30
 cffi==1.17.1
@@ -20,7 +21,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 confuse==2.0.1
 cryptography==44.0.2
-cssselect2==0.7.0
+cssselect2==0.8.0
 distro==1.9.0
 dnspython==2.6.1
 ecdsa==0.19.1
@@ -29,6 +30,7 @@ et-xmlfile==1.1.0
 exceptiongroup==1.2.2
 fastapi==0.115.12
 fastapi-mail==1.4.1
+fonttools==4.60.1
 frozenlist==1.5.0
 geographiclib==2.0
 geopy==2.4.1
@@ -68,10 +70,12 @@ pycryptodome==3.21.0
 pydantic==2.8.2
 pydantic-settings==2.4.0
 pydantic_core==2.20.1
+pydyf==0.11.0
 pymongo==4.9
 PyMuPDF==1.26.4
 PyMySQL==1.1.1
 PyPDF2==3.0.1
+pyphen==0.17.2
 pypika-tortoise==0.1.6
 pypinyin==0.53.0
 python-amazon-sp-api==1.6.23
@@ -95,6 +99,7 @@ soupsieve==2.6
 starlette==0.46.2
 svglib==1.5.1
 tinycss2==1.4.0
+tinyhtml5==2.0.0
 tortoise-orm==0.21.6
 tqdm==4.67.1
 typing_extensions==4.12.2
@@ -102,6 +107,8 @@ tzdata==2024.1
 tzlocal==5.2
 urllib3==2.2.2
 uvicorn==0.30.6
+weasyprint==66.0
 webencodings==0.5.1
 XlsxWriter==3.2.3
 yarl==1.18.3
+zopfli==0.2.3.post1

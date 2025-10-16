@@ -1,7 +1,8 @@
+import json
 import os
 import sys
 import tomllib
-from typing import Optional
+from typing import Optional, Dict
 
 from pydantic import BaseModel, Field
 from reportlab.pdfbase import pdfmetrics
@@ -114,6 +115,7 @@ class Config(BaseModel):
     email: EmailConfig
     http_proxy: HttpProxyConfig
     scheduler: SchedulerConfig
+    ISO_3166_DE: Optional[Dict] = None
 
 
 # 获取 `env` 环境变量（默认为 `dev`）
@@ -134,6 +136,13 @@ settings = Config.parse_obj(config_dict)
 
 settings.static.upload_dir = os.path.join(settings.static.static_dir, 'uploads')
 settings.static.image_dir = os.path.join(settings.static.static_dir, 'images')
+
+# 读取国家编码
+try:
+    with open("assets/static/german-iso-3166.json", 'rb') as f:
+        settings.ISO_3166_DE = json.load(f)
+except FileNotFoundError as e:
+    raise FileNotFoundError(f"German ISO 3166 JSON 文件未找到！{e}")
 
 if __name__ == '__main__':
     with open('conf/dev.toml', 'rb') as f:

@@ -35,13 +35,10 @@ class CarrierCode(str, Enum):
 
 
 class ChannelCode(str, Enum):
-    AMAZON = "amazon"
-    SHOPIFY = "shopify"
     WOOCOMMERCE = "woocommerce"
+    TIKTOK = "tiktok"
+    AMAZON = "amazon"
     KAUFLAND = "kaufland"
-    TEMU = "temu"
-    ODOO = "odoo"
-    LINGXING = "lingxing"
     CUSTOM_ERP = "custom_erp"
 
 
