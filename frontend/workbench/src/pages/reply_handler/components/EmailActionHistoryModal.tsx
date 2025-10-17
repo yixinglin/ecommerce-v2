@@ -1,4 +1,4 @@
-// src/pages/reply_handler/components/EmailActionHistoryModal.tsx
+
 import React, { useEffect, useState } from "react";
 import { Modal, Table, Tag, Typography, message } from "antd";
 import { formatTime } from "@/utils/time";

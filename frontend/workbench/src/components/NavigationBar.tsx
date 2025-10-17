@@ -17,9 +17,6 @@ const NavigationBar = () => {
                 <Menu.Item key="orders" icon={<AppstoreOutlined/>}>
                     <Link to="/orders">订单处理</Link>
                 </Menu.Item>
-                <Menu.Item key="batches" icon={<AppstoreOutlined/>}>
-                    <Link to="/batches">订单批次</Link>
-                </Menu.Item>
             </SubMenu>
             <Menu.Item key="about" icon={<TruckOutlined/>}>
                 <Link to="/about">About</Link>

@@ -34,9 +34,6 @@ export default function PullOrdersModal({ open, onClose, onSuccess }: Props) {
         }
     }
 
-    // TODO: 选择渠道之后，拉取账号信息
-
-
     return (
         <>
             {contextHolder}

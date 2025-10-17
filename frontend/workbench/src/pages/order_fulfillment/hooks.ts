@@ -1,16 +1,18 @@
 import {useEffect, useState} from 'react'
 import {useRequest} from '../../hooks/useRequest.ts'
+import type {OrderItemResponse} from '@/api/orders.ts'
 import {
-    generateLabel, getOrder,
-    listOrderItems, listOrders,
+    type AddressType,
+    getOrder,
+    getOrderAddress,
+    listOrderItems,
+    listOrders,
     listStatusLogs,
+    type OrderAddress,
     type OrderQuery,
     type OrderResponse,
     type OrderStatusLog
 } from '@/api/orders.ts'
-import type {OrderItemResponse} from '@/api/orders.ts'
-import { getOrderAddress, type OrderAddress, type AddressType } from '@/api/orders.ts'
-import type {MessageInstance} from "antd/es/message/interface";
 
 
 interface ListResponse<T> {
@@ -20,7 +22,7 @@ interface ListResponse<T> {
     limit: number
 }
 
-export function useOrders(initialParams: OrderQuery = { page: 1, limit: 10 }) {
+export function useOrders(initialParams: OrderQuery = {page: 1, limit: 10}) {
     const [orders, setOrders] = useState<OrderResponse[]>([])
     const [params, setParams] = useState<OrderQuery>(initialParams)
 
@@ -38,7 +40,7 @@ export function useOrders(initialParams: OrderQuery = { page: 1, limit: 10 }) {
 
     /** 加载订单列表（可带筛选） */
     const fetchOrders = async (query?: Partial<OrderQuery>, resetPage = false) => {
-        const merged = { ...params, ...query }
+        const merged = {...params, ...query}
         if (resetPage) merged.page = 1
         setParams(merged)
         await runList(merged)
@@ -66,7 +68,7 @@ export function useOrders(initialParams: OrderQuery = { page: 1, limit: 10 }) {
         showTotal: (total: any) => `共 ${total} 条`,
         showSizeChanger: true,
         onChange: (page: number, limit: number) => {
-            fetchOrders({ page, limit })
+            fetchOrders({page, limit})
         },
     }
 
@@ -156,38 +158,5 @@ export function useOrderAddress(orderId: number, addressType: AddressType) {
         address: data,
         loading,
         refetch: fetchOrderAddress,
-    }
-}
-
-export function useGenerateLabel(messageApi: MessageInstance) {
-    const [loading, setLoading] = useState(false)
-
-    const run = async (
-        orderId: number,
-        externalLogisticId: string,
-        moreLabels: boolean = false,
-        onSuccess?: () => void,
-        onFailure?: (err: any) => void
-    ) => {
-        try {
-            setLoading(true)
-            const res = await generateLabel(orderId, externalLogisticId, moreLabels)
-            if (res?.success) {
-                messageApi.success('快递单生成成功')
-                onSuccess?.()
-            } else {
-                messageApi.error('生成快递单失败，请查看历史日志详情！')
-                onFailure?.(res)
-            }
-        } catch (err: any) {
-            messageApi.error(err?.response?.data?.detail || err?.message || '生成失败')
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    return {
-        run,
-        loading,
     }
 }

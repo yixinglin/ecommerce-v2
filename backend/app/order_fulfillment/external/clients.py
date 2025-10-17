@@ -1,5 +1,4 @@
 import httpx
-
 from core.log import logger
 
 
@@ -18,3 +17,4 @@ class GlsEuApiClient:
             raise Exception(f"GLS API Error {resp.status_code}: {resp.text}")
         logger.info(f"GLS label successfully created: {resp.status_code}")
         return resp.json()
+

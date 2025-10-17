@@ -250,6 +250,9 @@ export default function OrderListPage() {
                         >
                             生成订单批次
                         </CreateBatchButton>
+                        <Button icon={<SearchOutlined/>} onClick={() => navigate('/batches', {})}>
+                            查看批次
+                        </Button>
 
                     </Space>
                 </Col>

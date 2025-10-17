@@ -68,7 +68,14 @@ class PrintTaskService:
     async def get_print_tasks(self, offset, limit, keyword, **kwargs):
         query = Q()
         if keyword:
-            query &= Q(task_name__icontains=keyword)
+            query &= (
+                Q(task_name__icontains=keyword) |
+                Q(description__icontains=keyword) |
+                Q(file_paths__icontains=keyword) |
+                Q(created_by__icontains=keyword) |
+                Q(printed_by__icontains=keyword) |
+                Q(signature__icontains=keyword)
+            )
         qs = PrintTaskModel.filter(query, **kwargs)
         total = await qs.count()
         tasks = qs.order_by("-id").offset(offset).limit(limit)

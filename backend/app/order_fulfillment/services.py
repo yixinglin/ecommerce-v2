@@ -265,12 +265,12 @@ class PDFGenerator:
 
     @staticmethod
     async def generate_packing_slips(orders: List[OrderModel]) -> io.BytesIO:
-        # TODO: 装箱单：每个订单生成后合并为一个 PDF
+        # 装箱单：每个订单生成后合并为一个 PDF
         bytes_list = []
 
         for order in orders:
             ship_address = await AddressModel.get_or_none(id=order.shipping_address_id)
-            items = await OrderItemModel.filter(order_id=order.id).all()
+            items = await OrderItemModel.filter(order_id=order.id).order_by("sku").all()
             context = {
                 "company": ship_address.company,
                 "name": ship_address.name,

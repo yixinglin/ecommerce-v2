@@ -1,8 +1,8 @@
 import { Button, Tooltip, message } from 'antd'
-import {type ReactNode} from 'react'
-import {useGenerateLabel} from "@/pages/order_fulfillment/hooks.ts";
+import {type ReactNode, useState} from 'react'
+import {generateLabel} from "@/api/orders.ts";
 
-const external_logistic_id = import.meta.env.VITE_GLS_EXTERNAL_ID
+const external_gls_id = import.meta.env.VITE_GLS_EXTERNAL_ID
 
 interface Props {
     orderId: number
@@ -15,24 +15,31 @@ interface Props {
     onFailure?: (err: any) => void,
 }
 
-export default function GenerateLabelButton (
+export function GenerateGlsLabelButton (
     { orderId, children, tooltip, size, type, disabled, onSuccess, onFailure }: Props
 ) {
     const [messageApi, contextHolder] = message.useMessage()
-    const { run: generateLabel, loading: confirmGenerateLabelLoading } = useGenerateLabel(messageApi)
+    const [loading, setLoading] = useState(false)
 
     const handleOnClickGenerateLabel = async () => {
         try {
-            await generateLabel(orderId, external_logistic_id, false, () => {
-                message.info('生成面单成功')
-                if (onSuccess) onSuccess()
-            }, () => {
-                message.error('生成面单失败')
-                if (onFailure) onFailure({})
-            })
-        } catch (error) {
-            message.error('生成面单失败')
+            setLoading(true)
+            const res = await generateLabel(orderId, external_gls_id, false)
+            if (res?.success) {
+                messageApi.success('快递单生成成功')
+                onSuccess?.()
+            } else {
+                messageApi.error('生成快递单失败，请查看历史日志详情！')
+                console.error(res)
+                onFailure?.({})
+            }
+        } catch (error: any) {
+            messageApi.error('生成快递单失败，请查看历史日志详情！')
+            messageApi.error(error?.response?.data?.detail || error?.message || '生成失败')
             console.error(error)
+            onFailure?.({})
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -43,8 +50,8 @@ export default function GenerateLabelButton (
                 <Button
                     size={size}
                     type={type}
-                    disabled={disabled || confirmGenerateLabelLoading}
-                    loading={confirmGenerateLabelLoading}
+                    disabled={disabled || loading}
+                    loading={loading}
                     onClick={handleOnClickGenerateLabel}
                 >
                     {children}
@@ -53,4 +60,3 @@ export default function GenerateLabelButton (
         </>
     )
 }
-

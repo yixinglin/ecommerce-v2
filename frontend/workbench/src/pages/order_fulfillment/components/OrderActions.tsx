@@ -2,12 +2,10 @@ import {Button, Dropdown, type MenuProps, Space, Tooltip} from "antd";
 import {EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
 import {type OrderResponse} from "@/api/orders.ts";
 import SyncTrackingButton from "@/pages/order_fulfillment/components/SyncTrackingButton.tsx";
-import GenerateLabelButton from "@/pages/order_fulfillment/components/GenerateLabelButton.tsx";
+import {GenerateGlsLabelButton} from "@/pages/order_fulfillment/components/GenerateLabelButton.tsx";
 import {OrderStatus} from "@/api/enums.ts";
 import UpdateOrderModal from "@/pages/order_fulfillment/components/UpdateOrderModal.tsx";
 import {useState} from "react";
-
-// const external_logistic_id = import.meta.env.VITE_GLS_EXTERNAL_ID
 
 const OrderActions = ({order, onSuccess, onFailure}: {
     order: OrderResponse,
@@ -28,16 +26,6 @@ const OrderActions = ({order, onSuccess, onFailure}: {
         OrderStatus.LabelCreated,
     ];
 
-    // const handleOrderChange = () => {
-    //     cancelOrder(order.id).then(() => {
-    //         onSuccess?.();
-    //         messageApi.success("订单取消成功");
-    //     }).catch((err) => {
-    //         onFailure?.(err);
-    //         messageApi.error("订单取消失败");
-    //     })
-    // }
-
     const items: MenuProps['items'] = [
         {
             key: '3',
@@ -54,7 +42,7 @@ const OrderActions = ({order, onSuccess, onFailure}: {
             {/*{contextHolder}*/}
             <Space>
                 <Tooltip title="生成快递单">
-                    {<GenerateLabelButton
+                    {<GenerateGlsLabelButton
                         orderId={order.id}
                         type="primary"
                         tooltip={"生成面单"}
@@ -63,7 +51,7 @@ const OrderActions = ({order, onSuccess, onFailure}: {
                         onFailure={onFailure}
                     >
                         <FileAddOutlined/>
-                    </GenerateLabelButton>
+                    </GenerateGlsLabelButton>
                     }
                 </Tooltip>
                 <SyncTrackingButton

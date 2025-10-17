@@ -2,7 +2,6 @@ import {Modal, Form, Select, Input, message, Button, Tooltip} from 'antd'
 import {type ReactNode, useState} from 'react'
 
 import {useAuth} from "@/hooks/useAuth.ts";
-// import {useEnums} from "@/pages/order_fulfillment/hooks.ts";
 import {createBatch} from "@/api/orders.ts";
 import {useNavigate} from "react-router-dom";
 import {PaperClipOutlined} from "@ant-design/icons";
