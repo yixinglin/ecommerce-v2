@@ -9,6 +9,7 @@ from schemas.vip import VipOrder, VipCustomer
 from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
 from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService
+from services.odoo.OdooStatistics import OdooStatisticsService
 
 odoo_inventory = APIRouter(prefix="/inventory",)
 odoo_sales = APIRouter(prefix="/sales", )
@@ -108,7 +109,7 @@ def get_odoo_delivery_order(order_number: str):
     return ResponseSuccess(data=data)
 
 
-@odoo_dashboard.get('/sales_order_report',
+@odoo_dashboard.post('/sales_order_report',
                     summary="Download Sales Order Report")
 def download_sales_order_report(days_ago: int = 365):
     salesman_ids = [7]
@@ -127,10 +128,28 @@ def download_sales_order_report(days_ago: int = 365):
         headers={"Content-Disposition": "attachment; filename=Sales Order Report.xlsx"}
     )
 
-@odoo_dashboard.get('/sales_order_report/bubble_chart',
+@odoo_dashboard.post('/sales_order_report/bubble_chart',
                     summary="Render Sales Order Report Bubble Chart",
                     response_class=HTMLResponse)
 def render_sales_order_report_bubble_chart(days_ago: int = 365):
     with OdooOrderDashboardService(key_index=odoo_access_key_index, login=False) as svc:
         html = svc.stats_sales_order_by_customer_bubble_chart(days_ago=days_ago)
     return HTMLResponse(html)
+
+
+# 销量统计
+@odoo_dashboard.post('/sales_volume_report',
+                    summary="Get Sales Volume Report")
+def download_sales_volume_count():
+    service = OdooStatisticsService(key_index=odoo_access_key_index)
+    df_sales = service.product_sales_report()
+    output = io.BytesIO()
+    with pd.ExcelWriter(output) as writer:
+        df_sales.to_excel(writer, sheet_name='sheet1', index=False)
+    output.seek(0)
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=Sales Volume Report.xlsx"}
+    )

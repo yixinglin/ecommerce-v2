@@ -57,10 +57,10 @@ class TestAmazonUnits(unittest.TestCase):
             catalog_map = svc.create_asin_image_url_dict()
             catalog_items = catalog_map.keys()
             logger.info(f"Found {len(catalog_items)} catalog items")
-            catalog_item = svc.query_catalog_item('B0CPSMQW95')
-            svc.save_catalog("B0CPSMQW95")   # our catalog item
-            cnt = svc.remove_catalog_item("B0CPSMQW95")
-            svc.save_catalog("B0CSYHQC44")   # Catalog item of other seller
+            catalog_item = svc.query_catalog_item('B0DFLQVKBG')
+            svc.save_catalog("B0DFLQVKBG")   # our catalog item
+            cnt = svc.remove_catalog_item("B0DFLQVKBG")
+            svc.save_catalog("B0DFLQVKBG")   # Catalog item of other seller
             self.assertEqual(cnt, 1)
 
         logger.info("Testing save_all_catalogs")
