@@ -137,8 +137,9 @@ class WooCommerceChannel(IOrderChannel):
         client = WooOrderClient(self.api_key)
 
         # Update tracking info to WooCommerce
+        woo_order_id = int(order.raw_data['id'])
         track_info = TrackInfoUpdate(
-            order_id=order.order_number,
+            order_id=woo_order_id,
             tracking_number=order.tracking_number,
             tracking_url=order.tracking_url,
             carrier=order.carrier_code

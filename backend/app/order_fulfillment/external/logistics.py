@@ -129,9 +129,9 @@ class GlsEuProvider(ILogisticsProvider):
         if isinstance(track_ids, str):
             track_ids = [track_ids]
         # locations = jsonpath(data, '$.parcels[*].location')
-
-        location = data['location']
-        tracking_url = f"{location}?postCode={shipping_address.postal_code}"
+        # location = data['location']
+        postal_code = shipping_address.postal_code
+        tracking_url = f"https://www.gls-pakete.de/reach-sendungsverfolgung?trackingNumber={parcel_numbers[0]}&postCode={postal_code}&utm_source=track-and-trace"
         label_file_base64 = data['labels'][0]
 
         lab = await ShippingLabelModel.create(
