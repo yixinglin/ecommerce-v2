@@ -103,6 +103,7 @@ class SchedulerConfig(BaseModel):
     gls_tracking_fetch_enabled: bool
     lingxing_fetch_enabled: bool
     woocommerce_fetch_enabled: bool
+    odoo_fetch_enabled: bool
 
 class Config(BaseModel):
     app: AppConfig

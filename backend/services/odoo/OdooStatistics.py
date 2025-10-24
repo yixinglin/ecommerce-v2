@@ -35,18 +35,20 @@ class OdooStatisticsService:
         cli = self.api.client
         # 时间范围
         today = datetime.datetime.today()
-        date_7 = (today - datetime.timedelta(days=7)).strftime('%Y-%m-%d')
-        date_14 = (today - datetime.timedelta(days=14)).strftime('%Y-%m-%d')
         date_30 = (today - datetime.timedelta(days=30)).strftime('%Y-%m-%d')
         date_60 = (today - datetime.timedelta(days=60)).strftime('%Y-%m-%d')
         date_90 = (today - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
+        date_120 = (today - datetime.timedelta(days=120)).strftime('%Y-%m-%d')
+        date_150 = (today - datetime.timedelta(days=150)).strftime('%Y-%m-%d')
+        date_180 = (today - datetime.timedelta(days=180)).strftime('%Y-%m-%d')
 
         # 获取销售数据
-        sales_7 = self._get_sales_data(date_7)
-        sales_14 = self._get_sales_data(date_14)
         sales_30 = self._get_sales_data(date_30)
         sales_60 = self._get_sales_data(date_60)
         sales_90 = self._get_sales_data(date_90)
+        sales_120 = self._get_sales_data(date_120)
+        sales_150 = self._get_sales_data(date_150)
+        sales_180 = self._get_sales_data(date_180)
 
         sales_data = {}
 
@@ -59,11 +61,12 @@ class OdooStatisticsService:
                     sales_data[pid] = {}
                 sales_data[pid][key] = rec['product_uom_qty']
 
-        merge_sales(sales_7, '7d')
-        merge_sales(sales_14, '14d')
         merge_sales(sales_30, '30d')
         merge_sales(sales_60, '60d')
         merge_sales(sales_90, '90d')
+        merge_sales(sales_120, '120d')
+        merge_sales(sales_150, '150d')
+        merge_sales(sales_180, '180d')
 
         # 只保留有销量的
         filtered_ids = [pid for pid, vals in sales_data.items() if any(vals.values())]
@@ -101,19 +104,31 @@ class OdooStatisticsService:
             vendor_lead_time = info.get('delay', 7)
             min_qty = info.get('min_qty', 1)
             sales30d = round(sales_data[pid].get('30d', 0), 2)
-            qty_available =round(product.get('qty_available', 0), 2)
+            sales60d = round(sales_data[pid].get('60d', 0), 2)
+            sales90d = round(sales_data[pid].get('90d', 0), 2)
+            sales120d = round(sales_data[pid].get('120d', 0), 2)
+            sales150d = round(sales_data[pid].get('150d', 0), 2)
+            sales180d = round(sales_data[pid].get('180d', 0), 2)
+            qty_available = round(product.get('qty_available', 0), 2)
+            if int(sales60d-sales30d) == 0:
+                sales_growth_rate = 0
+            else:
+                sales_growth_rate = (sales30d - (sales60d-sales30d)) / (sales60d-sales30d)  # 最近销量增长率
+                sales_growth_rate = round(sales_growth_rate, 2)
 
             row = {
                 'SKU': product.get('default_code') or '',
                 'Product Name': product['name'],
-                'Sales (7d)': round(sales_data[pid].get('7d', 0), 2),
-                'Sales (14d)': round(sales_data[pid].get('14d', 0), 2),
                 'Sales (30d)': sales30d,
-                'Sales (60d)': round(sales_data[pid].get('60d', 0), 2),
-                'Sales (90d)': round(sales_data[pid].get('90d', 0), 2),
+                'Sales (60d)': sales60d,
+                'Sales (90d)': sales90d,
+                'Sales (120d)': sales120d,
+                'Sales (150d)': sales150d,
+                'Sales (180d)': sales180d,
                 'On-Hand Quantity': qty_available,
                 'Forecasted Quantity': round(product.get('virtual_available', 0), 2),
                 'Sell-Through Rate (30d)': round(sales30d / max(qty_available, 1), 2),
+                "Sales Growth Rate": sales_growth_rate,
                 'Vendor Lead Time (days)': max(vendor_lead_time, 1),
                 'Vendor Min Qty': max(min_qty, 1),
                 'UoM': info.get('product_uom', [None, ''])[1],
@@ -126,14 +141,16 @@ class OdooStatisticsService:
         # Rename
         df.rename(columns={
             'Product Name': '产品名称',
-            "Sales (7d)": "7天销量",
-            "Sales (14d)": "14天销量",
             "Sales (30d)": "30天销量",
             "Sales (60d)": "60天销量",
             "Sales (90d)": "90天销量",
+            "Sales (120d)": "120天销量",
+            "Sales (150d)": "150天销量",
+            "Sales (180d)": "180天销量",
             "On-Hand Quantity": "在库数量",
             "Forecasted Quantity": "预测库存",
             "Sell-Through Rate (30d)": "30天动销比",
+            "Sales Growth Rate": "30天销量增长率",
             "Vendor Lead Time (days)": "采购周期 (天)",
             "Vendor Min Qty": "起订量",
             "UoM": "单位",

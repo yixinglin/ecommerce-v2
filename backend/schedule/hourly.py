@@ -104,6 +104,10 @@ def save_amazon_catalog_job(key_index, marketplace):
 
 
 def save_odoo_data_jobs():
+    if not settings.scheduler.odoo_fetch_enabled:
+        logger.info("Scheduled job to save data to Odoo is disabled in config")
+        return
+
     try:
         logger.info("Scheduled job to save product data to Odoo")
         with OdooProductService(key_index=odoo_access_key_index, login=True) as svc:

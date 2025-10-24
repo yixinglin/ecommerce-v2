@@ -38,7 +38,7 @@ export const batchStatusColors: Record<string, string> = {
 export const EMAIL_CATEGORY_COLORS: Record<string, string> = {
     invalid_email: "red",
     unsubscribe_request: "gold",
-    keep_subscription: "orange",
+    keep_subscription: "green",
     email_change: "blue",
     other: "default",
 }
