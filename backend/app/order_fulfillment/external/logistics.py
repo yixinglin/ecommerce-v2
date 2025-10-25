@@ -1,5 +1,8 @@
 import re
 from typing import Optional
+
+from tortoise.transactions import in_transaction
+
 import utils.auth as auth
 from .clients import GlsEuApiClient
 from ..common.enums import CarrierCode, AddressType
@@ -7,7 +10,8 @@ from ..common.exceptions import ShipmentRouteError
 from ..interfaces import (
     ILogisticsProvider, Order
 )
-from ..models import IntegrationCredentialModel, AddressModel, ShippingLabelModel, ShippingLabelModel_Pydantic
+from ..models import IntegrationCredentialModel, AddressModel, ShippingLabelModel, ShippingLabelModel_Pydantic, \
+    ShippingTrackingModel_Pydantic, ShippingTrackingModel
 from core.log import logger
 from ..common.builders import build_gls_delivery_from_address, build_gls_single_parcel
 from utils.stringutils import jsonpath
@@ -134,7 +138,7 @@ class GlsEuProvider(ILogisticsProvider):
         tracking_url = f"https://www.gls-pakete.de/reach-sendungsverfolgung?trackingNumber={parcel_numbers[0]}&postCode={postal_code}&utm_source=track-and-trace"
         label_file_base64 = data['labels'][0]
 
-        lab = await ShippingLabelModel.create(
+        lab = await ShippingLabelModel.update_or_create(
             tracking_number=",".join(track_ids),
             tracking_id=",".join(parcel_numbers),
             label_file_base64=label_file_base64,
@@ -145,6 +149,56 @@ class GlsEuProvider(ILogisticsProvider):
             external_id=self.credential.external_id
         )
         return await ShippingLabelModel_Pydantic.from_tortoise_orm(lab)
+
+    async def get_tracking_status(self, order: Order) -> ShippingTrackingModel_Pydantic:
+        """
+        Get the tracking status of a GLS shipment via Germany / Deutsche Post GLS API.
+        """
+        if not self.credential:
+            raise Exception("GLS credential not set")
+
+        tracking_numbers = order.tracking_number
+        if not tracking_numbers:
+            raise Exception(f"Tracking number not set for order {order.id}")
+
+        tracking_number = tracking_numbers.split(",")[0].strip()
+
+        base_url = self.credential.meta.get("base_url")
+        client = GlsEuApiClient(base_url, self.headers)
+        data = await client.get_tracking_status(tracking_number)
+        parcels = data.get("parcels", [])
+        if not parcels:
+            raise Exception("No parcels found in tracking data")
+        parcel = parcels[0]
+        status_text = parcel.get("status")
+        is_delivered = status_text == "DELIVERED"
+        events = parcel.get("events", [])
+
+        last_event = events[0] if events else {}
+        location = last_event.get("location", "")
+        description = last_event.get("description", "")
+        country_code = last_event.get("country", "")
+        raw_data = data
+
+        async with in_transaction():
+            order.delivered = is_delivered
+            await order.save()
+
+            track, _ = await ShippingTrackingModel.update_or_create(
+                order_id=order.id,
+                defaults={
+                    "tracking_number": tracking_number,
+                    "carrier_code": CarrierCode.GLS_EU,
+                    "location": location,
+                    "country_code": country_code,
+                    "description": description,
+                    "status_text": status_text,
+                    "raw_data": raw_data
+                }
+            )
+
+        return await ShippingTrackingModel_Pydantic.from_tortoise_orm(track)
+
 
     def _check_address_validity(self, address_content: str) -> bool:
         valid = not DhlEuProvider.is_ship_to_station(address_content)

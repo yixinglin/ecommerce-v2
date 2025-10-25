@@ -28,6 +28,7 @@ from .order_fulfillment.models import (
     ShippingLabelModel, ShippingLabelModel_Pydantic,
     IntegrationCredentialModel, IntegrationCredentialModel_Pydantic,
     OrderItemModel, OrderItemModel_Pydantic,
+    ShippingTrackingModel, ShippingTrackingModel_Pydantic
 )
 
 from .reply_handler.models import EmailInboxModel, EmailActionModel, ProcessedAddressModel

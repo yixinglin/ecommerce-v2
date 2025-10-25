@@ -1,6 +1,6 @@
 import {Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Tooltip, Typography} from 'antd'
 import {useEffect, useRef, useState} from 'react'
-import {type OrderResponse} from '@/api/orders.ts'
+import {type OrderResponse, update_shipping_tracking_status} from '@/api/orders.ts'
 import {ChannelCode, OrderStatus} from '@/api/enums.ts'
 import OrderItemList from "@/pages/order_fulfillment/components/OrderItemList.tsx";
 import OrderStatusLogsModal from "@/pages/order_fulfillment/components/OrderStatusLogsModal.tsx";
@@ -22,6 +22,9 @@ import OrderGuideModalButton from "@/pages/order_fulfillment/components/OrderGui
 const {Title} = Typography;
 
 const {Option} = Select
+
+const external_gls_id = import.meta.env.VITE_GLS_EXTERNAL_ID
+
 
 export default function OrderListPage() {
     const [form] = Form.useForm()
@@ -63,6 +66,24 @@ export default function OrderListPage() {
         debounceTimer.current = window.setTimeout(() => {
             fetchOrders(allValues, true)
         }, 400)
+    }
+
+    const handleUpdateDelivered = async (record: any) => {
+        try {
+            const res = await update_shipping_tracking_status(
+                record.id,
+                external_gls_id,
+            )
+            if (res.success) {
+                refreshOrder(record.id)
+                messageApi.success('物流状态更新成功')
+            } else {
+                messageApi.error('物流状态更新失败')
+            }
+        } catch (e) {
+            messageApi.error("物流状态更新失败")
+            console.error(e)
+        }
     }
 
     const columns = [
@@ -197,7 +218,21 @@ export default function OrderListPage() {
                             >
                                 {record.batch_id}
                             </span>
-                    )}
+                    )}<br/>
+
+                    {record.delivered && <Tag color="blue">客户已收货</Tag>  }
+                    {!record.delivered
+                        && <Button
+                            type="link"
+                            onClick={
+                                () => {
+                                    handleUpdateDelivered(record)
+                                }
+                            }
+                        >
+                            查询到货状态
+                    </Button>
+                    }
                 </div>
             )
         },

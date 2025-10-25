@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Dict
 from .models import OrderModel as Order, IntegrationCredentialModel as IntegrationCredential, OrderModel_Pydantic, \
-    ShippingLabelModel_Pydantic
+    ShippingLabelModel_Pydantic, ShippingTrackingModel_Pydantic
 
 
 class IOrderChannel(ABC):
@@ -39,7 +39,12 @@ class ILogisticsProvider(ABC):
         pass
 
     @abstractmethod
+    async def get_tracking_status(self, order: Order) -> ShippingTrackingModel_Pydantic:
+        pass
+
+    @abstractmethod
     def get_carrier_code(self) -> str:
         """Return logistics provider code (e.g., 'SF', 'UPS')"""
         pass
+
 

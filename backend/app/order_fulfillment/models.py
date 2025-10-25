@@ -30,6 +30,8 @@ class OrderModel(TortoiseBasicModel):
     carrier_code = fields.CharEnumField(CarrierCode, max_length=32, null=True, description="Logistics provider code (e.g., SF, UPS)")
     # 冗余字段
     thumbnails = fields.TextField(null=True, description="Thumbnail URLs of the order")
+    # 冗余字段
+    delivered = fields.BooleanField(default=False, description="Whether the package has been delivered")
 
     label_retry_count = fields.IntField(default=0, description="Retry count for shipping label generation")
     sync_retry_count = fields.IntField(default=0, description="Retry count for syncing to platform")
@@ -158,7 +160,6 @@ OrderErrorLogModel_Pydantic = pydantic_model_creator(OrderErrorLogModel, name="O
 
 class ShippingLabelModel(TortoiseBasicModel):
     id = fields.BigIntField(pk=True)
-    # order_id = fields.CharField(max_length=64, description="Associated order ID")
     order_id = fields.BigIntField(description="Associated order ID")
     channel = fields.CharField(max_length=32, description="Order source channel")
     external_id = fields.CharField(max_length=64, null=True, description="Account ID of the logistics provider")
@@ -175,6 +176,23 @@ class ShippingLabelModel(TortoiseBasicModel):
 
 ShippingLabelModel_Pydantic = pydantic_model_creator(ShippingLabelModel, name="ShippingLabelModel")
 
+
+class ShippingTrackingModel(TortoiseBasicModel):
+    id = fields.BigIntField(pk=True)
+    order_id = fields.BigIntField(unique=True, description="Associated order ID")
+    tracking_number = fields.CharField(max_length=64, description="Tracking number")
+    carrier_code = fields.CharField(max_length=32, description="Carrier code (e.g., SF, UPS)")
+    location = fields.CharField(max_length=50, null=True, description="Current location of the package, e.g. Hamburg, Berlin")
+    country_code = fields.CharField(max_length=8, description="ISO country code (e.g., US, CN)")
+    description = fields.CharField(max_length=512, null=True, description="Description of the package")
+    status_text = fields.CharField(max_length=64, description="Latest status (e.g., Delivered, In Transit)")
+    raw_data = fields.JSONField(null=True, description="Raw tracking payload or history")
+
+    class Meta:
+        table = "ofa_shipping_tracking"
+        unique_together = (("tracking_number", "carrier_code"),)
+
+ShippingTrackingModel_Pydantic = pydantic_model_creator(ShippingTrackingModel, name="ShippingTrackingModel")
 
 class IntegrationCredentialModel(models.Model):
     id = fields.BigIntField(pk=True)

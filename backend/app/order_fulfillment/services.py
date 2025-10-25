@@ -22,7 +22,8 @@ from .common.exceptions import TrackingInfoSyncError
 from .models import OrderModel, ShippingLabelModel, AddressModel, OrderItemModel, OrderStatusLogModel, \
     IntegrationCredentialModel, OrderModel_Pydantic, OrderErrorLogModel, OrderBatchModel_Pydantic, \
     IntegrationCredentialModel_Pydantic, OrderErrorLogModel_Pydantic, OrderStatusLogModel_Pydantic, \
-    OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic
+    OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic, ShippingTrackingModel_Pydantic, \
+    ShippingTrackingModel
 from .registry import Registry
 from .schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, IntegrationCredentialResponse, \
     IntegrationCredentialUpdateRequest, OrderItemResponse
@@ -276,6 +277,7 @@ class PDFGenerator:
                 "name": ship_address.name,
                 "address1": ship_address.address1,
                 "address2": ship_address.address2,
+                "country_name": "Deutschland" if ship_address.country_code == "DE" else ship_address.country,
                 "postal_code": ship_address.postal_code,
                 "city": ship_address.city,
                 "country_code": ship_address.country_code,
@@ -535,7 +537,7 @@ class OrderService:
         return await AddressModel_Pydantic.from_tortoise_orm(address)
 
 
-class LabelService:
+class ShippingLabelService:
 
     def __init__(self):
         pass
@@ -652,6 +654,32 @@ class LabelService:
             limit=len(results),
             offset=0
         )
+
+class ShippingTrackingService:
+
+    @staticmethod
+    async def update_tracking_status(order_id: int, external_logistic_id: str) -> ShippingTrackingModel_Pydantic:
+        order = await OrderModel.get(id=order_id)
+        if not order.tracking_number:
+            raise ValueError("Tracking number not found")
+        carrier_code = order.carrier_code
+        logistic_cred = await IntegrationCredentialModel.get(
+            type=IntegrationType.LOGISTICS,
+            provider_code=carrier_code,
+            external_id=external_logistic_id,
+            is_active=True
+        )
+
+        logistics = Registry.get_logistics(logistic_cred.provider_code)
+        logistics.set_credential(logistic_cred)
+        logger.info(f"Fetching tracking status for order {order.order_number}")
+        track_info = await logistics.get_tracking_status(order)
+        return track_info
+
+    @staticmethod
+    async def get_tracking_status(order_id: int) -> ShippingTrackingModel_Pydantic:
+        track = await ShippingTrackingModel.get(order_id=order_id)
+        return await ShippingTrackingModel_Pydantic.from_tortoise_orm(track)
 
 
 class CredentialService:

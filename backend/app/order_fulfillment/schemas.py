@@ -47,6 +47,7 @@ class OrderResponse(BaseModel):
     carrier_code: Optional[CarrierCode]
 
     thumbnails: Optional[str]
+    delivered: Optional[bool]
 
     label_retry_count: Optional[int]
     sync_retry_count: Optional[int]

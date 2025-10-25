@@ -36,6 +36,7 @@ export interface OrderResponse {
     customer_note?: string
     tracking_number?: string
     tracking_url?: string
+    delivered?: string
     carrier_code?: string
     batch_id?: string
 }
@@ -155,6 +156,15 @@ export function generateLabel(
             more_labels: moreLabels
         }
     )
+}
+
+export function update_shipping_tracking_status(
+    orderId: number,
+    externalLogisticId: string,
+) {
+    return post<{ success: boolean }>(
+        `/api/v1/order_fulfillment/orders/${orderId}/tracking_status?external_logistic_id=${externalLogisticId}`,
+        {})
 }
 
 export interface PullOrdersPayload {

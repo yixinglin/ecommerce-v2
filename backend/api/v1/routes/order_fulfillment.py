@@ -13,9 +13,11 @@ from app.order_fulfillment.common.enums import (
     IntegrationType, OrderStatus, OrderBatchStatus, AddressType, ChannelCode, OperationType, CarrierCode
 )
 from app.order_fulfillment.common.exceptions import TrackingInfoSyncError
+from app.order_fulfillment.models import ShippingTrackingModel_Pydantic
 from app.order_fulfillment.schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, PullOrdersRequest, \
     CreateBatchRequest, IntegrationCredentialResponse, IntegrationCredentialUpdateRequest, OrderItemResponse
-from app.order_fulfillment.services import OrderService, LabelService, BatchService, CredentialService
+from app.order_fulfillment.services import OrderService, ShippingLabelService, BatchService, CredentialService, \
+    ShippingTrackingService
 from core.log import logger
 from core.response import ListResponse
 
@@ -95,7 +97,7 @@ async def generate_labels(
         order_id: int,
         payload: GenerateLabelRequest,
 ) -> dict:
-    service = LabelService()
+    service = ShippingLabelService()
     try:
         if not payload.more_labels:
             success = await service.generate_label(
@@ -116,10 +118,39 @@ async def generate_labels(
         raise HTTPException(status_code=500, detail=str(e))
     return {"success": success}
 
+@ofa_router.post(
+    "/orders/{order_id}/tracking_status",
+    summary="Update shipping tracking status for order",
+)
+async def update_shipping_tracking_status(order_id: int, external_logistic_id: str) -> dict:
+    try:
+        track = await ShippingTrackingService.update_tracking_status(order_id, external_logistic_id)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error updating shipping tracking status for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"success": True}
+
+@ofa_router.get(
+    "/orders/{order_id}/tracking_status",
+    response_model=ShippingTrackingModel_Pydantic,
+    summary="Get shipping tracking status for order",
+)
+async def get_shipping_tracking_status(order_id: int) -> ShippingTrackingModel_Pydantic:
+    try:
+        track = await ShippingTrackingService.get_tracking_status(order_id)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error getting shipping tracking status for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return track
+
 @ofa_router.get("/orders/{order_id}/labels")
 async def get_labels(order_id: int) -> ListResponse[ShippingLabelModel_Pydantic]:
     try:
-        labels = await LabelService.get_labels(order_id)
+        labels = await ShippingLabelService.get_labels(order_id)
     except Exception as e:
         logger.error(f"Error getting labels for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

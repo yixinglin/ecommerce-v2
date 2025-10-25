@@ -53,3 +53,10 @@ cd /workspace/backend
 # Run the container
 docker compose down && docker compose up -d
 ```
+
+## 
+```shell
+# Login to mysql container
+docker exec -it mysql-yx mysql -uroot -p
+
+```
