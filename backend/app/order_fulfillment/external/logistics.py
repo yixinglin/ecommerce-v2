@@ -138,7 +138,7 @@ class GlsEuProvider(ILogisticsProvider):
         tracking_url = f"https://www.gls-pakete.de/reach-sendungsverfolgung?trackingNumber={parcel_numbers[0]}&postCode={postal_code}&utm_source=track-and-trace"
         label_file_base64 = data['labels'][0]
 
-        lab = await ShippingLabelModel.update_or_create(
+        lab = await ShippingLabelModel.create(
             tracking_number=",".join(track_ids),
             tracking_id=",".join(parcel_numbers),
             label_file_base64=label_file_base64,
