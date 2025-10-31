@@ -4,7 +4,6 @@ from barcode.writer import ImageWriter
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 from datetime import datetime
-from pathlib import Path
 
 template_dir = r"conf/template/hansagt"
 

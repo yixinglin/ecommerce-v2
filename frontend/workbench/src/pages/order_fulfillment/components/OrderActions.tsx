@@ -1,6 +1,6 @@
 import {Button, Dropdown, type MenuProps, Space, Tooltip} from "antd";
-import {EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
-import {type OrderResponse} from "@/api/orders.ts";
+import {DownloadOutlined, EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
+import {downloadOrderLabel, downloadOrderZip, type OrderResponse} from "@/api/orders.ts";
 import SyncTrackingButton from "@/pages/order_fulfillment/components/SyncTrackingButton.tsx";
 import {GenerateGlsLabelButton} from "@/pages/order_fulfillment/components/GenerateLabelButton.tsx";
 import {OrderStatus} from "@/api/enums.ts";
@@ -29,12 +29,37 @@ const OrderActions = ({order, onSuccess, onFailure}: {
     const items: MenuProps['items'] = [
         {
             key: '3',
-            label: "修改订单信息",
+            label: "订单信息",
             icon: <EditOutlined/>,
             onClick: () => {
                 setOrderModalOpen(true)
             }
-        }
+        },
+        {
+            key: '6',
+            label: '下载面单',
+            icon: <DownloadOutlined/>,
+            onClick: async () => {
+                try {
+                    await downloadOrderLabel(order.id)
+                } catch (err: any) {
+                    console.error(err)
+                }
+            }
+        },
+        {
+            key: '5',
+            label: "下载文档",
+            icon: <DownloadOutlined/>,
+            onClick: async () => {
+                try {
+                    await downloadOrderZip(order.id)
+                } catch (err: any) {
+                    console.error(err)
+                }
+            }
+        },
+
     ]
 
     return (
@@ -78,13 +103,13 @@ const OrderActions = ({order, onSuccess, onFailure}: {
                 initialValues={{
                     status: order.status,
                     carrier_code: order.carrier_code,
+                    parcel_weights: order.parcel_weights,
                 }}
                 onSuccess={() => {
                     onSuccess?.()
                 }}
             >
             </UpdateOrderModal>
-
         </div>
     )
 

@@ -250,6 +250,7 @@ class WooCommerceChannel(IOrderChannel):
             "carrier_code": default_carrier,
             "customer_note": data.get("customer_note", ""),
             "thumbnails": ",".join(thumbnail_urls),
+            "parcel_weights": data.get("weight", "0.00"),
             "raw_data": data
         }
 

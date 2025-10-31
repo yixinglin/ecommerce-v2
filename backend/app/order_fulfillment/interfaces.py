@@ -34,7 +34,7 @@ class ILogisticsProvider(ABC):
         pass
 
     @abstractmethod
-    async def create_shipping_label(self, order: Order) -> ShippingLabelModel_Pydantic:
+    async def create_shipping_label(self, order: Order, parcel_weights: List[float]=None) -> ShippingLabelModel_Pydantic:
         """Create shipping label and return tracking info"""
         pass
 

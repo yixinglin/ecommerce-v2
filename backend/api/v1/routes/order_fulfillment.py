@@ -15,7 +15,8 @@ from app.order_fulfillment.common.enums import (
 from app.order_fulfillment.common.exceptions import TrackingInfoSyncError
 from app.order_fulfillment.models import ShippingTrackingModel_Pydantic
 from app.order_fulfillment.schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, PullOrdersRequest, \
-    CreateBatchRequest, IntegrationCredentialResponse, IntegrationCredentialUpdateRequest, OrderItemResponse
+    CreateBatchRequest, IntegrationCredentialResponse, IntegrationCredentialUpdateRequest, OrderItemResponse, \
+    AddressUpdateRequest, ShippingTrackingResponse
 from app.order_fulfillment.services import OrderService, ShippingLabelService, BatchService, CredentialService, \
     ShippingTrackingService
 from core.log import logger
@@ -107,7 +108,7 @@ async def generate_labels(
         else:
             success = await service.generate_further_label(
                 order_id,
-                payload.external_logistic_id
+                payload.external_logistic_id,
             )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -122,7 +123,7 @@ async def generate_labels(
     "/orders/{order_id}/tracking_status",
     summary="Update shipping tracking status for order",
 )
-async def update_shipping_tracking_status(order_id: int, external_logistic_id: str) -> dict:
+async def update_shipping_tracking_status(order_id: int, external_logistic_id: str) -> ShippingTrackingResponse:
     try:
         track = await ShippingTrackingService.update_tracking_status(order_id, external_logistic_id)
     except DoesNotExist as e:
@@ -130,7 +131,7 @@ async def update_shipping_tracking_status(order_id: int, external_logistic_id: s
     except Exception as e:
         logger.error(f"Error updating shipping tracking status for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    return {"success": True}
+    return track
 
 @ofa_router.get(
     "/orders/{order_id}/tracking_status",
@@ -156,6 +157,33 @@ async def get_labels(order_id: int) -> ListResponse[ShippingLabelModel_Pydantic]
         raise HTTPException(status_code=500, detail=str(e))
     return labels
 
+@ofa_router.get(
+    "/orders/{order_id}/labels/pdf",
+    response_class=Response,
+    summary="Get shipping labels"
+)
+async def get_labels_pdf(order_id: int) -> Response:
+    try:
+        buff = await ShippingLabelService.get_labels_pdf(order_id)
+        bytes_ = buff.read()
+        filename = f"parcel_label_{order_id}.pdf"
+        disposition = f'attachment; filename="{filename}"'
+        headers = {
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(bytes_))
+        }
+        response = Response(
+            content=bytes_,
+            media_type="application/pdf",
+            headers=headers
+        )
+        return response
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error getting labels pdf for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @ofa_router.get("/orders/{order_id}/address/{address_type}")
 async def get_address_from_order(order_id: int, address_type: AddressType) -> AddressModel_Pydantic:
     try:
@@ -166,6 +194,27 @@ async def get_address_from_order(order_id: int, address_type: AddressType) -> Ad
         logger.error(f"Error getting address for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     return address
+
+@ofa_router.put("/orders/{order_id}/address/{address_type}")
+async def update_shipping_address_in_order(
+    order_id: int,
+    address: AddressUpdateRequest,
+    address_type: AddressType=AddressType.SHIPPING,
+) -> AddressModel_Pydantic:
+    try:
+        updated_address = await OrderService.update_address(
+            order_id=order_id,
+            address_type=address_type,
+            update_request=address
+        )
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"Address for order {order_id} not found: {str(e)}")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error updating address for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return updated_address
 
 @ofa_router.put(
     "/orders/{order_id}/update",
@@ -227,6 +276,34 @@ async def get_order_status_logs(order_id: int) -> ListResponse[OrderStatusLogMod
         logger.error(f"Error getting order status logs for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     return logs
+
+@ofa_router.get(
+    "/orders/{order_id}/zip",
+    summary="Get order documents as a zip file",
+    response_class=Response
+)
+async def get_order_documents(order_id: int) -> Response:
+    try:
+        buff = await OrderService.get_order_documents(order_id)
+        bytes_ = buff.read()
+        filename = f"documents_{order_id}.zip"
+        disposition = f'attachment; filename="{filename}"'
+        headers = {
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(bytes_))
+        }
+        response = Response(
+            content=bytes_,
+            media_type="application/zip",
+            headers=headers
+        )
+
+        return response
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error getting order documents for order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @ofa_router.post("/batches/create")

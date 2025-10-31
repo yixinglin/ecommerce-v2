@@ -15,16 +15,15 @@ class PullOrdersRequest(BaseModel):
 class OrderQueryRequest(BaseModel):
     status: Optional[OrderStatus] = Query(None, description="Order status")
     channel_code: Optional[ChannelCode] = Query(None, description="Channel code, e.g. Woocommerce")
-    # account_id: Optional[str] = Query(None, description="Account ID")
-    # order_id: Optional[str] = Query(None, description="Order ID")
-    # batch_id: Optional[str] = Query(None, description="Batch ID")
     keyword: Optional[str] = Query(None, description="Keyword to search for order")
+    delivered: Optional[bool] = Query(None, description="Filter by delivered orders")
     page: int = Query(1, ge=1, description="Page number")
     limit: int = Query(10, ge=1, description="Page size")
 
 class OrderUpdateRequest(BaseModel):
     status: Optional[OrderStatus] = Query(None, description="Order status")
     carrier_code: Optional[CarrierCode] = Query(None, description="Carrier code")
+    parcel_weights: Optional[str] = Query(None, description="Parcel weights")
 
 class OrderResponse(BaseModel):
     id: int
@@ -44,10 +43,13 @@ class OrderResponse(BaseModel):
 
     tracking_number: Optional[str]
     tracking_url: Optional[str]
+    tracking_info: Optional[str]
     carrier_code: Optional[CarrierCode]
 
     thumbnails: Optional[str]
     delivered: Optional[bool]
+
+    parcel_weights: Optional[str]
 
     label_retry_count: Optional[int]
     sync_retry_count: Optional[int]
@@ -77,6 +79,28 @@ class CreateBatchRequest(BaseModel):
     channel_code: ChannelCode = Query(..., description="Channel code, e.g. Woocommerce")
     account_id: Optional[str] = Query(None, description="Account ID")
     operator: Optional[str] = Query("system", description="Operator name")
+
+
+class AddressUpdateRequest(BaseModel):
+    name: Optional[str] = Query(None, description="Name of the address")
+    company: Optional[str] = Query(None, description="Company name")
+    address1: Optional[str] = Query(None, description="Address line 1")
+    address2: Optional[str] = Query(None, description="Address line 2")
+    city: Optional[str] = Query(None, description="City")
+    state_or_province: Optional[str] = Query(None, description="State or province")
+    postal_code: Optional[str] = Query(None, description="Postal code")
+    country_code: Optional[str] = Query(None, description="Country code")
+
+class ShippingTrackingResponse(BaseModel):
+    order_id: Optional[int]
+    tracking_number: Optional[str]
+    carrier_code: Optional[CarrierCode]
+    location: Optional[str]
+    country_code: Optional[str]
+    description: Optional[str]
+    status_text: Optional[str]
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
 
 
 class IntegrationCredentialResponse(BaseModel):

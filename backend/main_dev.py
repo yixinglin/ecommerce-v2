@@ -1,3 +1,10 @@
+import os, sys
+print("Python interpreter:", sys.executable)
+print("CWD:", os.getcwd())
+print("PYTHONPATH:", sys.path[:5])
+
+
+
 import uvicorn
 from api import app
 from core.config2 import settings

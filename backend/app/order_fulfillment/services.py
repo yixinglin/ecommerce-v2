@@ -2,6 +2,8 @@ import asyncio
 import base64
 import io
 import tempfile
+import time
+import uuid
 import zipfile
 from datetime import datetime
 from typing import Optional, List
@@ -12,6 +14,7 @@ from tortoise.expressions import Q, RawSQL
 from tortoise.transactions import in_transaction
 
 import utils.SlipBuilder as sb
+import utils.time
 import utils.utilpdf as pdf_utils
 from app import OrderBatchModel
 from core.log import logger
@@ -26,7 +29,7 @@ from .models import OrderModel, ShippingLabelModel, AddressModel, OrderItemModel
     ShippingTrackingModel
 from .registry import Registry
 from .schemas import OrderQueryRequest, OrderResponse, OrderUpdateRequest, IntegrationCredentialResponse, \
-    IntegrationCredentialUpdateRequest, OrderItemResponse
+    IntegrationCredentialUpdateRequest, OrderItemResponse, AddressUpdateRequest
 
 
 class LoggingService:
@@ -239,17 +242,20 @@ class PDFGenerator:
         bytes_list = []
         for order in orders:
             # Get the most recent label for this order
-            label = await ShippingLabelModel.filter(
+            labels = await ShippingLabelModel.filter(
                 order_id=order.id, channel=order.channel
-            ).order_by("-created_at").first()
-            if not label or not label.label_file_base64:
-                logger.error(f"Missing label for order {order.order_number}")
-                continue  # 记录缺失日志或异常
+            ).order_by("-created_at")
+
+            _label_list = []
+            for label in labels:
+                if not label or not label.label_file_base64:
+                    logger.error(f"Missing label for order {order.order_number}")
+                    continue  # 记录缺失日志或异常
+                _label_list.append(base64.b64decode(label.label_file_base64))
+
 
             try:
-                pdf_bytes: bytes = base64.b64decode(label.label_file_base64)
-                if pdf_bytes:
-                    bytes_list.append(pdf_bytes)
+                bytes_list.extend(_label_list)
             except Exception as e:
                 logger.error(f"Failed to process label for order {order.order_number}: {e}")
                 continue
@@ -326,6 +332,10 @@ class ZipBuilder:
         if not orders:
             raise ValueError(f"No orders found for batch_id: {batch_id}")
 
+        return await ZipBuilder.build_orders_zip(orders, batch_id)
+
+    @staticmethod
+    async def build_orders_zip(orders: List[OrderModel], batch_id):
         # 生成三个 PDF 文档（全部为 BytesIO）
         picking_list_pdf: io.BytesIO = await PDFGenerator.generate_picking_list(orders)
         labels_pdf: io.BytesIO = await PDFGenerator.generate_shipping_labels(orders)
@@ -342,6 +352,8 @@ class ZipBuilder:
 
         zip_buffer.seek(0)
         return zip_buffer.read()
+
+
 
 class OrderService:
 
@@ -383,6 +395,8 @@ class OrderService:
             filters &= Q(status=request.status)
         if request.channel_code:
             filters &= Q(channel=request.channel_code)
+        if request.delivered:
+            filters &= Q(delivered=request.delivered)
         if request.keyword:
             filters &= (
                 Q(order_number__icontains=request.keyword) |
@@ -521,6 +535,16 @@ class OrderService:
         )
 
     @staticmethod
+    async def get_order_documents(order_id: int) -> io.BytesIO:
+        order = await OrderModel.get(id=order_id)
+        orders = [order]
+        batch_id = f"{time.time()}"
+        bytes_ = await ZipBuilder.build_orders_zip(orders, batch_id=batch_id)
+        stream = io.BytesIO(bytes_)
+        stream.seek(0)
+        return stream
+
+    @staticmethod
     async def get_address(order_id: int, address_type: AddressType) -> AddressModel_Pydantic:
         order = await OrderModel.get(id=order_id)
         if address_type == AddressType.SHIPPING:
@@ -536,18 +560,52 @@ class OrderService:
         address = await AddressModel.get(id=address_id)
         return await AddressModel_Pydantic.from_tortoise_orm(address)
 
+    @staticmethod
+    async def update_address(order_id: int, address_type: AddressType, update_request: AddressUpdateRequest) -> AddressModel_Pydantic:
+        order = await OrderModel.get(id=order_id)
+        if address_type == AddressType.SHIPPING:
+            address_id = order.shipping_address_id
+        elif address_type == AddressType.BILLING:
+            address_id = order.billing_address_id
+        else:
+            raise ValueError(f"Invalid address type: {address_type}")
+
+        if not address_id:
+            raise DoesNotExist(f"Address not found for order {order.order_number}")
+
+        address = await AddressModel.get(id=address_id)
+        update_data = update_request.dict(exclude_unset=True)
+
+        async with in_transaction():
+            for key, value in update_data.items():
+                setattr(address, key, value)
+            await address.save()
+
+            order.buyer_address = f"{address.address1}, {address.postal_code} {address.city}"
+            await order.save()
+
+        result = await AddressModel_Pydantic.from_tortoise_orm(address)
+        return result
+
 
 class ShippingLabelService:
 
     def __init__(self):
         pass
 
-    async def generate_label(self, order_id, external_logistic_id) -> bool:
+    async def generate_label(
+            self, order_id,
+            external_logistic_id,
+    ) -> bool:
         # 首次建立快递单，生成快递标签。会覆盖之前的记录
         order = await OrderModel.get(id=order_id)
         if order.status not in [OrderStatus.NEW, OrderStatus.LABEL_FAILED]:
             logger.error(f"Cannot generate label for order {order.order_number} in status {order.status}")
             raise ValueError("Please create order before generating label")
+
+        parcel_weights = order.parcel_weights
+        parcel_weights = [float(weight.strip()) for weight in order.parcel_weights.split(",")] if parcel_weights else []
+        parcel_weights = [max(0.50, weight) for weight in parcel_weights]
 
         carrier_code = order.carrier_code
         logistic_cred = await IntegrationCredentialModel.get(
@@ -560,7 +618,12 @@ class ShippingLabelService:
         logistics = Registry.get_logistics(logistic_cred.provider_code)
         logistics.set_credential(logistic_cred)
         try:
-            label = await logistics.create_shipping_label(order)
+            async with in_transaction():
+                # 删除之前的快递单
+                await ShippingLabelModel.filter(order_id=order_id).delete()
+                # 创建快递单
+                label = await logistics.create_shipping_label(order, parcel_weights=parcel_weights)
+
             await LoggingService.log_transition(
                 order,
                 OrderStatus.LABEL_CREATED,
@@ -589,7 +652,17 @@ class ShippingLabelService:
             await order.save()
             return False
 
-    async def generate_further_label(self, order_id, external_logistic_id) -> bool:
+    async def generate_further_label(
+            self,
+            order_id,
+            external_logistic_id,
+            parcel_weights: List[float] = None
+    ) -> bool:
+        if not parcel_weights:
+            parcel_weights = [0.50]
+
+        parcel_weights = [max(0.50, weight) for weight in parcel_weights]
+
         # 追加快递单，生成快递标签。会追加到之前的记录。
         order = await OrderModel.get(id=order_id)
         if order.status not in [OrderStatus.LABEL_CREATED]:
@@ -606,7 +679,7 @@ class ShippingLabelService:
         logistics = Registry.get_logistics(logistic_cred.provider_code)
         logistics.set_credential(logistic_cred)
         try:
-            label = await logistics.create_shipping_label(order)
+            label = await logistics.create_shipping_label(order, parcel_weights=parcel_weights)
             await LoggingService.log_transition(
                 order,
                 OrderStatus.LABEL_CREATED,
@@ -617,6 +690,11 @@ class ShippingLabelService:
             order.tracking_number = ",".join([label.tracking_number for label in res.data])
             order.tracking_url = label.tracking_url
             order.status = OrderStatus.LABEL_CREATED
+            parcel_weights_str = ",".join([str(weight) for weight in parcel_weights])
+            if order.parcel_weights:
+                order.parcel_weights += f",{parcel_weights_str}"
+            else:
+                order.parcel_weights = parcel_weights_str
             await order.save()
             logger.info(f"Further label created for order {order.order_number}")
             return True
@@ -654,6 +732,29 @@ class ShippingLabelService:
             limit=len(results),
             offset=0
         )
+
+    @staticmethod
+    async def get_labels_pdf(order_id: int) -> io.BytesIO:
+        order = await OrderModel.get(id=order_id)
+        labels = await ShippingLabelModel.filter(
+            order_id=order_id,
+            carrier_code=order.carrier_code
+        ).order_by("-created_at")
+        if not labels:
+            raise ValueError("Label not found")
+
+        bytes_list = []
+        for label in labels:
+            if not label or not label.label_file_base64:
+                logger.error(f"Missing label for order {order.order_number}")
+                continue
+            bytes_list.append(base64.b64decode(label.label_file_base64))
+
+        merged_bytes = await asyncio.to_thread(pdf_utils.concat_pdfs_fitz, bytes_list)
+        output_stream = io.BytesIO(merged_bytes)
+        output_stream.seek(0)
+        return output_stream
+
 
 class ShippingTrackingService:
 

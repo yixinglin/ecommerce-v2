@@ -27,11 +27,14 @@ class OrderModel(TortoiseBasicModel):
     # 冗余字段
     tracking_number = fields.CharField(max_length=255, null=True, description="Generated logistics tracking number")
     tracking_url = fields.CharField(max_length=255, null=True, description="Logistics tracking URL")
+    tracking_info = fields.CharField(max_length=512, null=True, description="Logistics tracking info")
     carrier_code = fields.CharEnumField(CarrierCode, max_length=32, null=True, description="Logistics provider code (e.g., SF, UPS)")
     # 冗余字段
     thumbnails = fields.TextField(null=True, description="Thumbnail URLs of the order")
     # 冗余字段
     delivered = fields.BooleanField(default=False, description="Whether the package has been delivered")
+
+    parcel_weights = fields.CharField(max_length=128, null=True, description="Parcel weights (in kg)")
 
     label_retry_count = fields.IntField(default=0, description="Retry count for shipping label generation")
     sync_retry_count = fields.IntField(default=0, description="Retry count for syncing to platform")
@@ -164,8 +167,8 @@ class ShippingLabelModel(TortoiseBasicModel):
     channel = fields.CharField(max_length=32, description="Order source channel")
     external_id = fields.CharField(max_length=64, null=True, description="Account ID of the logistics provider")
 
-    tracking_number = fields.CharField(max_length=32, description="Logistics tracking number")
-    tracking_id = fields.CharField(max_length=32, null=True, description="Logistics tracking ID")
+    tracking_number = fields.CharField(max_length=255, description="Logistics tracking number")
+    tracking_id = fields.CharField(max_length=255, null=True, description="Logistics tracking ID")
     tracking_url = fields.CharField(max_length=255, null=True, description="Tracking url")
     carrier_code = fields.CharField(max_length=32, description="Carrier code (e.g., SF, UPS)")
     label_file_base64 = fields.TextField(description="Base64 encoded label PDF/image")

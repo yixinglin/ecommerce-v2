@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Optional, List
 
 from tortoise.transactions import in_transaction
 
@@ -12,7 +12,6 @@ from ..interfaces import (
 )
 from ..models import IntegrationCredentialModel, AddressModel, ShippingLabelModel, ShippingLabelModel_Pydantic, \
     ShippingTrackingModel_Pydantic, ShippingTrackingModel
-from core.log import logger
 from ..common.builders import build_gls_delivery_from_address, build_gls_single_parcel
 from utils.stringutils import jsonpath
 
@@ -27,7 +26,7 @@ class DhlEuProvider(ILogisticsProvider):
     def get_carrier_code(self) -> str:
         return CarrierCode.DHL
 
-    async def create_shipping_label(self, order: Order) -> ShippingLabelModel_Pydantic:
+    async def create_shipping_label(self, order: Order, parcel_weights: List[float]=None) -> ShippingLabelModel_Pydantic:
         """
         Create a DHL shipping label via Germany / Deutsche Post DHL API.
         """
@@ -85,7 +84,11 @@ class GlsEuProvider(ILogisticsProvider):
     def get_carrier_code(self) -> str:
         return CarrierCode.GLS_EU
 
-    async def create_shipping_label(self, order: Order) -> ShippingLabelModel_Pydantic:
+    async def create_shipping_label(
+            self,
+            order: Order,
+            parcel_weights: List[float] = None
+    ) -> ShippingLabelModel_Pydantic:
         """
         Create a GLS shipping label via Germany / Deutsche Post GLS API.
         """
@@ -112,6 +115,10 @@ class GlsEuProvider(ILogisticsProvider):
         delivery_dict = build_gls_delivery_from_address(
             shipping_address
         )
+
+        if not parcel_weights:
+            parcel_weights = [1.0]
+
         body = {
             "shipperId": shipper_id,
             "references": [order.order_number],
@@ -119,7 +126,8 @@ class GlsEuProvider(ILogisticsProvider):
                 "delivery": delivery_dict
             },
             "parcels": [
-                build_gls_single_parcel(weight=1.0, comment="")
+                build_gls_single_parcel(weight=w, comment="")
+                for w in parcel_weights
             ]
         }
 
@@ -171,7 +179,7 @@ class GlsEuProvider(ILogisticsProvider):
             raise Exception("No parcels found in tracking data")
         parcel = parcels[0]
         status_text = parcel.get("status")
-        is_delivered = status_text == "DELIVERED"
+        is_delivered = status_text == "DELIVERED"  # DELIVEREDPS
         events = parcel.get("events", [])
 
         last_event = events[0] if events else {}
@@ -181,9 +189,6 @@ class GlsEuProvider(ILogisticsProvider):
         raw_data = data
 
         async with in_transaction():
-            order.delivered = is_delivered
-            await order.save()
-
             track, _ = await ShippingTrackingModel.update_or_create(
                 order_id=order.id,
                 defaults={
@@ -196,6 +201,10 @@ class GlsEuProvider(ILogisticsProvider):
                     "raw_data": raw_data
                 }
             )
+
+            order.delivered = is_delivered
+            order.tracking_info =f"[{status_text}] {description} {location}, {country_code}."
+            await order.save()
 
         return await ShippingTrackingModel_Pydantic.from_tortoise_orm(track)
 

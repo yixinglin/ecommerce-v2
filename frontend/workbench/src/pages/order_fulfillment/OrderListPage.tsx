@@ -74,12 +74,9 @@ export default function OrderListPage() {
                 record.id,
                 external_gls_id,
             )
-            if (res.success) {
-                refreshOrder(record.id)
-                messageApi.success('物流状态更新成功')
-            } else {
-                messageApi.error('物流状态更新失败')
-            }
+            refreshOrder(record.id)
+            messageApi.success('物流状态更新成功')
+            console.log(res)
         } catch (e) {
             messageApi.error("物流状态更新失败")
             console.error(e)
@@ -207,7 +204,9 @@ export default function OrderListPage() {
             render: (text: string, record: OrderResponse) => (
                 <div>
                     <span>
-                    <a href={record?.tracking_url || ''} target="_blank" rel="noopener noreferrer"> {text} </a>
+                        <Tooltip title={record.tracking_info || '暂无物流信息'}>
+                            <a href={record?.tracking_url || ''} target="_blank" rel="noopener noreferrer"> {text} </a>
+                        </Tooltip>
                     </span> <br/>
                     {record.batch_id && (
                             <span
@@ -222,16 +221,17 @@ export default function OrderListPage() {
 
                     {record.delivered && <Tag color="blue">客户已收货</Tag>  }
                     {!record.delivered
-                        && <Button
-                            type="link"
-                            onClick={
-                                () => {
-                                    handleUpdateDelivered(record)
+                        &&
+                            <Button
+                                type="link"
+                                onClick={
+                                    () => {
+                                        handleUpdateDelivered(record)
+                                    }
                                 }
-                            }
-                        >
-                            查询到货状态
-                    </Button>
+                            >
+                                查询到货状态
+                            </Button>
                     }
                 </div>
             )
@@ -243,17 +243,22 @@ export default function OrderListPage() {
             render: (text: string, record: OrderResponse) => {
                 const urls: string[] = text.split(',').slice(0, 4)
                 return (
-                    <div
-                        style={{cursor: 'pointer'}}
-                        onClick={() => {
-                            setSelectedOrderId(record.id)
-                            setItemModalVisible(true)
-                        }}
-                    >
-                        {urls.map((url, index) => (
-                            <img key={index} src={url} style={{width: 50, height: 50, margin: 5}}/>
-                        ))}
-                    </div>
+                    <>
+                        <div
+                            style={{cursor: 'pointer'}}
+                            onClick={() => {
+                                setSelectedOrderId(record.id)
+                                setItemModalVisible(true)
+                            }}
+                        >
+                            {urls.map((url, index) => (
+                                <img key={index} src={url} style={{width: 50, height: 50, margin: 5}}/>
+                            ))}
+                        </div>
+                        <div>
+                            <span>{record.parcel_weights} (kg)</span>
+                        </div>
+                    </>
                 )
             }
         },
@@ -311,6 +316,12 @@ export default function OrderListPage() {
                     <Select allowClear style={{width: 140}}>
                         <Option value={ChannelCode.WooCommerce}>WooCommerce</Option>
                         <Option value={ChannelCode.Amazon}>Amazon</Option>
+                    </Select>
+                </Form.Item>
+                <Form.Item name="delivered" label="已收货">
+                    <Select allowClear style={{width: 90}}>
+                        <Option value={true}>是</Option>
+                        <Option value={false}>否</Option>
                     </Select>
                 </Form.Item>
                 <Form.Item name="keyword" label="搜索词">

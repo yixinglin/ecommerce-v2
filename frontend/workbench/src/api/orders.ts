@@ -36,9 +36,11 @@ export interface OrderResponse {
     customer_note?: string
     tracking_number?: string
     tracking_url?: string
+    tracking_info?: string
     delivered?: string
     carrier_code?: string
     batch_id?: string
+    parcel_weights?: string
 }
 
 export const getOrder = (orderId: number) => {
@@ -49,6 +51,7 @@ export interface OrderQuery {
     status?: string
     channel_code?: string
     keyword?: string
+    delivered?: string
     page?: number
     limit?: number
 }
@@ -67,6 +70,7 @@ export const listOrders = (params?: OrderQuery) => {
 export interface OrderUpdatePayload {
     status?: string
     carrier_code?: string
+    parcel_weights?: string
 }
 
 export function updateOrder(orderId: number, data: OrderUpdatePayload) {
@@ -143,6 +147,9 @@ export function getOrderAddress(orderId: number, type: AddressType) {
     return get<OrderAddress>(`/api/v1/order_fulfillment/orders/${orderId}/address/${type}`)
 }
 
+export function updateOrderAddress(orderId: number, type: AddressType, data: Partial<OrderAddress>) {
+    return put<OrderAddress>(`/api/v1/order_fulfillment/orders/${orderId}/address/${type}`, data)
+}
 
 export function generateLabel(
     orderId: number,
@@ -158,11 +165,24 @@ export function generateLabel(
     )
 }
 
+export interface ShippingTrackingResponse {
+    order_id: number
+    tracking_number?: string
+    carrier_code?: string
+    location?: string
+    country_code?: string
+    description?: string
+    status_text?: string
+    created_at?: string
+    updated_at?: string
+}
+
+
 export function update_shipping_tracking_status(
     orderId: number,
     externalLogisticId: string,
 ) {
-    return post<{ success: boolean }>(
+    return post<ShippingTrackingResponse>(
         `/api/v1/order_fulfillment/orders/${orderId}/tracking_status?external_logistic_id=${externalLogisticId}`,
         {})
 }
@@ -225,4 +245,33 @@ export async function downloadBatchZip(batchId: string): Promise<void> {
     window.URL.revokeObjectURL(url)
 }
 
+export async function downloadOrderZip(orderId: number): Promise<void> {
+    const blob = await get<Blob>(`/api/v1/order_fulfillment/orders/${orderId}/zip`, {
+        responseType: 'blob',
+    })
 
+    const filename = `documents_${orderId}.zip`
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+}
+
+export async function downloadOrderLabel(orderId: number): Promise<void> {
+    const blob = await get<Blob>(`/api/v1/order_fulfillment/orders/${orderId}/labels/pdf`, {
+        responseType: 'blob',
+    })
+    const filename = `label_${orderId}.pdf`
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+}
