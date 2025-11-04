@@ -395,7 +395,7 @@ class OrderService:
             filters &= Q(status=request.status)
         if request.channel_code:
             filters &= Q(channel=request.channel_code)
-        if request.delivered:
+        if request.delivered is not None:
             filters &= Q(delivered=request.delivered)
         if request.keyword:
             filters &= (
