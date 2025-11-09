@@ -1,26 +1,22 @@
 import asyncio
 import base64
 import io
-import tempfile
 import time
-import uuid
 import zipfile
 from datetime import datetime
 from typing import Optional, List
 
-from starlette.exceptions import HTTPException
 from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q, RawSQL
 from tortoise.transactions import in_transaction
 
 import utils.SlipBuilder as sb
-import utils.time
 import utils.utilpdf as pdf_utils
 from app import OrderBatchModel
 from core.log import logger
 from core.response import ListResponse
 from utils.shop_document import fmt_date, fmt_euro_price, generate_delivery_note
-from .common.enums import OrderStatus, OrderBatchStatus, IntegrationType, OperationType, AddressType
+from .common.enums import OrderStatus, OrderBatchStatus, IntegrationType, OperationType, AddressType, CarrierCode
 from .common.exceptions import TrackingInfoSyncError
 from .models import OrderModel, ShippingLabelModel, AddressModel, OrderItemModel, OrderStatusLogModel, \
     IntegrationCredentialModel, OrderModel_Pydantic, OrderErrorLogModel, OrderBatchModel_Pydantic, \
@@ -433,6 +429,7 @@ class OrderService:
 
     @staticmethod
     async def update_order(order_id: int, update_request: OrderUpdateRequest) -> OrderResponse:
+
         update_data = update_request.dict(exclude_unset=True)
         if not order_id:
             raise ValueError("Order ID not provided")
@@ -440,12 +437,20 @@ class OrderService:
         async with in_transaction():
             order = await OrderModel.get(id=order_id)
             logger.info(f"Updating order {order.order_number}")
+            shipping_address = await AddressModel.get_or_none(id=order.shipping_address_id)
+            postal_code = shipping_address.postal_code if shipping_address else ""
+
             if update_request.status:
                 await LoggingService.log_transition(
                     order,
                     update_request.status,
                     f"Order status updated to {update_request.status}"
                 )
+
+            if not update_request.tracking_url and update_request.tracking_number:
+                if update_request.carrier_code == CarrierCode.GLS_EU:
+                    update_data["tracking_url"] = f"https://www.gls-pakete.de/reach-sendungsverfolgung?trackingNumber={update_request.tracking_number}&postCode={postal_code}&utm_source=track-and-trace"
+
             for key, value in update_data.items():
                 setattr(order, key, value)
             await order.save()

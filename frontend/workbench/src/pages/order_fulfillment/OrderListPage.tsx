@@ -1,4 +1,4 @@
-import {Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tag, Tooltip, Typography} from 'antd'
+import {Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, Tooltip, Typography} from 'antd'
 import {useEffect, useRef, useState} from 'react'
 import {type OrderResponse, update_shipping_tracking_status} from '@/api/orders.ts'
 import {ChannelCode, OrderStatus} from '@/api/enums.ts'
@@ -13,7 +13,7 @@ import {STATUS_COLORS, STATUS_LABELS} from "@/pages/order_fulfillment/components
 import PullOrdersModal from "@/pages/order_fulfillment/components/PullOrdersModal.tsx";
 import useMessage from "antd/es/message/useMessage";
 import ReactCountryFlag from "react-country-flag"
-import {formatTime} from "@/utils/time.ts";
+import {formatDate, formatTime} from "@/utils/time.ts";
 import {useNavigate} from "react-router-dom";
 import {CreateBatchButton} from "@/pages/order_fulfillment/components/CreateBatchModal.tsx";
 import OrderGuideModalButton from "@/pages/order_fulfillment/components/OrderGuideButton.tsx";
@@ -39,8 +39,18 @@ export default function OrderListPage() {
     const [addressModalVisible, setAddressModalVisible] = useState(false)
     const debounceTimer = useRef<number>(0)  // 防抖
     const [isResetting, setIsResetting] = useState(false) // 重置状态锁
-
     const [pullOrdersModalVisible, setPullOrdersModalVisible] = useState(false)
+
+    // Tabs 状态管理
+    const [activeTab, setActiveTab] = useState('all')
+    const statusTabs = [
+        { key: 'all', label: '所有订单', value: undefined },
+        { key: OrderStatus.New, label: '未处理', value: OrderStatus.New },
+        { key: OrderStatus.Completed, label: '已完成', value: OrderStatus.Completed },
+        { key: OrderStatus.Exception, label: '异常订单', value: OrderStatus.Exception },
+        { key: OrderStatus.Cancelled, label: '已取消', value: OrderStatus.Cancelled },
+    ]
+
 
     useEffect(() => {
         fetchOrders()
@@ -177,6 +187,12 @@ export default function OrderListPage() {
                         </a>
                     )}
                     {record.customer_note &&<span><br/><span style={{color: 'red'}}>买家留言: &nbsp;{record.customer_note}</span></span>  }
+                    {record.seller_note &&<span><br/><span style={{color: 'green'}}>商家备注: &nbsp;{record.seller_note}</span></span>  }
+                    {             record.estimated_delivery_date &&
+                        <div style={{color: 'gray', fontSize: 9}}>
+                            预计到货: {formatDate(record.estimated_delivery_date)}
+                        </div>
+                    }
                 </div>)
             }
 
@@ -281,6 +297,20 @@ export default function OrderListPage() {
             <Row justify="space-between" align="middle" style={{marginBottom: 16}}>
                 <Col>
                     <Title level={4}>📋 订单处理系统</Title>
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={async (key) => {
+                            setActiveTab(key)
+                            const status = statusTabs.find(t => t.key === key)?.value
+                            await fetchOrders({ status }, true)
+                            form.setFieldValue('status', status)
+                        }}
+                        items={statusTabs.map(tab => ({
+                            key: tab.key,
+                            label: tab.label
+                        }))}
+                        style={{ marginTop: 8 }}
+                    />
                 </Col>
                 <Col>
                     <Space>
@@ -293,7 +323,6 @@ export default function OrderListPage() {
                         <Button icon={<SearchOutlined/>} onClick={() => navigate('/batches', {})}>
                             查看批次
                         </Button>
-
                     </Space>
                 </Col>
             </Row>
@@ -337,6 +366,7 @@ export default function OrderListPage() {
                     <OrderGuideModalButton />
                 </Form.Item>
             </Form>
+
 
             <Table
                 dataSource={orders}

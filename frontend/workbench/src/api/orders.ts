@@ -34,10 +34,12 @@ export interface OrderResponse {
     buyer_address?: string
     country_code?: string
     customer_note?: string
+    seller_note?: string
+    estimated_delivery_date?: string
     tracking_number?: string
     tracking_url?: string
     tracking_info?: string
-    delivered?: string
+    delivered?: boolean
     carrier_code?: string
     batch_id?: string
     parcel_weights?: string
@@ -71,6 +73,11 @@ export interface OrderUpdatePayload {
     status?: string
     carrier_code?: string
     parcel_weights?: string
+    tracking_number?: string
+    tracking_url?: string
+    delivered?: boolean
+    seller_note?: string
+    estimated_delivery_date?: string
 }
 
 export function updateOrder(orderId: number, data: OrderUpdatePayload) {

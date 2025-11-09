@@ -1,7 +1,8 @@
-import {Form, Input, message, Modal, Select} from 'antd'
+import {DatePicker, Form, Input, message, Modal, Select, Switch} from 'antd'
 import {useState} from 'react'
 import {type OrderUpdatePayload, updateOrder} from "@/api/orders.ts";
 import {useOrderEnums} from "@/pages/order_fulfillment/context.tsx";
+import dayjs from "dayjs";
 
 
 interface Props {
@@ -23,12 +24,18 @@ export default function UpdateOrderModal({
     const [loading, setLoading] = useState(false)
     const [messageApi, contextHolder] = message.useMessage()
     const { enums } = useOrderEnums()
-
     const handleOk = async () => {
         try {
             const values = await form.validateFields()
+
+            // 格式化日期
+            const formattedValues = {
+                ...values,
+                estimated_delivery_date: values.estimated_delivery_date?.format('YYYY-MM-DD'),
+            }
+
             setLoading(true)
-            await updateOrder(orderId, values)
+            await updateOrder(orderId, formattedValues)
             messageApi.success('订单更新成功')
             onSuccess?.()
             onClose()
@@ -50,7 +57,15 @@ export default function UpdateOrderModal({
                 confirmLoading={loading}
                 destroyOnClose
             >
-                <Form form={form} layout="vertical" initialValues={initialValues}>
+                <Form form={form}
+                      layout="vertical"
+                      initialValues={{
+                          ...initialValues,
+                          estimated_delivery_date: initialValues?.estimated_delivery_date
+                          ? dayjs(initialValues?.estimated_delivery_date)
+                          : null,
+                      }}
+                >
                     <Form.Item name="status" label="订单状态">
                         <Select allowClear options={enums?.order_status} placeholder="请选择订单状态"/>
                     </Form.Item>
@@ -72,6 +87,54 @@ export default function UpdateOrderModal({
                         ]}
                     >
                         <Input placeholder="请输入包裹重量"/>
+                    </Form.Item>
+                    <Form.Item
+                        name="tracking_number"
+                        label="运单号"
+                        tooltip={{
+                            title: "运单号, 例如: 1234567890",
+                        }}
+                    >
+                        <Input placeholder="请输入运单号"/>
+                    </Form.Item>
+                    <Form.Item
+                        name="tracking_url"
+                        label="运单链接"
+                        tooltip={{
+                            title: "运单链接, 例如: https://www.example.com/tracking/1234567890",
+                        }}
+                    >
+                        <Input placeholder="请输入运单链接"/>
+                    </Form.Item>
+                    <Form.Item
+                        name="seller_note"
+                        label="商家备注"
+                        tooltip={{
+                            title: "商家备注, 例如: 请注意包裹质量",
+                        }}
+                    >
+                        <Input.TextArea placeholder="请输入商家备注"/>
+                    </Form.Item>
+                    <Form.Item
+                        name="estimated_delivery_date"
+                        label="预计到货日期"
+                    >
+                        <DatePicker
+                            format="DD.MM.YYYY"
+                            disabledDate={(current) => current && current < dayjs().startOf('day')}
+                            placeholder="请选择预计到货日期"
+                            style={{ width: '100%' }}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="delivered"
+                        label="是否已发货"
+                        valuePropName="checked"
+                        tooltip={{
+                            title: "是否已发货",
+                        }}
+                    >
+                        <Switch />
                     </Form.Item>
                 </Form>
             </Modal>

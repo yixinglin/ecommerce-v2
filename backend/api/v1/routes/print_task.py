@@ -54,16 +54,19 @@ async def update_print_task(
         status: PrintStatus = Form(PrintStatus.NOT_PRINTED),
         file_paths: List[str] = Form(None),  # 支持多文件上传
         skip: int = Form(None),
+        description: str = Form(None),
         signature: str = Form(None)):
     services = PrintTaskService()
-    task_obj = await services.update_print_task(task_id=task_id,
-                               task_name=task_name,
-                               created_by=created_by,
-                               printed_by=printed_by,
-                               status=status,
-                               file_paths=file_paths,
-                               skip=skip,
-                               signature=signature)
+    task_obj = await services.update_print_task(
+        task_id=task_id,
+        task_name=task_name,
+        created_by=created_by,
+        printed_by=printed_by,
+        status=status,
+        file_paths=file_paths,
+        skip=skip,
+        description=description,
+        signature=signature)
     return task_obj
 
 @print_task_router.get("/log/query/{task_id}",

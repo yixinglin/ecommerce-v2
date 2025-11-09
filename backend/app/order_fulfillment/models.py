@@ -19,6 +19,7 @@ class OrderModel(TortoiseBasicModel):
     billing_address_id = fields.BigIntField(description="Reference to billing address ID")
 
     customer_note = fields.CharField(max_length=255, null=True, description="Customer note (e.g., special request, etc.)")
+    seller_note = fields.CharField(max_length=255, null=True, description="Seller note (e.g., internal comments, etc.)")
 
     # 冗余字段
     buyer_name = fields.CharField(max_length=64, null=True, description="Redundant field for buyer's name")
@@ -35,6 +36,7 @@ class OrderModel(TortoiseBasicModel):
     delivered = fields.BooleanField(default=False, description="Whether the package has been delivered")
 
     parcel_weights = fields.CharField(max_length=128, null=True, description="Parcel weights (in kg)")
+    estimated_delivery_date = fields.DateField(null=True, description="Estimated delivery date")
 
     label_retry_count = fields.IntField(default=0, description="Retry count for shipping label generation")
     sync_retry_count = fields.IntField(default=0, description="Retry count for syncing to platform")

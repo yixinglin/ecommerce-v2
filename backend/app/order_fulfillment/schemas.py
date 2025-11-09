@@ -24,6 +24,11 @@ class OrderUpdateRequest(BaseModel):
     status: Optional[OrderStatus] = Query(None, description="Order status")
     carrier_code: Optional[CarrierCode] = Query(None, description="Carrier code")
     parcel_weights: Optional[str] = Query(None, description="Parcel weights")
+    tracking_number: Optional[str] = Query(None, description="Tracking number")
+    tracking_url: Optional[str] = Query(None, description="Tracking URL")
+    delivered: Optional[bool] = Query(None, description="Is delivered or not")
+    seller_note: Optional[str] = Query(None, description="Seller note")
+    estimated_delivery_date: Optional[datetime.date] = Query(None, description="Estimated delivery date")
 
 class OrderResponse(BaseModel):
     id: int
@@ -40,6 +45,8 @@ class OrderResponse(BaseModel):
     country_code:  Optional[str]
 
     customer_note: Optional[str]
+    seller_note: Optional[str]
+    estimated_delivery_date: Optional[datetime.date]
 
     tracking_number: Optional[str]
     tracking_url: Optional[str]

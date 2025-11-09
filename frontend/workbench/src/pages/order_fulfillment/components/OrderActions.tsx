@@ -1,20 +1,20 @@
 import {Button, Dropdown, type MenuProps, Space, Tooltip} from "antd";
-import {DownloadOutlined, EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined} from "@ant-design/icons";
+import {DownloadOutlined, EditOutlined, FileAddOutlined, MoreOutlined, RocketOutlined, MailOutlined} from "@ant-design/icons";
 import {downloadOrderLabel, downloadOrderZip, type OrderResponse} from "@/api/orders.ts";
 import SyncTrackingButton from "@/pages/order_fulfillment/components/SyncTrackingButton.tsx";
 import {GenerateGlsLabelButton} from "@/pages/order_fulfillment/components/GenerateLabelButton.tsx";
 import {OrderStatus} from "@/api/enums.ts";
 import UpdateOrderModal from "@/pages/order_fulfillment/components/UpdateOrderModal.tsx";
 import {useState} from "react";
+import OfaEmailModal from "@/pages/order_fulfillment/components/OfaEmailModal.tsx"
 
 const OrderActions = ({order, onSuccess, onFailure}: {
     order: OrderResponse,
     onSuccess?: () => void,
     onFailure?: (err: any) => void
 }) => {
-
-    // const [ contextHolder] = message.useMessage()
     const [editOrderModalOpen, setOrderModalOpen] = useState(false)
+    const [emailModalOpen, setEmailModalOpen] = useState(false)
 
     const ENABLED_GENERATE_LABEL_STATUSES: OrderStatus[] = [
         OrderStatus.New,
@@ -36,7 +36,7 @@ const OrderActions = ({order, onSuccess, onFailure}: {
             }
         },
         {
-            key: '6',
+            key: '4',
             label: '下载面单',
             icon: <DownloadOutlined/>,
             onClick: async () => {
@@ -59,6 +59,14 @@ const OrderActions = ({order, onSuccess, onFailure}: {
                 }
             }
         },
+        {
+            key: '6',
+            label: "发送邮件",
+            icon: <MailOutlined/>,
+            onClick: () => {
+                setEmailModalOpen(true)
+            }
+        }
 
     ]
 
@@ -104,12 +112,23 @@ const OrderActions = ({order, onSuccess, onFailure}: {
                     status: order.status,
                     carrier_code: order.carrier_code,
                     parcel_weights: order.parcel_weights,
+                    tracking_number: order.tracking_number,
+                    tracking_url: order.tracking_url,
+                    delivered: order.delivered,
+                    seller_note:order.seller_note,
+                    estimated_delivery_date: order.estimated_delivery_date,
                 }}
                 onSuccess={() => {
                     onSuccess?.()
                 }}
             >
             </UpdateOrderModal>
+
+            <OfaEmailModal
+                open={emailModalOpen}
+                onClose={() => setEmailModalOpen(false)}
+                order={order}
+            />
         </div>
     )
 

@@ -88,8 +88,10 @@ class PrintTaskService:
     async def update_print_task(self, task_id: int,
                                 task_name: str,
                                 created_by: str,
-                                printed_by: str, status: str,
+                                printed_by: str,
+                                status: str,
                                 file_paths: List[str],
+                                description: str,
                                 skip: int,
                                 signature: str,
                                 **kwargs):
@@ -100,6 +102,9 @@ class PrintTaskService:
         if task_name is not None and task_obj.task_name != task_name:
             task_obj.task_name = task_name
             new_log = await self.create_print_log(task_id, f"Task name updated to {task_name}")
+        if description is not None and task_obj.description != description:
+            task_obj.description = description
+            new_log = await self.create_print_log(task_id, f"Task description updated to {description}")
         if printed_by is not None and task_obj.printed_by != printed_by:
             task_obj.printed_by = printed_by
             new_log = await self.create_print_log(task_id, f"Task will be printed by {printed_by}")

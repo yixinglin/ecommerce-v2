@@ -88,11 +88,11 @@ class OdooStatisticsService:
              'order': 'sequence asc'}
         )
 
-        # 建立 tmpl_id → supplier_info 映射表（只取第一条）
+        # 建立 tmpl_id → supplier_info 映射表（取 min_qty 最大的供应商）
         supplier_info_map = {}
         for info in supplier_infos:
             tmpl_id = info['product_tmpl_id'][0]
-            if tmpl_id not in supplier_info_map:
+            if tmpl_id not in supplier_info_map or info.get('min_qty', 0) > supplier_info_map[tmpl_id].get('min_qty', 0):
                 supplier_info_map[tmpl_id] = info  # 保存完整 supplier_info 字典
 
         # 组装表格数据

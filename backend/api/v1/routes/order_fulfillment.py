@@ -1,14 +1,13 @@
-import io
 from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
-from starlette.responses import StreamingResponse, Response
+from starlette.responses import Response
 from tortoise.exceptions import DoesNotExist
 
 from app import OrderBatchModel_Pydantic, OrderErrorLogModel_Pydantic, OrderStatusLogModel_Pydantic, \
-    OrderItemModel_Pydantic, ShippingLabelModel_Pydantic, AddressModel_Pydantic
+    ShippingLabelModel_Pydantic, AddressModel_Pydantic
 from app.order_fulfillment.common.enums import (
     IntegrationType, OrderStatus, OrderBatchStatus, AddressType, ChannelCode, OperationType, CarrierCode
 )
@@ -30,7 +29,7 @@ def get_all_enums():
         "channel_codes": [{"value": e.value, "label": e.name.title()} for e in ChannelCode],
         "order_status": [{"value": e.value, "label": e.name.title()} for e in OrderStatus],
         "address_type": [{"value": e.value, "label": e.name.title()} for e in AddressType],
-        "carrier_code": [{"value": e.value, "label": e.name.title()} for e in CarrierCode],
+        "carrier_code": [{"value": e.value, "label": e.name.upper()} for e in CarrierCode],
         "operation_type": [{"value": e.value, "label": e.name.title()} for e in OperationType],
         "integration_type": [{"value": e.value, "label": e.name.title()} for e in IntegrationType],
         "order_batch_status": [{"value": e.value, "label": e.name.title()} for e in OrderBatchStatus],

@@ -1,0 +1,32 @@
+[
+  {
+    "label": "请到GLS包裹站取件 Paket zur Abholung im Paketshop bereit [GLS]",
+    "subject": "Paket zur Abholung im GLS-Paketshop bereit",
+    "body": "Sehr geehrte/r Kunde/in,\n\nIhr Paket zu Bestellung #{{order_number}} konnte leider nicht zugestellt werden und wurde in einem GLS-Paketshop für Sie hinterlegt.\n\nSendungsnummer: {{tracking_number}}\nSendungsverfolgung: {{tracking_url}}\n\nBitte holen Sie Ihr Paket in den nächsten Tagen ab, um eine Rücksendung zu vermeiden.\n\nBei Fragen helfen wir Ihnen gerne weiter."
+  },
+  {
+    "label": "重新发送您的包裹 Paket erneut versendet [GLS]",
+    "subject": "Paket erneut versendet",
+    "body": "Sehr geehrte/r Kunde/in,\n\nvielen Dank für Ihre Rückmeldung zu Ihrer Bestellung #{{order_number}}.\nWir haben Ihr Paket erneut über GLS versendet.\n\nSendungsnummer: {{tracking_number}}\nSendungsverfolgung: {{tracking_url}}\n\nBitte verfolgen Sie den Sendungsstatus online. Die Zustellung erfolgt voraussichtlich in den nächsten Tagen.\n\nFür Rückfragen stehen wir Ihnen gerne zur Verfügung."
+  },
+  {
+    "label": "发货延迟 Lieferverzögerung Ihrer Bestellung [GLS]",
+    "subject": "Lieferverzögerung Ihrer Bestellung",
+    "body": "Sehr geehrte/r Kunde/in,\n\nwir möchten uns aufrichtig dafür entschuldigen, dass sich der Versand Ihrer Bestellung #{{order_number}} verzögert hat.\nNach aktueller Rückmeldung aus unserem Lager erwarten wir, dass Ihr Paket voraussichtlich bis spätestens {{estimated_delivery_date}} über GLS bei Ihnen eintreffen wird.\n\nSendungsnummer: {{tracking_number}}\nSendungsverfolgung: {{tracking_url}}\n\nSobald das Paket versendet wurde, können Sie über den obigen Link den aktuellen Versandstatus einsehen.\nFalls Sie den verspäteten Versand nicht akzeptieren möchten, erstatten wir Ihnen selbstverständlich den vollen Rechnungsbetrag.\nBitte teilen Sie uns kurz mit, wie Sie in diesem Fall weiter verfahren möchten.\n\nVielen Dank für Ihre Geduld und Ihr Vertrauen.\n\nFür Rückfragen stehen wir Ihnen jederzeit gerne zur Verfügung."
+  },
+  {
+    "label": "Rückerstattung Ihrer Bestellung",
+    "subject": "Rückerstattung Ihrer Bestellung",
+    "body": "Sehr geehrte/r Kunde/in,\n\nwir bestätigen Ihnen hiermit die Rückerstattung Ihrer Bestellung #{{order_number}}.\nDer Betrag in Höhe von {{Betrag}} wurde soeben über die ursprünglich gewählte Zahlungsart erstattet.\nJe nach Zahlungsanbieter kann es bis zu 3–5 Werktage dauern, bis der Betrag auf Ihrem Konto sichtbar ist.\n\nFür Rückfragen stehen wir Ihnen selbstverständlich jederzeit gerne zur Verfügung."
+  },
+  {
+    "label": "Eingang Ihrer Rücksendung bestätigt",
+    "subject": "Eingang Ihrer Rücksendung bestätigt",
+    "body": "Sehr geehrte/r Kunde/in,\n\nwir bestätigen den Eingang Ihrer Rücksendung zu Bestellung #{{order_number}}.\nDie Ware wurde erfolgreich in unserem Lager verbucht und wird nun geprüft.\nSobald die Prüfung abgeschlossen ist, erfolgt automatisch die Rückerstattung oder der Umtausch, je nach Ihrer Auswahl.\n\nVielen Dank für Ihre Geduld und Ihr Vertrauen."
+  },
+  {
+    "label": "Artikel derzeit nicht lieferbar",
+    "subject": "Artikel derzeit nicht lieferbar",
+    "body": "Sehr geehrte/r Kunde/in,\n\nleider ist der von Ihnen bestellte Artikel {{Artikelname}} derzeit nicht lieferbar.\nWir erwarten eine neue Lieferung voraussichtlich bis {{Datum}}.\nSobald die Ware verfügbar ist, wird Ihr Paket automatisch versendet, und Sie erhalten eine Versandbestätigung per E-Mail.\n\nSollten Sie nicht auf die Nachlieferung warten möchten, können wir Ihnen gerne eine Rückerstattung anbieten.\nBitte teilen Sie uns kurz mit, wie Sie fortfahren möchten.\n\nVielen Dank für Ihr Verständnis."
+  }
+]
