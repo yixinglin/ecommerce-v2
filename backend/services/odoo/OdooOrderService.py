@@ -297,6 +297,7 @@ class OdooOrderService(OdooOrderServiceBase):
         return orderlines
 
     def create_sales_order(self, order: VipOrder):
+        # TODO: 可以改成在线形式，而不是离线。
         order_line_data = []
         for line in order.orderLines:
             code = line.sellerSKU

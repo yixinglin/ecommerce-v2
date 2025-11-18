@@ -128,10 +128,10 @@ export default function UpdateOrderModal({
                     </Form.Item>
                     <Form.Item
                         name="delivered"
-                        label="是否已发货"
+                        label="客户已收货"
                         valuePropName="checked"
                         tooltip={{
-                            title: "是否已发货",
+                            title: "客户已收货",
                         }}
                     >
                         <Switch />
