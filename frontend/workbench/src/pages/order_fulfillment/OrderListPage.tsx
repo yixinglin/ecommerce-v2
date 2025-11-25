@@ -1,4 +1,19 @@
-import {Button, Col, Form, Input, Modal, Row, Select, Space, Table, Tabs, Tag, Tooltip, Typography} from 'antd'
+import {
+    Button,
+    Col,
+    DatePicker,
+    Form,
+    Input,
+    Modal,
+    Row,
+    Select,
+    Space,
+    Table,
+    Tabs,
+    Tag,
+    Tooltip,
+    Typography
+} from 'antd'
 import {useEffect, useRef, useState} from 'react'
 import {type OrderResponse, update_shipping_tracking_status} from '@/api/orders.ts'
 import {ChannelCode, OrderStatus} from '@/api/enums.ts'
@@ -17,6 +32,7 @@ import {formatDate, formatTime} from "@/utils/time.ts";
 import {useNavigate} from "react-router-dom";
 import {CreateBatchButton} from "@/pages/order_fulfillment/components/CreateBatchModal.tsx";
 import OrderGuideModalButton from "@/pages/order_fulfillment/components/OrderGuideButton.tsx";
+import dayjs from "dayjs";
 
 
 const {Title} = Typography;
@@ -53,12 +69,17 @@ export default function OrderListPage() {
 
 
     useEffect(() => {
+        const defaultDate = dayjs().subtract(30, 'day')
+        form.setFieldValue("created_from", defaultDate)
         fetchOrders()
     }, [])
 
 
     const onSearch = async () => {
         const values = form.getFieldsValue()
+        if (values.created_from) {
+            values.created_from = dayjs(values.created_from).toISOString()
+        }
         await fetchOrders(values, true)
     }
 
@@ -66,6 +87,7 @@ export default function OrderListPage() {
         setIsResetting(true)
         clearTimeout(debounceTimer.current)
         form.resetFields()
+        form.setFieldValue("created_from", dayjs().subtract(30, 'day'))
         await resetOrders()  // 调用 Hook 内部的重置逻辑
         setTimeout(() => setIsResetting(false), 500)
     }
@@ -74,6 +96,9 @@ export default function OrderListPage() {
         if (isResetting) return // 重置期间不触发防抖请求
         clearTimeout(debounceTimer.current)
         debounceTimer.current = window.setTimeout(() => {
+            if(allValues.created_from) {
+                allValues.created_from = dayjs(allValues.created_from).toISOString()
+            }
             fetchOrders(allValues, true)
         }, 400)
     }
@@ -355,6 +380,13 @@ export default function OrderListPage() {
                 </Form.Item>
                 <Form.Item name="keyword" label="搜索词">
                     <Input placeholder="请输入搜索词"/>
+                </Form.Item>
+                <Form.Item name="created_from" label="创建自">
+                    <DatePicker
+                        format="DD.MM.YYYY"
+                        disabledDate={(current) => current && current > dayjs().startOf('day')}
+                        style={{width: 160}}
+                    />
                 </Form.Item>
                 <Form.Item>
                     <Button icon={<SearchOutlined/>} type="primary" htmlType="submit" loading={loading}>查询</Button>

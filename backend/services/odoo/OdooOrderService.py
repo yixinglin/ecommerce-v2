@@ -1,4 +1,5 @@
 import re
+import xmlrpc
 from typing import List
 
 from pydantic import BaseModel
@@ -8,10 +9,10 @@ from core.config2 import settings
 from core.log import logger
 from models import Address
 from models.orders import StandardProduct
-from schemas.vip import VipOrder
+from schemas.vip import VipOrder, PimProduct, SpuProduct, SkuProduct
 from utils.stringutils import split_seller_sku
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase,
-                   convert_datetime_to_utc_format, OrderLine)
+                   convert_datetime_to_utc_format, OrderLine, OdooServiceBase)
 from .base import save_record, OdooOrderServiceBase
 import utils.address as addr_utils
 
@@ -433,7 +434,254 @@ class OdooOrderService(OdooOrderServiceBase):
 
         return Address(**addr)
 
+class OdooHsmsService(OdooServiceBase):
 
+    def __init__(self, key_index, *args, **kwargs):
+        super().__init__(key_index, *args, **kwargs)
+
+    def create_sales_order_vip(self, order: VipOrder):
+        # TODO: 在线形式
+        cli = self.api.client
+        order_line_data = []
+        for line in order.orderLines:
+            code = line.sellerSKU
+            base, n_pack = split_seller_sku(code)
+            # 查找产品模板
+            product_ids = cli.search(
+                'product.product',
+                [[['default_code', '=', base]]],
+                {'limit': 1}
+            )
+            if not product_ids:
+                logger.error(f"Product {code} not found")
+                raise RuntimeError(f"Product [{code}] does not match any product in the Odoo Database.")
+            product_id = product_ids[0]  # Product ID of Odoo Database (product.product)
+            product_uom_qty = line.quantity * n_pack  # Convert to quantity in Odoo UOM
+            price_unit = line.price / n_pack  # Convert to unit price in Odoo UOM
+            order_line_data.append((0, 0, {
+                'product_id': product_id,  # 产品ID（必填）
+                'product_uom_qty': product_uom_qty,  # 产品数量
+                'price_unit': price_unit,  # 单价
+            }))
+
+        if order.buyerId is not None:
+            pass
+        else:
+            pass
+
+        pass 
+
+
+
+
+    def create_product_from_pim(self, pim_product: PimProduct):
+        if pim_product.spu is None:
+            raise RuntimeError(f"Data has no SPU")
+
+        if pim_product.skuList is None or len(pim_product.skuList) == 0:
+            raise RuntimeError(f"Data has no SKU")
+
+        sku_product = pim_product.skuList[0]
+        spu_product = pim_product.spu
+
+        logger.info("Post Data: %s", pim_product)
+
+        # --------- Step 1: Update to odoo_product
+        result_product = self._create_product_form_pim(spu_product, sku_product)
+
+        # ----------  Step 2: Update to supplierinfo
+        # TODO: 供应商名字
+        supplier_name = "Laboratorium Dr. Deppe GmbH"
+        result_supplierinfo = self._create_supplier_info_from_pim(supplier_name, spu_product, sku_product)
+
+        # --------------  Step 3 Update to packaging
+        result_packaging_palette = self._create_packaging_from_pim("Palette", spu_product, sku_product)
+        result_packaging_carton = self._create_packaging_from_pim("Karton", spu_product, sku_product)
+        return {
+            "product": result_product,
+            "supplierinfo": result_supplierinfo,
+            "packaging_palette": result_packaging_palette,
+            "packaging_carton": result_packaging_carton,
+        }
+
+    def _create_product_form_pim(self, spu_product: SpuProduct, sku_product: SkuProduct):
+        cli = self.api.client
+
+        product_data = {
+            'default_code': sku_product.skuCode,
+            'name': sku_product.skuName,
+            'list_price': sku_product.price,
+            'standard_price': sku_product.cost,
+            'type': 'product',
+            'weight': sku_product.weight,
+            'barcode': sku_product.packCode,
+            'description_sale': spu_product.description,
+        }
+
+        product_vals = product_data
+
+        default_code = product_vals.get('default_code')
+        if not default_code:
+            raise ValueError("default_code（SKU Code） is missing")
+
+        existing_ids = cli.search(
+            'product.template',
+            [[['default_code', '=', default_code]]],
+            {'limit': 1}
+        )
+
+        result = {}
+        try:
+            if existing_ids:
+                pid = existing_ids[0]
+                logger.info("Updating product information")
+                cli.write('product.template', [[pid], product_vals])
+                result = {"id": pid, "action": "updated"}
+            else:
+                logger.info("Creating product")
+                pid = cli.create('product.template', [product_vals])
+                result = {"id": pid, "action": "created"}
+        except xmlrpc.client.Fault as e:
+            logger.error(f"Failed to upload data to Odoo. {e}")
+            raise RuntimeError(f"Failed to upload data to Odoo. {e}")
+
+        return result
+
+    def _create_supplier_info_from_pim(
+            self,
+            supplier_name: str,
+            spu_product: SpuProduct,
+            sku_product: SkuProduct
+    ):
+        cli = self.api.client
+        default_code = sku_product.skuCode
+
+        supplierinfo_data = {
+            'product_code': sku_product.skuCodeOrigin,
+            'min_qty': sku_product.cartonQuantity,
+            'price': sku_product.cost,
+            'delay': spu_product.leadTime,
+        }
+
+        supplierinfo_vals = supplierinfo_data
+
+        # 查找产品模板
+        product_ids = cli.search(
+            'product.template',
+            [[['default_code', '=', default_code]]],
+            {'limit': 1}
+        )
+
+        if not product_ids:
+            raise RuntimeError(f"Failed to find product with default_code '{default_code}'")
+        product_id = product_ids[0]
+
+        # 查找供应商
+        supplier_ids = cli.search(
+            'res.partner',
+            [[['name', '=', supplier_name]]],
+            {'limit': 1}
+        )
+        if not supplier_ids:
+            raise ValueError(f"Failed to find supplier with name '{supplier_name}'")
+        supplier_id = supplier_ids[0]
+
+        # FIX: supplierinfo 查找必须加入 product_code，否则会误更新其他 SKU
+        existing_ids = cli.search(
+            'product.supplierinfo',
+            [[
+                ['partner_id', '=', supplier_id],
+                ['product_tmpl_id', '=', product_id],
+                ['product_code', '=', sku_product.skuCodeOrigin]  # BUGFIX
+            ]],
+            {'limit': 1}
+        )
+
+        # 填充必要字段
+        supplierinfo_vals['partner_id'] = supplier_id
+        supplierinfo_vals['product_tmpl_id'] = product_id
+
+        try:
+            if existing_ids:
+                sid = existing_ids[0]
+                logger.info(f"Updating supplierinfo for {supplier_name}")
+                cli.write('product.supplierinfo', [[sid], supplierinfo_vals])
+                logger.info(f"Updated supplierinfo (ID: {sid})，产品: {default_code}, 供应商: {supplier_name}")
+                result = {'id': sid, 'action': 'updated'}
+            else:
+                logger.info(f"Creating supplierinfo for {supplier_name}")
+                sid = cli.create('product.supplierinfo', [supplierinfo_vals])
+                logger.info(f"Created supplierinfo (ID: {sid})，产品: {default_code}, 供应商: {supplier_name}")
+                result = {'id': sid, 'action': 'created'}
+        except xmlrpc.client.Fault as e:
+            logger.error(f"Failed to update supplierinfo. {e}")
+            raise RuntimeError(f"Failed to update supplierinfo. {e}")
+
+        return result
+
+    def _create_packaging_from_pim(
+            self,
+            packaging_name: str,
+            spu_product: SpuProduct,
+            sku_product: SkuProduct
+    ):
+        cli = self.api.client
+        default_code = sku_product.skuCode
+        if packaging_name == "Karton":
+            qty = sku_product.cartonQuantity
+            barcode = sku_product.cartonCode
+            sequence = 1
+        else:  # Palette
+            qty = sku_product.palletQuantity
+            barcode = sku_product.palletCode
+            sequence = 2
+
+        packaging_data = {
+            'qty': qty,
+            'barcode': barcode,
+            'sequence': sequence,
+        }
+
+        packaging_vals = packaging_data
+
+        # 查找变体产品
+        product_ids = cli.search(
+            'product.product',
+            [[['default_code', '=', default_code]]],
+            {'limit': 1}
+        )
+
+        if not product_ids:
+            raise RuntimeError(f"Failed to find product [{default_code}]")
+        product_id = product_ids[0]
+
+        existing_ids = cli.search(
+            'product.packaging',
+            [[
+                ['product_id', '=', product_id],
+                ['name', '=', packaging_name],
+            ]],
+            {'limit': 1}
+        )
+
+        packaging_vals['name'] = packaging_name
+        packaging_vals['product_id'] = product_id
+
+        try:
+            if existing_ids:
+                pid = existing_ids[0]
+                cli.write('product.packaging', [[pid], packaging_vals])
+                logger.info(f"Updated packaging (ID: {pid})，Product: {default_code}, Packaging: {packaging_name}")
+                result = {'id': pid, 'action': 'updated'}
+            else:
+                pid = cli.create('product.packaging', [packaging_vals])
+                logger.info(f"Created packaging (ID: {pid})，Product: {default_code}, Packaging: {packaging_name}")
+                result = {'id': pid, 'action': 'created'}
+        except xmlrpc.client.Fault as e:
+            logger.error(f"Failed to update packaging. {e}")
+            raise RuntimeError(f"Failed to update packaging. {e}")
+
+        return result
 
 
 

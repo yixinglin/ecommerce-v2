@@ -393,6 +393,9 @@ class OrderService:
             filters &= Q(channel=request.channel_code)
         if request.delivered is not None:
             filters &= Q(delivered=request.delivered)
+        if request.created_from is not None:
+            filters &= Q(created_at__gte=request.created_from)
+
         if request.keyword:
             filters &= (
                 Q(order_number__icontains=request.keyword) |
@@ -592,6 +595,38 @@ class OrderService:
         result = await AddressModel_Pydantic.from_tortoise_orm(address)
         return result
 
+    @staticmethod
+    async def delete_order(order_id: int) -> bool:
+        order = await OrderModel.get(id=order_id)
+        if order.status not in [OrderStatus.NEW, OrderStatus.CANCELLED]:
+            logger.error(f"Cannot delete order {order.order_number} in status {order.status}")
+            raise ValueError("Please cancel order before deleting")
+
+        async with in_transaction():
+            # 删除errors
+            await OrderErrorLogModel.filter(order_id=order_id).delete()
+            # 删除status_logs
+            await OrderStatusLogModel.filter(order_id=order_id).delete()
+
+            # 删除order items
+            await OrderItemModel.filter(order_id=order_id).delete()
+
+            # 删除快递单
+            await ShippingLabelModel.filter(order_id=order_id).delete()
+
+            # 删除tracking_info
+            await ShippingTrackingModel.filter(order_id=order_id).delete()
+
+            # 删除地址
+            billing_address_id = order.billing_address_id
+            shipping_address_id = order.shipping_address_id
+            await AddressModel.filter(id=billing_address_id).delete()
+            await AddressModel.filter(id=shipping_address_id).delete()
+
+            # 删除订单
+            await order.delete()
+            logger.info(f"Order {order.order_number} deleted")
+            return True
 
 class ShippingLabelService:
 

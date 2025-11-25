@@ -2,25 +2,23 @@ from typing import List, Dict, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Form, HTTPException
+from pydantic import BaseModel
 from starlette.responses import Response
 
 from utils import utilpdf
 from app import PrintTask_Pydantic, PrintLog_Pydantic, PrintFile_Pydantic
 from app.printshop.models.print_task import PrintStatus
 from app.printshop.schames.print_task import PrintFileAddRequest, PrintFileUpdateRequest
-from app.printshop.services.print_task import PrintTaskService, PrintFileService
-
+from app.printshop.services.print_task import PrintTaskService, PrintFileService, PrintTaskCreate, PrinteTaskUpdate
 
 print_task_router = APIRouter()
 
+
+
 @print_task_router.post("/task/create", response_model=PrintTask_Pydantic)
-async def create_print_task(
-        task_name: str = Form(...),
-        created_by: str = Form(...),
-        file_paths: List[str] = Form(None)  # 支持多文件上传
-):
+async def create_print_task(data: PrintTaskCreate):
     service = PrintTaskService()
-    new_task = await service.create_print_task(task_name, created_by, file_paths)
+    new_task = await service.create_print_task(data)
     return new_task
 
 
@@ -46,27 +44,9 @@ async def get_print_tasks(
 
 @print_task_router.put("/task/update/{task_id}",
                        response_model=PrintTask_Pydantic)
-async def update_print_task(
-        task_id: int,
-        task_name: str = Form(None),
-        printed_by: str = Form(None),
-        created_by: str = Form(None),
-        status: PrintStatus = Form(PrintStatus.NOT_PRINTED),
-        file_paths: List[str] = Form(None),  # 支持多文件上传
-        skip: int = Form(None),
-        description: str = Form(None),
-        signature: str = Form(None)):
+async def update_print_task(task_id: int, data: PrinteTaskUpdate):
     services = PrintTaskService()
-    task_obj = await services.update_print_task(
-        task_id=task_id,
-        task_name=task_name,
-        created_by=created_by,
-        printed_by=printed_by,
-        status=status,
-        file_paths=file_paths,
-        skip=skip,
-        description=description,
-        signature=signature)
+    task_obj = await services.update_print_task(task_id, data)
     return task_obj
 
 @print_task_router.get("/log/query/{task_id}",

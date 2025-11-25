@@ -17,6 +17,7 @@ class OrderQueryRequest(BaseModel):
     channel_code: Optional[ChannelCode] = Query(None, description="Channel code, e.g. Woocommerce")
     keyword: Optional[str] = Query(None, description="Keyword to search for order")
     delivered: Optional[bool] = Query(None, description="Filter by delivered orders")
+    created_from: Optional[datetime.datetime] = Query(None, description="Created from date")
     page: int = Query(1, ge=1, description="Page number")
     limit: int = Query(10, ge=1, description="Page size")
 

@@ -5,7 +5,7 @@ from .routes.amazon import amz_order
 from .routes.kaufland import kfld_order
 from .routes.carriers import gls
 from .routes.pickpack import pp_amazon, pp_common
-from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact, odoo_dashboard
+from .routes.odoo import odoo_inventory, odoo_sales, odoo_contact, odoo_dashboard, odoo_hsms
 from .routes.lingxing import warehouse_router, listing_router, basic_router, fba_schipment_plans, order_router as lx_order_router
 from .routes.print_task import print_task_router, print_file_router
 from .routes.barcode import barcode
@@ -42,6 +42,7 @@ odoo.include_router(odoo_inventory)
 odoo.include_router(odoo_sales)
 odoo.include_router(odoo_contact)
 odoo.include_router(odoo_dashboard)
+odoo.include_router(odoo_hsms)
 
 lx = APIRouter(prefix="/lingxing", tags=["LingXing Services"])
 lx.include_router(warehouse_router)

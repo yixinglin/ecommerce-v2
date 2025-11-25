@@ -5,16 +5,17 @@ from starlette.responses import StreamingResponse, HTMLResponse
 from core.config2 import settings
 from core.log import logger
 from schemas import ResponseSuccess, BasicResponse
-from schemas.vip import VipOrder, VipCustomer
+from schemas.vip import VipOrder, VipCustomer, PimProduct
 from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
-from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService
+from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService, OdooHsmsService
 from services.odoo.OdooStatistics import OdooStatisticsService
 
 odoo_inventory = APIRouter(prefix="/inventory",)
 odoo_sales = APIRouter(prefix="/sales", )
 odoo_contact = APIRouter(prefix="/contact", )
 odoo_dashboard = APIRouter(prefix="/dashboard", )
+odoo_hsms = APIRouter(prefix="/hsms", )
 
 odoo_access_key_index = settings.api_keys.odoo_access_key_index
 
@@ -66,7 +67,7 @@ def get_vip_customer_from_odoo_contact_by_id(id: int):
 @odoo_sales.post('/orders', summary="Create an Odoo sales order",
                  response_model=BasicResponse[dict])
 def create_odoo_order(order: VipOrder=
-                      Body(None, description="Odoo Order Body"),
+                      Body(None, description="VIP Order Body"),
                       ):
     logger.info(f"Creating Order: {order.dict()}")
     try:
@@ -76,6 +77,22 @@ def create_odoo_order(order: VipOrder=
         logger.error(f"Order Creation Failed: {e}")
         raise RuntimeError(e)
     return ResponseSuccess(data=ans)
+
+
+@odoo_hsms.post('/products/pim_product', summary="Create an Odoo product from PIM",
+                 response_model=BasicResponse[dict])
+def create_odoo_product_from_pim(
+        pim_product: PimProduct = Body(None, description="PIM Product Body")
+):
+    logger.info(f"Creating Product: {pim_product.dict()}")
+    try:
+        svc = OdooHsmsService(key_index=0, login=True)
+        ans = svc.create_product_from_pim(pim_product)
+    except RuntimeError as e:
+        logger.error(f"Product Creation Failed: {e}")
+        raise RuntimeError(e)
+    return ResponseSuccess(data=ans)
+
 
 @odoo_inventory.get('/products')
 def get_odoo_product_list():

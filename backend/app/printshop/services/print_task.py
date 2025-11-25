@@ -2,9 +2,10 @@ import asyncio
 import datetime
 import hashlib
 import os
-from typing import List
+from typing import List, Optional
 
 from fastapi import HTTPException
+from pydantic import BaseModel
 from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
@@ -25,6 +26,21 @@ from core.worker import executor
 UPLOAD_DIR = settings.static.upload_dir
 
 
+class PrintTaskCreate(BaseModel):
+    task_name: str
+    created_by: str
+    description: Optional[str] = None
+    file_paths: Optional[List[str]] = None
+
+class PrinteTaskUpdate(BaseModel):
+    task_name: Optional[str] = None
+    created_by: Optional[str] = None
+    printed_by: Optional[str] = None
+    status: Optional[PrintStatus] = PrintStatus.NOT_PRINTED
+    file_paths: Optional[List[str]] = None
+    description: Optional[str] = None
+    skip: Optional[int] = None
+    signature: Optional[str] = None
 
 class PrintTaskService:
     def __init__(self):
@@ -39,23 +55,23 @@ class PrintTaskService:
         new_log = await PrintLog_Pydantic.from_tortoise_orm(task_obj)
         return new_log
 
-    async def create_print_task(self, task_name: str, created_by: str,
-                          file_paths: List[str], **kwargs):
+    async def create_print_task(self, task_create: PrintTaskCreate):
         # 组合多个文件路径（使用分号分隔）
-        if isinstance(file_paths, list):
-            file_paths = ";".join(file_paths)
+        if isinstance(task_create.file_paths, list):
+            file_paths = ";".join(task_create.file_paths)
         else:
             file_paths = ""
 
         # 创建数据库记录
         task_obj = await PrintTaskModel.create(
-            task_name=task_name,
-            created_by=created_by,
+            task_name=task_create.task_name,
+            created_by=task_create.created_by,
             file_paths=file_paths
         )
         new_task = await PrintTask_Pydantic.from_tortoise_orm(task_obj)
-        new_log = await self.create_print_log(new_task.id,
-                                         f"Task created by {created_by}")
+        new_log = await self.create_print_log(
+            new_task.id,
+  f"Task created by {task_create.created_by}")
         return new_task
 
     async def get_print_task_by_id(self, task_id: int):
@@ -85,49 +101,40 @@ class PrintTaskService:
             "data": ans
         }
 
-    async def update_print_task(self, task_id: int,
-                                task_name: str,
-                                created_by: str,
-                                printed_by: str,
-                                status: str,
-                                file_paths: List[str],
-                                description: str,
-                                skip: int,
-                                signature: str,
-                                **kwargs):
+    async def update_print_task(self, task_id: int, task_update: PrinteTaskUpdate):
         task_obj = await PrintTaskModel.get_or_none(id=task_id)
         if not task_obj:
             raise HTTPException(status_code=404, detail="Task not found")
 
-        if task_name is not None and task_obj.task_name != task_name:
-            task_obj.task_name = task_name
-            new_log = await self.create_print_log(task_id, f"Task name updated to {task_name}")
-        if description is not None and task_obj.description != description:
-            task_obj.description = description
-            new_log = await self.create_print_log(task_id, f"Task description updated to {description}")
-        if printed_by is not None and task_obj.printed_by != printed_by:
-            task_obj.printed_by = printed_by
-            new_log = await self.create_print_log(task_id, f"Task will be printed by {printed_by}")
-        if created_by is not None and task_obj.created_by != created_by:
-            task_obj.created_by = created_by
-            new_log = await self.create_print_log(task_id, f"Task created by {created_by}")
-        if status is not None and task_obj.status != status:
-            task_obj.status = status
-            if status == PrintStatus.PRINTED:
+        if task_update.task_name is not None and task_obj.task_name != task_update.task_name:
+            task_obj.task_name = task_update.task_name
+            new_log = await self.create_print_log(task_id, f"Task name updated to {task_update.task_name}")
+        if task_update.description is not None and task_obj.description != task_update.description:
+            task_obj.description = task_update.description
+            new_log = await self.create_print_log(task_id, f"Task description updated to {task_update.description}")
+        if task_update.printed_by is not None and task_obj.printed_by != task_update.printed_by:
+            task_obj.printed_by = task_update.printed_by
+            new_log = await self.create_print_log(task_id, f"Task will be printed by {task_update.printed_by}")
+        if task_update.created_by is not None and task_obj.created_by != task_update.created_by:
+            task_obj.created_by = task_update.created_by
+            new_log = await self.create_print_log(task_id, f"Task created by {task_update.created_by}")
+        if task_update.status is not None and task_obj.status != task_update.status:
+            task_obj.status = task_update.status
+            if task_update.status == PrintStatus.PRINTED:
                 task_obj.printed_at = datetime.datetime.utcnow()
                 new_log = await self.create_print_log(task_id, f"Task updated to finished")
-            elif status == PrintStatus.PRINTING:
-                new_log = await self.create_print_log(task_id, f"Task updated to printing by {printed_by}")
-            elif status == PrintStatus.CANCELLED:
+            elif task_update.status == PrintStatus.PRINTING:
+                new_log = await self.create_print_log(task_id, f"Task updated to printing by {task_update.printed_by}")
+            elif task_update.status == PrintStatus.CANCELLED:
                 new_log = await self.create_print_log(task_id, f"Task updated to cancelled")
-            elif status == PrintStatus.NOT_PRINTED:
+            elif task_update.status == PrintStatus.NOT_PRINTED:
                 task_obj.printed_at = None
                 new_log = await self.create_print_log(task_id, f"Task updated to pending")
-        if skip is not None and task_obj.skip != skip:
-            task_obj.skip = skip
-            new_log = await self.create_print_log(task_id, f"Task skip updated to {skip}")
-        if isinstance(file_paths, list):
-            file_paths_ = ";".join(file_paths)
+        if task_update.skip is not None and task_obj.skip != task_update.skip:
+            task_obj.skip = task_update.skip
+            new_log = await self.create_print_log(task_id, f"Task skip updated to {task_update.skip}")
+        if isinstance(task_update.file_paths, list):
+            file_paths_ = ";".join(task_update.file_paths)
             if task_obj.file_paths != file_paths_:
                 task_obj.file_paths = file_paths_
                 new_log = await self.create_print_log(task_id, f"Task file paths updated to {file_paths_}")

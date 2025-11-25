@@ -13,6 +13,7 @@ from crud.odoo import (OdooQuantMongoDB,
 from external.odoo import OdooAPIKey, OdooInventoryAPI, OdooProductAPI, OdooContactAPI
 from external.odoo import DATETIME_PATTERN as ODOO_DATETIME_PATTERN
 import utils.time as time_utils
+from external.odoo.base import OdooAPIBase
 from external.odoo.order import OdooOrderAPI
 from external.odoo.product import OdooProductPackagingAPI
 from models import Address
@@ -107,6 +108,15 @@ def get_field_value(data, field_name):
         return ""
     return val
 
+class OdooServiceBase:
+    def __init__(self, key_index, *args, **kwargs):
+        self.key_index = key_index
+        if key_index is not None:
+            api_key = OdooAPIKey.from_json(key_index)
+            self.api = OdooAPIBase(api_key, **kwargs)
+            self.alias = self.api.get_alias()
+            self.username = self.api.get_username()
+            logger.info(f"Odoo username: {self.username} ({self.alias})")
 
 class OdooInventoryServiceBase:
 

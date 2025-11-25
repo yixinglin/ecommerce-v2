@@ -304,6 +304,17 @@ async def get_order_documents(order_id: int) -> Response:
         logger.error(f"Error getting order documents for order {order_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@ofa_router.delete("/orders/{order_id}")
+async def delete_order(order_id: int):
+    try:
+        await OrderService.delete_order(order_id)
+    except DoesNotExist as e:
+        raise HTTPException(status_code=404, detail=f"{order_id} not found: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error deleting order {order_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"success": True}
+
 
 @ofa_router.post("/batches/create")
 async def create_batch(payload: CreateBatchRequest) -> dict:
