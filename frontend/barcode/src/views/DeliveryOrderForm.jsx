@@ -309,7 +309,7 @@ const DeliveryOrderForm = () => {
               >
                 <CountrySelect />
               </Form.Item>
-              <Form.Itme
+              <Form.Item
                 label="E-Mail"
                 name="email"
                 rules={[
@@ -318,7 +318,7 @@ const DeliveryOrderForm = () => {
                 tooltip={"Email address of the consignee."}
               >
                 <Input placeholder="Enter the email address" />
-              </Form.Itme>
+              </Form.Item>
               <h3 style={{ textAlign: "left" }}>
                 {" "}
                 <ProductOutlined /> 包裹 PARCELS (KG)

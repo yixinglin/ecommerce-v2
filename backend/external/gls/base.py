@@ -90,7 +90,7 @@ class GLSRequestBody(BaseModel):
         addresses = Addresses(delivery=delivery)
 
         services = []
-        if not (stringutils.isEmpty(delivery.phone) and stringutils.isEmpty(delivery.mobile)):
+        if not (stringutils.isEmpty(delivery.phone) and stringutils.isEmpty(delivery.mobile) and stringutils.isEmpty(delivery.email)):
             services.append(Service.flexDeliveryService())
 
         parcels = []
