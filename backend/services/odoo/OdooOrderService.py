@@ -1,10 +1,6 @@
 import re
 import xmlrpc
 from typing import List
-
-from pydantic import BaseModel
-
-import utils.time as time_utils
 from core.config2 import settings
 from core.log import logger
 from models import Address
@@ -13,6 +9,7 @@ from schemas.vip import VipOrder, PimProduct, SpuProduct, SkuProduct
 from utils.stringutils import split_seller_sku
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase,
                    convert_datetime_to_utc_format, OrderLine, OdooServiceBase)
+
 from .base import save_record, OdooOrderServiceBase
 import utils.address as addr_utils
 
