@@ -21,3 +21,8 @@ export function delete_gls_shipment({reference}) {
 export function parse_address({address}) {
     return post_method(apiUrl + '/llm/parser/address', {address});
 }
+
+// OCR Image
+export function ocr_image(payload) {
+    return post_method(apiUrl + '/common/ocr', payload);
+}

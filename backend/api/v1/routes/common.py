@@ -7,6 +7,8 @@ from fastapi import APIRouter, UploadFile, HTTPException
 import hashlib
 
 from core.config2 import settings
+from utils import OcrUtils
+from utils.OcrUtils import ImageParams
 
 common_router = APIRouter()
 
@@ -106,3 +108,8 @@ async def file_upload_without_name(file: UploadFile):
         f.write(content)
     file_size = os.path.getsize(file_location)
     return {"filename": new_filename, "file_size": file_size}
+
+@common_router.post("/ocr", response_model=dict)
+async def ocr_image(params: ImageParams):
+    result = OcrUtils.ocr_image(params)
+    return result
