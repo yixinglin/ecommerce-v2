@@ -78,6 +78,7 @@ PyPDF2==3.0.1
 pyphen==0.17.2
 pypika-tortoise==0.1.6
 pypinyin==0.53.0
+pytesseract==0.3.13
 python-amazon-sp-api==1.6.23
 python-barcode==0.15.1
 python-dateutil==2.9.0.post0

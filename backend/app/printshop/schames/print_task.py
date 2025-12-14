@@ -1,6 +1,8 @@
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
+
+from app.printshop.models.print_task import PrintStatus
 
 
 class PrintFileAddRequest(BaseModel):
@@ -14,3 +16,19 @@ class PrintFileUpdateRequest(BaseModel):
     description: Optional[str] = None
     archived: Optional[bool] = None
     print_count: Optional[int] = None
+
+class PrintTaskCreate(BaseModel):
+    task_name: str
+    created_by: str
+    description: Optional[str] = None
+    file_paths: Optional[List[str]] = None
+
+class PrinteTaskUpdate(BaseModel):
+    task_name: Optional[str] = None
+    created_by: Optional[str] = None
+    printed_by: Optional[str] = None
+    status: Optional[PrintStatus] = PrintStatus.NOT_PRINTED
+    file_paths: Optional[List[str]] = None
+    description: Optional[str] = None
+    skip: Optional[int] = None
+    signature: Optional[str] = None

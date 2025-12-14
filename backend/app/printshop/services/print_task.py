@@ -2,45 +2,28 @@ import asyncio
 import datetime
 import hashlib
 import os
-from typing import List, Optional
+from typing import List
 
 from fastapi import HTTPException
-from pydantic import BaseModel
 from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
 from tortoise.transactions import in_transaction
 
+import utils.time as time_utils
 from app import (
     PrintTaskModel, PrintLogModel, PrintLog_Pydantic,
-    PrintTask_Pydantic, PrintFileModel,PrintFile_Pydantic
+    PrintTask_Pydantic, PrintFileModel, PrintFile_Pydantic
 )
 from app.printshop.models.print_task import PrintStatus
+from app.printshop.schames.print_task import PrintFileAddRequest, PrintFileUpdateRequest, PrintTaskCreate, \
+    PrinteTaskUpdate
 from core.config2 import settings
-
 from core.log import logger
-from app.printshop.schames.print_task import PrintFileAddRequest, PrintFileUpdateRequest
-from utils import utilpdf
-import utils.time as time_utils
 from core.worker import executor
+from utils import utilpdf
 
 UPLOAD_DIR = settings.static.upload_dir
 
-
-class PrintTaskCreate(BaseModel):
-    task_name: str
-    created_by: str
-    description: Optional[str] = None
-    file_paths: Optional[List[str]] = None
-
-class PrinteTaskUpdate(BaseModel):
-    task_name: Optional[str] = None
-    created_by: Optional[str] = None
-    printed_by: Optional[str] = None
-    status: Optional[PrintStatus] = PrintStatus.NOT_PRINTED
-    file_paths: Optional[List[str]] = None
-    description: Optional[str] = None
-    skip: Optional[int] = None
-    signature: Optional[str] = None
 
 class PrintTaskService:
     def __init__(self):
@@ -66,6 +49,7 @@ class PrintTaskService:
         task_obj = await PrintTaskModel.create(
             task_name=task_create.task_name,
             created_by=task_create.created_by,
+            description=task_create.description,
             file_paths=file_paths
         )
         new_task = await PrintTask_Pydantic.from_tortoise_orm(task_obj)
