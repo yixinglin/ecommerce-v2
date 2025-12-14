@@ -319,6 +319,27 @@ const DeliveryOrderForm = () => {
               >
                 <Input placeholder="Enter the email address" />
               </Form.Item>
+              <Form.Item
+                label="手机 Mobile"
+                name="mobile"
+                rules={[
+                  { required: false, message: "Please enter the mobile" },
+                ]}
+                tooltip={"Mobile phone number of the consignee."}
+              >
+                <Input placeholder="Enter the mobile phone number" />
+              </Form.Item>
+              <Form.Item
+                label="电话 Telephone"
+                name="telephone"
+                rules={[
+                  { required: false, message: "Please enter the telephone" },
+                ]}
+                tooltip={"Telephone number of the consignee."}
+              >
+                <Input placeholder="Enter the telephone number" />
+              </Form.Item>
+
               <h3 style={{ textAlign: "left" }}>
                 {" "}
                 <ProductOutlined /> 包裹 PARCELS (KG)
