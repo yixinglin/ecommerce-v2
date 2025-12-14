@@ -102,7 +102,7 @@ class OrderService:
             }
         }
         results = await self.mdb_order.query_orders(
-            filter=query,
+            filter=query, limit=10000,
         )
 
         data = [parse_order(order['data']) for order in results['data']]

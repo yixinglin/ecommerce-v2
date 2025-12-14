@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Input, Button, Form, Card, message, Spin, Modal } from "antd";
+import OCRPasteInput from "../components/OCRPasteInput";
 import {
   MinusCircleOutlined,
   PlusOutlined,
@@ -467,7 +468,11 @@ const DeliveryOrderForm = () => {
           visible={addressModalVisible}
           onCancel={() => setAddressModalVisible(false)}
           footer={[
-            <Button key="cancel" onClick={() => setAddressModalVisible(false)}>
+            <Button key="cancel" onClick={() => {
+                setAddressModalVisible(false)
+                setRawAddress("")
+              }
+            }>
               取消 Cancel
             </Button>,
             <Button
@@ -515,6 +520,15 @@ const DeliveryOrderForm = () => {
             </span>
             ，确保准确无误。
           </p>
+          <div>
+            <OCRPasteInput
+              onOcrComplete={(text) => setRawAddress(text)}
+              language="deu"
+              showTextArea={false}
+              showImagePreview={true}
+              rows={3}
+            />
+          </div>
         </Modal>
       </div>
     </>

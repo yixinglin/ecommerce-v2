@@ -12,7 +12,19 @@ RUN apt-get update && apt-get install -y \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
-    fonts-wqy-zenhei \
+    fonts-dejavu \
+    fonts-dejavu-core \
+    fonts-noto-core \
+    fonts-noto-cjk \
+    fonts-wqy-zenhei
+
+# 安装OCR所需系统依赖
+RUN apt-get install -y \
+    tesseract-ocr \
+    libleptonica-dev \
+    libtesseract-dev \
+    tesseract-ocr-deu \
+    tesseract-ocr-chi-sim \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements.txt to the working directory
