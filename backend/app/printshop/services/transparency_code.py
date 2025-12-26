@@ -274,7 +274,7 @@ class TransparencyCodeService:
         GROUP BY 
             batch_id
         ORDER BY  
-	        created_at desc;
+	        listing_id desc;
         """
         try:
             async with in_transaction() as conn:
