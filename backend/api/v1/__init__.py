@@ -17,9 +17,14 @@ from .routes.woocommerce import order_router as woo_order_router
 from .routes.app_version import app_version_router
 from .routes.order_fulfillment import ofa_router
 from .routes.reply_handler import rh_router
+from .routes.enums import enum_router
+from .routes.warehouse_task import wtm_router
 
 app_ver = APIRouter(prefix="/app_version", tags=["App Version Management"])
 app_ver.include_router(app_version_router)
+
+enums = APIRouter(prefix="/enums", tags=["Enums"])
+enums.include_router(enum_router)
 
 ofa = APIRouter(prefix="/order_fulfillment", tags=["Order Fulfillment"])
 ofa.include_router(ofa_router)
@@ -69,6 +74,9 @@ pfile.include_router(print_file_router)
 amazon_print = APIRouter(prefix="/amazon/print", tags=["Transparency Services"])
 amazon_print.include_router(transparency_router)
 
+wtm = APIRouter(prefix="/warehouse_task", tags=["Warehouse Task Management"])
+wtm.include_router(wtm_router)
+
 common = APIRouter(prefix="/common", tags=["Common Services"])
 common.include_router(common_router)
 
@@ -82,6 +90,7 @@ tc = APIRouter(prefix="/table_convert", tags=["Table Converter"])
 tc.include_router(tc_router)
 
 v1 = APIRouter(prefix='/v1')
+v1.include_router(enums)
 v1.include_router(user)
 v1.include_router(common)
 v1.include_router(app_ver)
@@ -101,5 +110,7 @@ v1.include_router(kfld)
 v1.include_router(pickpack)
 v1.include_router(llm)
 v1.include_router(rh)
+v1.include_router(wtm)
+
 
 
