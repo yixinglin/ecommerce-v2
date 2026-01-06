@@ -18,7 +18,7 @@ from .routes.app_version import app_version_router
 from .routes.order_fulfillment import ofa_router
 from .routes.reply_handler import rh_router
 from .routes.enums import enum_router
-from .routes.warehouse_task import wtm_router
+from .routes.warehouse_task import wtm_router, action_log_router as wtm_action_log_router
 
 app_ver = APIRouter(prefix="/app_version", tags=["App Version Management"])
 app_ver.include_router(app_version_router)
@@ -74,8 +74,9 @@ pfile.include_router(print_file_router)
 amazon_print = APIRouter(prefix="/amazon/print", tags=["Transparency Services"])
 amazon_print.include_router(transparency_router)
 
-wtm = APIRouter(prefix="/warehouse_task", tags=["Warehouse Task Management"])
+wtm = APIRouter(prefix="/wtm", tags=["Warehouse Task Management"])
 wtm.include_router(wtm_router)
+wtm.include_router(wtm_action_log_router)
 
 common = APIRouter(prefix="/common", tags=["Common Services"])
 common.include_router(common_router)

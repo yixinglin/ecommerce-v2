@@ -1,15 +1,15 @@
-
+from typing import List, Dict
 
 from fastapi import APIRouter, Depends
 from starlette.exceptions import HTTPException
-
-from app.warehouse_tasks.models import WarehouseTaskModel_Pydantic
-from app.warehouse_tasks.schemas import WarehouseTaskPayload, TaskQueryRequest
-from app.warehouse_tasks.services import WarehouseTaskService
+from app.warehouse_tasks.models import WarehouseTaskModel_Pydantic, WarehouseTaskActionLog_Pydantic
+from app.warehouse_tasks.schemas import WarehouseTaskPayload, TaskQuery, TaskActionPayload, TaskActionLogQuery
+from app.warehouse_tasks.services import WarehouseTaskService, TaskActionLogService
 from core.log import logger
 from core.response import ListResponse
 
 wtm_router = APIRouter(prefix="/tasks")
+action_log_router = APIRouter(prefix="/action_logs")
 
 def get_service() -> WarehouseTaskService:
     return WarehouseTaskService()
@@ -58,7 +58,7 @@ async def get_task(
     response_model=ListResponse[WarehouseTaskModel_Pydantic]
 )
 async def list_tasks(
-    query: TaskQueryRequest,
+    query: TaskQuery,
     service: WarehouseTaskService = Depends(get_service)
 ):
     try:
@@ -81,3 +81,73 @@ async def delete_task(
 ):
     await service.delete_task(task_id)
     return {"success": True}
+
+@wtm_router.put(
+        "/{task_id}/reset",
+        response_model=WarehouseTaskModel_Pydantic
+)
+async def reset_task(
+        task_id: int,
+        service: WarehouseTaskService = Depends(get_service)
+):
+    task = await service.reset_task(task_id)
+    return task
+
+
+@wtm_router.post(
+    "/{task_id}/perform/{action}",
+)
+async def perform_action(
+        task_id: int,
+        request: TaskActionPayload,
+        service: WarehouseTaskService = Depends(get_service)
+):
+    try:
+        await service.perform_action(task_id, request)
+    except ValueError as e:
+        logger.error(f"Error performing action: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error performing action: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    return {"success": True}
+
+
+def get_action_log_service() -> TaskActionLogService:
+    return TaskActionLogService()
+
+@action_log_router.post(
+    "/list",
+    response_model=ListResponse[WarehouseTaskActionLog_Pydantic]
+)
+async def list_action_logs(
+        query: TaskActionLogQuery,
+        service: TaskActionLogService = Depends(get_action_log_service)
+):
+    try:
+        items = await service.list_logs(query=query)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error listing action logs: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    return items
+
+@action_log_router.get(
+    "/available_actions/{task_id}",
+    response_model=Dict
+)
+async def get_available_actions(
+        task_id: int,
+        service: TaskActionLogService = Depends(get_action_log_service)
+):
+    try:
+        actions = await service.get_available_actions(task_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting available actions: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    return {
+        "data": actions
+    }

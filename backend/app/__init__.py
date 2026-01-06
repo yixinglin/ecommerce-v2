@@ -34,4 +34,4 @@ from .order_fulfillment.models import (
 from .reply_handler.models import EmailInboxModel, EmailActionModel, ProcessedAddressModel
 
 
-from .warehouse_tasks.models import WarehouseTaskModel
+from .warehouse_tasks.models import WarehouseTaskModel, WarehouseTaskActionLog
