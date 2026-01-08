@@ -16,7 +16,7 @@ class WarehouseTaskActionLogger:
         action: str,
         from_status: int,
         to_status: int,
-        operator: str,
+        executor: str,
         comment: str | None = None,
     ) -> None:
         """
@@ -29,7 +29,7 @@ class WarehouseTaskActionLogger:
                 action=action,
                 from_status=from_status,
                 to_status=to_status,
-                operator=operator,
+                executor=executor,
                 comment=comment,
             )
         except Exception as e:

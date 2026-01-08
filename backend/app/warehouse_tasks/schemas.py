@@ -50,7 +50,7 @@ class WarehouseTaskPayload(BaseModel):
 
 class TaskActionPayload(BaseModel):
     action: str
-    operator: str
+    executor: str
     comment: Optional[str] = None
     exception_type: Optional[int] = None
 
@@ -58,7 +58,7 @@ class TaskActionPayload(BaseModel):
 class TaskActionLogQuery(BaseModel):
     task_id: Optional[int] = None
     task_code: Optional[str] = None
-    operator: Optional[str] = None
+    executor: Optional[str] = None
     action: Optional[str] = None
     start_time: Optional[datetime.datetime] = None
     end_time: Optional[datetime.datetime] = None

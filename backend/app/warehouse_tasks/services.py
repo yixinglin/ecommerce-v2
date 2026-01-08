@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from typing import List, Dict
+
 from starlette.exceptions import HTTPException
 from tortoise.exceptions import DoesNotExist
 from tortoise.expressions import Q
@@ -9,7 +11,7 @@ from app.warehouse_tasks.models import WarehouseTaskModel_Pydantic, WarehouseTas
     WarehouseTaskActionLog_Pydantic
 from app.warehouse_tasks.schemas import WarehouseTaskPayload, TaskQuery, TaskActionPayload, TaskActionLogQuery
 from app.warehouse_tasks.state_machine import TaskStateMachine
-from core.response import ListResponse
+from core.response2 import BaseResponse, Page
 from tortoise.timezone import now
 
 
@@ -58,20 +60,9 @@ class WarehouseTaskService:
             task.is_exception = False
             task.exception_type = None
 
-        # if new_status == TaskStatus.PENDING:
-        #     task.executing_at = None
-        #     task.completed_at = None
-        #     task.ready_at = None
-        # elif new_status == TaskStatus.PROCESSING:
-        #     task.executing_at = now()
-        # elif new_status == TaskStatus.READY:
-        #     task.ready_at = now()
-        # elif new_status == TaskStatus.SHIPPED or new_status == TaskStatus.COMPLETED:
-        #     task.completed_at = now()
-
     @atomic()
-    async def update_task(self, task_id, task_data: WarehouseTaskPayload):
-        task = await self.get_task(task_id)
+    async def update_task(self, task_id, task_data: WarehouseTaskPayload) -> BaseResponse[WarehouseTaskModel_Pydantic]:
+        task = await WarehouseTaskModel.get(id=task_id)
 
         # 状态变化
         if task_data.status != task.status:
@@ -86,16 +77,16 @@ class WarehouseTaskService:
                 setattr(task, field, value)
 
         await task.save()
-        return task
+        return BaseResponse.success(await WarehouseTaskModel_Pydantic.from_tortoise_orm(task))
 
-    async def get_task(self, task_id) -> WarehouseTaskModel:
+    async def get_task(self, task_id) -> BaseResponse[WarehouseTaskModel_Pydantic]:
         try:
             task = await WarehouseTaskModel.get(id=task_id)
         except DoesNotExist:
             raise ValueError(f"Task {task_id} not found")
-        return task
+        return BaseResponse.success(data=task)
 
-    async def list_tasks(self, request: TaskQuery) -> ListResponse[WarehouseTaskModel_Pydantic]:
+    async def list_tasks(self, request: TaskQuery) -> BaseResponse[Page[WarehouseTaskModel_Pydantic]]:
         filters = Q()
 
         if request.status:
@@ -150,12 +141,13 @@ class WarehouseTaskService:
         for task in tasks:
             results.append(await WarehouseTaskModel_Pydantic.from_tortoise_orm(task))
 
-        resp = ListResponse(
-            total=total,
-            offset=offset,
+        page = Page(
+            items=results,
             limit=limit,
-            data=results
+            offset=offset,
+            total=total
         )
+        resp = BaseResponse.success(data=page)
         return resp
 
     @atomic()
@@ -167,8 +159,8 @@ class WarehouseTaskService:
             raise HTTPException(status_code=400, detail="Only pending tasks can be deleted")
 
     @atomic()
-    async def reset_task(self, task_id):
-        task = await self.get_task(task_id)
+    async def reset_task(self, task_id) -> BaseResponse[WarehouseTaskModel_Pydantic]:
+        task = await WarehouseTaskModel.get(id=task_id)
         if task.status not in [TaskStatus.CANCELED, TaskStatus.EXCEPTION]:
             raise HTTPException(status_code=400, detail="Only canceled or exception tasks can be reset")
 
@@ -184,31 +176,31 @@ class WarehouseTaskService:
         task.comment = None
         task.executor = None
         await task.save()
-        return task
+        return BaseResponse.success(data=task)
 
-    async def perform_action(self, task_id: int, request: TaskActionPayload):
-        task = await self.get_task(task_id)
+    async def perform_action(self, task_id: int, request: TaskActionPayload) -> WarehouseTaskActionLog_Pydantic:
+        task = await WarehouseTaskModel.get(id=task_id)
         await TaskStateMachine.perform_action(
             task,
             action=request.action,
             comment=request.comment,
-            operator=request.operator,
+            executor=request.executor,
             exception_type=request.exception_type,
         )
-        return task
+        return await WarehouseTaskModel_Pydantic.from_tortoise_orm(task)
 
 
 class TaskActionLogService:
 
-    async def list_logs(self, query: TaskActionLogQuery) -> ListResponse[WarehouseTaskActionLog_Pydantic]:
+    async def list_logs(self, query: TaskActionLogQuery) -> BaseResponse[Page[WarehouseTaskActionLog_Pydantic]]:
 
         filters = Q()
         if query.task_id:
             filters &= Q(task_id=query.task_id)
         if query.task_code:
             filters &= Q(task_code=query.task_code)
-        if query.operator:
-            filters &= Q(operator=query.operator)
+        if query.executor:
+            filters &= Q(executor=query.executor)
         if query.action:
             filters &= Q(action=query.action)
         if query.start_time:
@@ -230,14 +222,16 @@ class TaskActionLogService:
         for item in items:
             results.append(await WarehouseTaskActionLog_Pydantic.from_tortoise_orm(item))
 
-        return ListResponse(
+        page = Page(
             total=total,
             offset=offset,
             limit=limit,
             data=results
         )
 
-    async def get_available_actions(self, task_id: int):
+        return BaseResponse.success(data=page)
+
+    async def get_available_actions(self, task_id: int) -> List[Dict]:
         """
             {task.actions
               .filter(a => a.visible)

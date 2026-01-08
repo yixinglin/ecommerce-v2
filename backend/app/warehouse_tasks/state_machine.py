@@ -27,8 +27,9 @@ class TaskStateMachine:
         ],
         TaskStatus.CONFIRMED: [
             "start",   # 开始执行（备货中）
-            "ready",     # 直接备齐（允许跳过执行）
+            # "ready",     # 直接备齐（允许跳过执行）
             "exception", # 任务异常（拒收）
+            "complete",  # 直接完成
         ],
         TaskStatus.PROCESSING: [
             "ready",  # 确认备齐
@@ -44,7 +45,7 @@ class TaskStateMachine:
 
         TaskStatus.EXCEPTION: [
             "resume",  # 管理员处理后恢复
-            "cancel",  # 直接取消
+            # "cancel",  # 直接取消
         ],
     }
 
@@ -65,37 +66,37 @@ class TaskStateMachine:
     # 3. 操作元信息（给前端）
     _action_meta: Dict[str, dict] = {
         "confirm": {
-            "label": "任务确认",
+            "label": "领取任务",
             "type": "primary",
             "danger": False,
             "confirm": None,
         },
         "start": {
-            "label": "开始任务",
+            "label": "开始执行",
             "type": "primary",
             "danger": False,
             "confirm": None,
         },
         "ready": {
-            "label": "确认备齐",
+            "label": "已备齐",
             "type": "primary",
             "danger": False,
             "confirm": "确认货物已全部备齐？",
         },
         "ship": {
-            "label": "确认发走",
+            "label": "已发走",
             "type": "primary",
             "danger": False,
             "confirm": "确认司机已提货？",
         },
         "complete": {
-            "label": "确认完成",
-            "type": "primary",
+            "label": "已完成",
+            "type": "default",
             "danger": False,
             "confirm": None,
         },
         "exception": {
-            "label": "异常处理",
+            "label": "任务异常",
             "type": "default",
             "danger": True,
             "confirm": "遇到问题无法继续，确认标记为异常？",
@@ -107,7 +108,7 @@ class TaskStateMachine:
             "confirm": "确认异常已处理，恢复任务？",
         },
         "cancel": {
-            "label": "取消任务",
+            "label": "取消",
             "type": "default",
             "danger": True,
             "confirm": "确认取消该任务？",
@@ -183,7 +184,7 @@ class TaskStateMachine:
         cls,
         task: WarehouseTaskModel,
         action: str,
-        operator: str,
+        executor: str,
         *,
         exception_type: int | None = None,
         comment: str | None = None,
@@ -193,7 +194,7 @@ class TaskStateMachine:
 
         :param task: 仓库任务
         :param action: 操作 key（confirm / start / ready / ship / complete）
-        :param operator: 操作人（执行人）
+        :param executor: 操作人（执行人）
         """
 
         current_status = TaskStatus(task.status)
@@ -220,10 +221,11 @@ class TaskStateMachine:
 
         # 自动写业务时间
         if action in ("confirm", "start"):
-            task.executor = operator
+            task.executor = executor
             task.executing_at = now()
 
         if action == "ready":
+            task.executor = executor
             task.ready_at = now()
 
         if action in ("ship", "complete"):
@@ -232,6 +234,9 @@ class TaskStateMachine:
         if action == "resume":
             task.is_exception = False
             task.exception_type = None
+
+        if comment:
+            task.comment = comment
 
         await task.save()
 
@@ -242,7 +247,7 @@ class TaskStateMachine:
             action=action,
             from_status=current_status,
             to_status=new_status,
-            operator=operator,
+            executor=executor,
             comment=comment or (f"异常类型: {exception_type}" if action == "exception" else None)
         )
 

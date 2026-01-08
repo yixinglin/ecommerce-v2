@@ -64,7 +64,7 @@ class WarehouseTaskActionLog(TortoiseBasicModel):
     action = fields.CharField(max_length=32, description="操作动作（confirm / start / ready / ship / complete）")
     from_status = fields.IntField(description="操作前状态")
     to_status = fields.IntField(description="操作后状态")
-    operator = fields.CharField(max_length=20,description="操作人")
+    executor = fields.CharField(max_length=20,description="操作人")
     comment = fields.TextField(null=True, description="操作备注 / 留言")
 
     class Meta:
