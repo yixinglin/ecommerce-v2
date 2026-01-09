@@ -69,5 +69,37 @@ class PimProduct(BaseModel):
     skuList: List[SkuProduct]
 
 
+# ----------CRM系统插件--------------
 
+class CrmAddress(BaseModel):
+    name: Optional[str]
+    name2: Optional[str] = None
+    code: Optional[str] = None
+    street: Optional[str] = None
+    line2: Optional[str] = None
+    city: Optional[str] = None
+    zipCode: Optional[str] = None
+    country: Optional[str] = None
+    telefon: Optional[str] = None
+    mobil: Optional[str] = None
+    email: Optional[str] = None
+    webseite: Optional[str] = None
+    memo: Optional[str] = None
+    type: Optional[str] = None
+    groupAlt: Optional[str] = None
+    vipUsername: Optional[str] = None
+    vipPassword: Optional[str] = None
 
+class CrmContact(BaseModel):
+    firstName: Optional[str] = None
+    lastName: Optional[str]
+    telefon: Optional[str] = None
+    mobile: Optional[str] = None
+    email: Optional[str] = None
+    position: Optional[str] = None
+    positionText: Optional[str] = None
+    type: Optional[str] = None
+    salutation: Optional[str] = None  # Frau, Herr, etc.
+
+class CrmAddressProfile(BaseModel):
+    pass

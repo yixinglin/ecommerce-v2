@@ -1,11 +1,13 @@
 import re
 import xmlrpc
-from typing import List
+from typing import List, Dict
 from core.config2 import settings
+from core.db import RedisDataManager
 from core.log import logger
+from external.odoo.base import OdooBasicAPI
 from models import Address
 from models.orders import StandardProduct
-from schemas.vip import VipOrder, PimProduct, SpuProduct, SkuProduct
+from schemas.vip import VipOrder, PimProduct, SpuProduct, SkuProduct, CrmAddress, CrmContact, CrmAddressProfile
 from utils.stringutils import split_seller_sku
 from .base import (OdooProductServiceBase, OdooContactServiceBase, OdooProductPackagingServiceBase,
                    convert_datetime_to_utc_format, OrderLine, OdooServiceBase)
@@ -431,10 +433,17 @@ class OdooOrderService(OdooOrderServiceBase):
 
         return Address(**addr)
 
+
 class OdooHsmsService(OdooServiceBase):
 
-    def __init__(self, key_index, *args, **kwargs):
-        super().__init__(key_index, *args, **kwargs)
+    R_ODOO_COUNTRIES = "odoo:res.country"
+    R_ODOO_UOM = "odoo:uom.uom"
+    R_ODOO_TITLE = "odoo:res.partner.title"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.redis_man = RedisDataManager()
+        self.base_api = OdooBasicAPI(self.api.api_key)
 
     def create_sales_order_vip(self, order: VipOrder):
         # TODO: 在线形式
@@ -468,9 +477,6 @@ class OdooHsmsService(OdooServiceBase):
 
         pass 
 
-
-
-
     def create_product_from_pim(self, pim_product: PimProduct):
         if pim_product.spu is None:
             raise RuntimeError(f"Data has no SPU")
@@ -500,6 +506,112 @@ class OdooHsmsService(OdooServiceBase):
             "packaging_palette": result_packaging_palette,
             "packaging_carton": result_packaging_carton,
         }
+
+    def create_company_from_crm(self, address: CrmAddress, fill_custom_fields=False):
+        countries = self._fetch_odoo_countries()
+        country_map = {c['code']: c['id'] for c in countries}
+
+        cli = self.api.client
+        address_code = address.code
+        domain = [('ref', '=', address_code), ('is_company', '=', True)]
+        companies = cli.search_read('res.partner', [domain], {})
+        if len(companies) > 0:
+            raise ValueError(f"Company with reference {address_code} already exists in Odoo. Cannot create duplicate.")
+
+        payload = dict(
+            name=address.name,
+            is_company=True,
+            street=address.street,
+            street2=address.line2,
+            city=address.city,
+            zip=address.zipCode,
+            ref=address.code,
+            phone=address.telefon,
+            mobile=address.mobil,
+            email=address.email,
+            website=address.webseite,
+            comment=address.memo,
+            state_id=None,
+            country_id=country_map[address.country],
+        )
+
+        if fill_custom_fields:
+            payload['x_studio_is_customer'] = address.type == 'Customer'
+            payload['x_studio_trger_alt'] = address.groupAlt
+            payload['x_studio_address_verified'] = False
+            payload['x_studio_vip_nutzername'] = address.vipUsername
+            payload['x_studio_vip_password'] = address.vipPassword
+
+        payload = {k: v for k, v in payload.items() if v is not None}
+
+        new_contact_id = cli.create('res.partner', [payload])
+
+        logger.info(f"Created new company with ID {new_contact_id}")
+
+        result = {
+            "id": new_contact_id,
+            "action": "created"
+        }
+        return result
+
+    def create_contact_person_from_crm(self, address_code: str, contacts: List[CrmContact], fill_custom_fields=False) -> Dict:
+        cli = self.api.client
+        # 通过addressCode查找公司
+        domain = [('ref', '=', address_code), ('is_company', '=', True)]
+        companies = cli.search_read('res.partner', [domain], {})
+        if len(companies) != 1:
+            raise ValueError(f"Make sure only one company exists in Odoo with ref {address_code}, found {len(companies)}.")
+
+        child_ids = companies[0]['child_ids']
+        company_id = companies[0]['id']
+
+        person_count = len(child_ids)
+        if person_count != 0:
+            raise ValueError(
+                f"Make sure no contact persons exist in Odoo for company with ref {address_code}, found {person_count}."
+            )
+
+        payloads = []
+        for contact in contacts:
+            payload = dict(
+                name=contact.firstName + " " + contact.lastName,
+                parent_id=company_id,
+                company_type='person',
+                phone=contact.telefon,
+                mobile=contact.mobile,
+                email=contact.email,
+                function=contact.position,
+                street=None,
+                city=None,
+                zip=None,
+                state_id=None,
+                country_id=None
+            )
+            if contact.salutation.lower() == "herr":
+                payload['title'] = 3
+            elif contact.salutation.lower() == "frau":
+                payload['title'] = 1
+            else:
+                payload['title'] = None
+
+            if fill_custom_fields:
+                payload['x_studio_position_freitext'] = contact.positionText
+                payload['x_studio_is_main_contact_person'] = contact.type == 'Main'
+            payloads.append(payload)
+
+        payloads = [{k: v for k, v in payload.items() if v is not None} for payload in payloads]
+
+        # 新增联系人
+        contact_ids = cli.create('res.partner', [payloads])
+        results = {
+            "ids": contact_ids,
+            "action": "created"
+        }
+        return results
+
+    def create_address_profile_from_crm(self, address_code: str, profile: CrmAddressProfile, fill_custom_fields=False) -> Dict:
+        # TODO: 创建address_profile
+        pass
 
     def _create_product_form_pim(self, spu_product: SpuProduct, sku_product: SkuProduct):
         cli = self.api.client
@@ -679,6 +791,33 @@ class OdooHsmsService(OdooServiceBase):
             raise RuntimeError(f"Failed to update packaging. {e}")
 
         return result
+
+    def _fetch_odoo_countries(self):
+        data = self.redis_man.get_json(self.R_ODOO_COUNTRIES)
+        if data is None:
+            results = self.base_api.fetch_countries()
+            data = {"items": results}
+            self.redis_man.set_json(self.R_ODOO_COUNTRIES, data, 3600*24)
+        return data['items']
+
+    def _fetch_odoo_uom(self):
+        data = self.redis_man.get_json(self.R_ODOO_UOM)
+        if data is None:
+            results = self.base_api.fetch_uom()
+            data = {"items": results}
+            self.redis_man.set_json(self.R_ODOO_UOM, data, 3600)
+        return data['items']
+
+    def _fetch_odoo_title(self):
+        data = self.redis_man.get_json(self.R_ODOO_TITLE)
+        if data is None:
+            results = self.base_api.fetch_titles()
+            data = {"items": results}
+            self.redis_man.set_json(self.R_ODOO_TITLE, data, 3600)
+        return data['items']
+
+
+
 
 
 

@@ -1,11 +1,13 @@
 import io
+from typing import List
+
 import pandas as pd
 from fastapi import APIRouter, Body
 from starlette.responses import StreamingResponse, HTMLResponse
 from core.config2 import settings
 from core.log import logger
 from schemas import ResponseSuccess, BasicResponse
-from schemas.vip import VipOrder, VipCustomer, PimProduct
+from schemas.vip import VipOrder, VipCustomer, PimProduct, CrmAddress, CrmContact
 from services.odoo.OdooDashboardService import OdooOrderDashboardService
 from services.odoo.OdooInventoryService import OdooInventoryService
 from services.odoo.OdooOrderService import OdooProductService, OdooContactService, OdooOrderService, OdooHsmsService
@@ -93,6 +95,34 @@ def create_odoo_product_from_pim(
         raise RuntimeError(e)
     return ResponseSuccess(data=ans)
 
+@odoo_hsms.post('/crm/address', summary="Create an Odoo company from CRM",
+                response_model=BasicResponse[dict])
+def create_odoo_company_from_crm(
+        crm_company: CrmAddress = Body(None, description="CRM Company Body")
+):
+    logger.info(f"Creating Company: {crm_company.dict()}")
+    try:
+        svc = OdooHsmsService(key_index=0, login=True)
+        ans = svc.create_company_from_crm(crm_company, fill_custom_fields=False)
+    except RuntimeError as e:
+        logger.error(f"Company Creation Failed: {e}")
+        raise RuntimeError(e)
+    return ResponseSuccess(data=ans)
+
+@odoo_hsms.post('/crm/contact_person/{address_code}', summary="Create an Odoo contact person from CRM",
+                response_model=BasicResponse[dict])
+def create_odoo_contact_person_from_crm(
+        address_code: str,
+        crm_persons: List[CrmContact] = Body(None, description="CRM Contact Body"),
+):
+    logger.info(f"Creating Contact Persons for {address_code}: {[p.lastName for p in crm_persons]}")
+    try:
+        svc = OdooHsmsService(key_index=0, login=True)
+        ans = svc.create_contact_person_from_crm(address_code, crm_persons, fill_custom_fields=False)
+    except RuntimeError as e:
+        logger.error(f"Contact Person Creation Failed: {e}")
+        raise RuntimeError(e)
+    return ResponseSuccess(data=ans)
 
 @odoo_inventory.get('/products')
 def get_odoo_product_list():

@@ -1,6 +1,8 @@
 import datetime
 import os
 import xmlrpc.client
+from typing import List, Dict
+
 from pydantic import BaseModel, Field
 from core.config2 import settings
 import json
@@ -102,4 +104,28 @@ class OdooAPIBase(object):
 
     def fetch_write_date(self, model, ids, *args, **kwargs):
         return self.client.read(model, [ids], {'fields': ['id', 'write_date']})
+
+class OdooBasicAPI(OdooAPIBase):
+    def __init__(self, api_key: OdooAPIKey, *args, **kwargs):
+        super().__init__(api_key, *args, **kwargs)
+
+    def fetch_uom(self) -> List[Dict]:
+        res = self.client.search_read('uom.uom', [[]],  {
+            'fields': [
+                'id', 'name', 'category_id', 'factor',
+                'factor_inv', 'rounding', 'uom_type'
+            ]
+        })
+        return res
+
+    def fetch_countries(self) ->List[Dict]:
+        res = self.client.search_read('res.country', [[]], {
+            'fields': ['id', 'name', 'code']
+        })
+        return res
+
+    def fetch_titles(self) -> List[Dict]:
+        res = self.client.search_read('res.partner.title', [[]],  {'fields': ['id', 'name', 'shortcut']})
+        return res
+
 

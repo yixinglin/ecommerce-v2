@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 from core.log import logger
 from .base import OdooAPIKey, OdooAPIBase
 
@@ -20,3 +22,11 @@ class OdooContactAPI(OdooAPIBase):
     def fetch_contact_write_date(self, ids):
         return self.fetch_write_date('res.partner', ids)
 
+    def fetch_company_by_ref(self, ref) -> List[Dict]:
+        logger.info("Fetching company by ref")
+        domain = [('ref', '=', ref), ('is_company', '=', True)]
+        return self.client.search_read('res.partner', [domain], {})
+
+    def create_contact(self, contact_data) -> List[int]:
+        logger.info("Creating contact")
+        return self.client.create('res.partner', [contact_data])

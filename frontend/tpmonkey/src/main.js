@@ -4,6 +4,7 @@ import AmazonOrderDetails from './app/AmazonOrderDetails.js';
 import EbayOrderDetails from './app/EbayOrderDetails.js';
 import VipOrderDetails from './app/VipOrderDetails.js';
 import VipCustomerAccount from './app/VipCustomerAccount.js';
+import CrmAddressDetails  from './app/CrmAddressDetails.js';
 
 function applications() {
     console.log("Welcome to TPMonkey");
@@ -23,6 +24,9 @@ function applications() {
     vd.mount();
 
     VipCustomerAccount();
+
+    var cad = new CrmAddressDetails();
+    cad.mount();
     
 }
 
